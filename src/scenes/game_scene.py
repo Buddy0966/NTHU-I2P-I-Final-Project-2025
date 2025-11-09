@@ -5,6 +5,8 @@ import time
 from src.scenes.scene import Scene
 from src.core import GameManager, OnlineManager
 from src.utils import Logger, PositionCamera, GameSettings, Position
+from src.interface.components import Button
+from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
 from src.sprites import Sprite
 from typing import override
@@ -13,7 +15,8 @@ class GameScene(Scene):
     game_manager: GameManager
     online_manager: OnlineManager | None
     sprite_online: Sprite
-    
+    setting_button: Button
+
     def __init__(self):
         super().__init__()
         # Game Manager
@@ -30,17 +33,20 @@ class GameScene(Scene):
             self.online_manager = None
         self.sprite_online = Sprite("ingame_ui/options1.png", (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE))
         
-        self._settings_size = (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
-        self._settings_pos = (GameSettings.SCREEN_WIDTH - self._settings_size[0] - 8, 8)
-        self.sprite_settings = Sprite("UI/button_setting.png", self._settings_size)
-        self.sprite_settings.update_pos(Position(self._settings_pos[0], self._settings_pos[1]))
-        self.sprite_settings_hover = Sprite("UI/button_setting_hover.png", self._settings_size)
-        self.sprite_settings_hover.update_pos(Position(self._settings_pos[0], self._settings_pos[1]))
-        self.settings_rect = pg.Rect(self._settings_pos, self._settings_size)
-        self._settings_click_cooldown = 0.0
-        self._SETTINGS_CLICK_WAIT = 0.1
-        # track whether hover (alternate) button is active
-        self._settings_is_hover = False
+        px, py = GameSettings.SCREEN_WIDTH // 2, GameSettings.SCREEN_HEIGHT * 3 // 4
+        # Place button at top-right corner
+
+        margin = 12
+        btn_w, btn_h = 60, 60  # 可改成 GameSettings.TILE_SIZE, GameSettings.TILE_SIZE
+        bx = GameSettings.SCREEN_WIDTH - btn_w - margin
+        by = margin
+
+        self.setting_button = Button(
+            "UI/button_setting.png", "UI/button_setting_hover.png",
+            bx, by, btn_w, btn_h,
+            # lambda: scene_manager.change_scene("setting")
+        )
+
     @override
     def enter(self) -> None:
         sound_manager.play_bgm("RBY 103 Pallet Town.ogg")
@@ -67,20 +73,7 @@ class GameScene(Scene):
         self.game_manager.bag.update(dt)
         # -----------------------------------------
 
-        # update settings click cooldown
-        if getattr(self, "_settings_click_cooldown", 0.0) > 0.0:
-            self._settings_click_cooldown = max(0.0, self._settings_click_cooldown - dt)
-
-        # hover: 根據滑鼠位置直接切換 hover 狀態（不需按下）
-        mouse_pos = pg.mouse.get_pos()
-        self._settings_is_hover = self.settings_rect.collidepoint(mouse_pos)
-
-        # click handling (保留按下行為，例如開啟設定)
-        if pg.mouse.get_pressed()[0] and getattr(self, "_settings_click_cooldown", 0.0) == 0.0:
-            if self._settings_is_hover:
-                Logger.info("Settings button clicked")
-                # TODO: 切換到設定場景或顯示設定視窗
-                self._settings_click_cooldown = self._SETTINGS_CLICK_WAIT
+        self.setting_button.update(dt)
 
         if self.game_manager.player is not None and self.online_manager is not None:
             _ = self.online_manager.update(
@@ -112,12 +105,7 @@ class GameScene(Scene):
 
         self.game_manager.bag.draw(screen)
 
-        # draw settings button as screen-overlay UI (topmost)
-        if getattr(self, "_settings_is_hover", False):
-            self.sprite_settings_hover.draw(screen)
-        else:
-            self.sprite_settings.draw(screen)
-        
+        self.setting_button.draw(screen)
         
         if self.online_manager and self.game_manager.player:
             list_online = self.online_manager.get_list_players()
