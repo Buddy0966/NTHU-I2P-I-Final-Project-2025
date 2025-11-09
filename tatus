@@ -1,0 +1,22 @@
+[33m47fde0b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/button-hover[m[33m, [m[1;31morigin/feature/button-hover[m[33m)[m HEAD@{0}: commit: Add settings hover button in GameScene
+[33m69f7cdc[m[33m ([m[1;32mfix/teleport-spawn-wait[m[33m)[m HEAD@{1}: Branch: renamed refs/heads/feature/button-hover to refs/heads/feature/button-hover
+[33m69f7cdc[m[33m ([m[1;32mfix/teleport-spawn-wait[m[33m)[m HEAD@{3}: checkout: moving from feature/button-hover to feature/button-hover
+[33m69f7cdc[m[33m ([m[1;32mfix/teleport-spawn-wait[m[33m)[m HEAD@{4}: checkout: moving from fix/teleport-spawn-wait to feature/button-hover
+[33m69f7cdc[m[33m ([m[1;32mfix/teleport-spawn-wait[m[33m)[m HEAD@{5}: checkout: moving from wip/setting_scene to fix/teleport-spawn-wait
+[33m2a1f993[m[33m ([m[1;32mwip/setting_scene[m[33m)[m HEAD@{6}: commit: WIP: setting_scene
+[33mac2b753[m[33m ([m[1;32mfeature/todo6[m[33m)[m HEAD@{7}: checkout: moving from feature/todo6 to wip/setting_scene
+[33mac2b753[m[33m ([m[1;32mfeature/todo6[m[33m)[m HEAD@{8}: checkout: moving from fix/teleport-spawn-wait to feature/todo6
+[33m69f7cdc[m[33m ([m[1;32mfix/teleport-spawn-wait[m[33m)[m HEAD@{9}: reset: moving to HEAD
+[33m69f7cdc[m[33m ([m[1;32mfix/teleport-spawn-wait[m[33m)[m HEAD@{10}: checkout: moving from feature/todo6 to fix/teleport-spawn-wait
+[33mac2b753[m[33m ([m[1;32mfeature/todo6[m[33m)[m HEAD@{11}: commit: WIP: setting_scene changes
+[33mbab9c52[m[33m ([m[1;31morigin/feature/todo6[m[33m, [m[1;32mfeature/todo4[m[33m)[m HEAD@{12}: checkout: moving from feature/todo4 to feature/todo6
+[33mbab9c52[m[33m ([m[1;31morigin/feature/todo6[m[33m, [m[1;32mfeature/todo4[m[33m)[m HEAD@{13}: commit: Complete TODO 6
+[33m03f51dc[m[33m ([m[1;31morigin/feature/todo4[m[33m)[m HEAD@{14}: commit: Complete TODO 4: <short description>
+[33m6dcb07a[m[33m ([m[1;31morigin/feature/camera-fix[m[33m, [m[1;32mfeature/camera-fix[m[33m)[m HEAD@{15}: checkout: moving from feature/camera-fix to feature/todo4
+[33m6dcb07a[m[33m ([m[1;31morigin/feature/camera-fix[m[33m, [m[1;32mfeature/camera-fix[m[33m)[m HEAD@{16}: checkout: moving from feature/camera-fix to feature/camera-fix
+[33m6dcb07a[m[33m ([m[1;31morigin/feature/camera-fix[m[33m, [m[1;32mfeature/camera-fix[m[33m)[m HEAD@{17}: commit: Implement camera centering/clamping (TODO HACKATHON 3)
+[33m26f115f[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{18}: checkout: moving from main to feature/camera-fix
+[33m26f115f[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{19}: checkout: moving from main to main
+[33m26f115f[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{20}: Branch: renamed refs/heads/main to refs/heads/main
+[33m26f115f[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{22}: Branch: renamed refs/heads/master to refs/heads/main
+[33m26f115f[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{24}: commit (initial): Initial commit
