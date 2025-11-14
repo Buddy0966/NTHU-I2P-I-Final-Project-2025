@@ -5,7 +5,7 @@ import time
 from src.scenes.scene import Scene
 from src.core import GameManager, OnlineManager
 from src.utils import Logger, PositionCamera, GameSettings, Position
-from src.interface.components import Button
+from src.interface.components import Button, SettingsPanelGame
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
 from src.sprites import Sprite
@@ -16,6 +16,8 @@ class GameScene(Scene):
     online_manager: OnlineManager | None
     sprite_online: Sprite
     setting_button: Button
+    settings_panel: SettingsPanelGame | None
+    show_settings: bool
 
     def __init__(self):
         super().__init__()
@@ -33,19 +35,53 @@ class GameScene(Scene):
             self.online_manager = None
         self.sprite_online = Sprite("ingame_ui/options1.png", (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE))
         
-        px, py = GameSettings.SCREEN_WIDTH // 2, GameSettings.SCREEN_HEIGHT * 3 // 4
-        # Place button at top-right corner
-
         margin = 12
-        btn_w, btn_h = 60, 60  # 可改成 GameSettings.TILE_SIZE, GameSettings.TILE_SIZE
+        btn_w, btn_h = 60, 60
         bx = GameSettings.SCREEN_WIDTH - btn_w - margin
         by = margin
 
         self.setting_button = Button(
             "UI/button_setting.png", "UI/button_setting_hover.png",
             bx, by, btn_w, btn_h,
-            # lambda: scene_manager.change_scene("setting")
+            self._toggle_settings
         )
+        
+        self.show_settings = False
+        self.settings_panel = None
+
+    def _toggle_settings(self) -> None:
+        self.show_settings = not self.show_settings
+        if self.show_settings:
+            panel_w, panel_h = 600, 320
+            panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
+            panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
+            self.settings_panel = SettingsPanelGame(
+                "UI/raw/UI_Flat_Frame03a.png",
+                panel_x, panel_y, panel_w, panel_h,
+                on_exit=self._toggle_settings,
+                on_volume_change=lambda v: sound_manager.set_master_volume(v),
+                on_mute_toggle=self._handle_mute,
+                on_save=self._save_game,
+                on_load=self._load_game
+            )
+
+            self.settings_panel.set_back_callback(self._toggle_settings)
+
+    def _handle_mute(self, is_muted: bool) -> None:
+        if is_muted:
+            sound_manager.pause_all()
+        else:
+            sound_manager.resume_all()
+
+    def _save_game(self) -> None:
+        self.game_manager.save("saves/game0.json")
+        Logger.info("Game saved!")
+
+    def _load_game(self) -> None:
+        loaded = GameManager.load("saves/game0.json")
+        if loaded:
+            self.game_manager = loaded
+            Logger.info("Game loaded!")
 
     @override
     def enter(self) -> None:
@@ -60,20 +96,22 @@ class GameScene(Scene):
         
     @override
     def update(self, dt: float):
+        self.setting_button.update(dt)
+        
+        if self.show_settings and self.settings_panel:
+            self.settings_panel.update(dt)
+            return
+        
         # Check if there is assigned next scene
         self.game_manager.try_switch_map()
         # Update game manager timers (e.g., teleport cooldown)
         self.game_manager.update(dt)
 
-        # ---- 恢復玩家 / 敵人 / 背包的每幀更新 ----
         if self.game_manager.player:
             self.game_manager.player.update(dt)
         for enemy in self.game_manager.current_enemy_trainers:
             enemy.update(dt)
         self.game_manager.bag.update(dt)
-        # -----------------------------------------
-
-        self.setting_button.update(dt)
 
         if self.game_manager.player is not None and self.online_manager is not None:
             _ = self.online_manager.update(
@@ -85,16 +123,7 @@ class GameScene(Scene):
     @override
     def draw(self, screen: pg.Surface):        
         if self.game_manager.player:
-            '''
-            [TODO HACKATHON 3]
-            Implement the camera algorithm logic here
-            Right now it's hard coded, you need to follow the player's positions
-            you may use the below example, but the function still incorrect, you may trace the entity.py
-            
             camera = self.game_manager.player.camera
-            '''
-            camera = self.game_manager.player.camera
-            # camera = PositionCamera(16 * GameSettings.TILE_SIZE, 30 * GameSettings.TILE_SIZE)
             self.game_manager.current_map.draw(screen, camera)
             self.game_manager.player.draw(screen, camera)
         else:
@@ -104,7 +133,6 @@ class GameScene(Scene):
             enemy.draw(screen, camera)
 
         self.game_manager.bag.draw(screen)
-
         self.setting_button.draw(screen)
         
         if self.online_manager and self.game_manager.player:
@@ -115,3 +143,10 @@ class GameScene(Scene):
                     pos = cam.transform_position_as_position(Position(player["x"], player["y"]))
                     self.sprite_online.update_pos(pos)
                     self.sprite_online.draw(screen)
+        
+        if self.show_settings and self.settings_panel:
+            overlay = pg.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
+            overlay.set_alpha(128)
+            overlay.fill((0, 0, 0))
+            screen.blit(overlay, (0, 0))
+            self.settings_panel.draw(screen)
