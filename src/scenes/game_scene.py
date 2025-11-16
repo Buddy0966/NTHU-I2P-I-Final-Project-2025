@@ -5,7 +5,7 @@ import time
 from src.scenes.scene import Scene
 from src.core import GameManager, OnlineManager
 from src.utils import Logger, PositionCamera, GameSettings, Position
-from src.interface.components import Button, SettingsPanelGame
+from src.interface.components import Button, SettingsPanelGame, BagPanel
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
 from src.sprites import Sprite
@@ -16,8 +16,11 @@ class GameScene(Scene):
     online_manager: OnlineManager | None
     sprite_online: Sprite
     setting_button: Button
+    backpack_button: Button
     settings_panel: SettingsPanelGame | None
+    bag_panel: BagPanel | None
     show_settings: bool
+    show_bag: bool
 
     def __init__(self):
         super().__init__()
@@ -46,8 +49,16 @@ class GameScene(Scene):
             self._toggle_settings
         )
         
+        self.backpack_button = Button(
+            "UI/button_backpack.png", "UI/button_backpack_hover.png",
+            bx - btn_w - margin, by, btn_w, btn_h,
+            self._toggle_bag
+        )
+        
         self.show_settings = False
+        self.show_bag = False
         self.settings_panel = None
+        self.bag_panel = None
 
     def _toggle_settings(self) -> None:
         self.show_settings = not self.show_settings
@@ -66,6 +77,18 @@ class GameScene(Scene):
             )
 
             self.settings_panel.set_back_callback(self._toggle_settings)
+
+    def _toggle_bag(self) -> None:
+        self.show_bag = not self.show_bag
+        if self.show_bag:
+            panel_w, panel_h = 600, 400
+            panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
+            panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
+            self.bag_panel = BagPanel(
+                self.game_manager.bag._items_data,
+                panel_x, panel_y, panel_w, panel_h,
+                on_exit=self._toggle_bag
+            )
 
     def _handle_mute(self, is_muted: bool) -> None:
         if is_muted:
@@ -97,9 +120,14 @@ class GameScene(Scene):
     @override
     def update(self, dt: float):
         self.setting_button.update(dt)
+        self.backpack_button.update(dt)
         
         if self.show_settings and self.settings_panel:
             self.settings_panel.update(dt)
+            return
+        
+        if self.show_bag and self.bag_panel:
+            self.bag_panel.update(dt)
             return
         
         # Check if there is assigned next scene
@@ -138,6 +166,7 @@ class GameScene(Scene):
 
         self.game_manager.bag.draw(screen)
         self.setting_button.draw(screen)
+        self.backpack_button.draw(screen)
         
         if self.online_manager and self.game_manager.player:
             list_online = self.online_manager.get_list_players()
@@ -154,3 +183,10 @@ class GameScene(Scene):
             overlay.fill((0, 0, 0))
             screen.blit(overlay, (0, 0))
             self.settings_panel.draw(screen)
+        
+        if self.show_bag and self.bag_panel:
+            overlay = pg.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
+            overlay.set_alpha(128)
+            overlay.fill((0, 0, 0))
+            screen.blit(overlay, (0, 0))
+            self.bag_panel.draw(screen)
