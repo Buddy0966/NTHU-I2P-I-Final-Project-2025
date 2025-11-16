@@ -6,6 +6,9 @@ from .services import scene_manager, input_manager
 from src.scenes.menu_scene import MenuScene
 from src.scenes.game_scene import GameScene
 from src.scenes.setting_scene import SettingScene
+from src.scenes.battle_scene import BattleScene
+from src.scenes.battle_transition_scene import BattleTransitionScene
+from src.core.managers.game_manager import GameManager
 
 class Engine:
 
@@ -27,6 +30,11 @@ class Engine:
         scene_manager.register_scene("menu", MenuScene())
         scene_manager.register_scene("game", GameScene())
         scene_manager.register_scene("setting", SettingScene())
+        
+        # Battle scenes (will be re-created dynamically)
+        game_manager = GameManager.load("saves/game0.json")
+        scene_manager.register_scene("battle", BattleScene(game_manager))
+        scene_manager.register_scene("battle_transition", BattleTransitionScene())
         
         scene_manager.change_scene("menu")
 

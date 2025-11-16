@@ -111,6 +111,10 @@ class GameScene(Scene):
             self.game_manager.player.update(dt)
         for enemy in self.game_manager.current_enemy_trainers:
             enemy.update(dt)
+            # Battle trigger
+            if enemy.detected and input_manager.key_pressed(pg.K_SPACE):
+                scene_manager.change_scene("battle_transition")
+                return
         self.game_manager.bag.update(dt)
 
         if self.game_manager.player is not None and self.online_manager is not None:

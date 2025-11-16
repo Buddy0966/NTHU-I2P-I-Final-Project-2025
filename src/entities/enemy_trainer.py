@@ -82,10 +82,15 @@ class EnemyTrainer(Entity):
         self.los_direction = self.direction
 
     def _get_los_rect(self) -> pygame.Rect | None:
-        '''
-        TODO: Create hitbox to detect line of sight of the enemies towards the player
-        '''
-        return None
+        range_tiles = 3 * GameSettings.TILE_SIZE
+        if self.los_direction == Direction.RIGHT:
+            return pygame.Rect(self.position.x, self.position.y - GameSettings.TILE_SIZE // 2, range_tiles, GameSettings.TILE_SIZE * 2)
+        elif self.los_direction == Direction.LEFT:
+            return pygame.Rect(self.position.x - range_tiles, self.position.y - GameSettings.TILE_SIZE // 2, range_tiles, GameSettings.TILE_SIZE * 2)
+        elif self.los_direction == Direction.DOWN:
+            return pygame.Rect(self.position.x - GameSettings.TILE_SIZE // 2, self.position.y, GameSettings.TILE_SIZE * 2, range_tiles)
+        else:
+            return pygame.Rect(self.position.x - GameSettings.TILE_SIZE // 2, self.position.y - range_tiles, GameSettings.TILE_SIZE * 2, range_tiles)
 
     def _has_los_to_player(self) -> None:
         player = self.game_manager.player
@@ -93,14 +98,10 @@ class EnemyTrainer(Entity):
             self.detected = False
             return
         los_rect = self._get_los_rect()
-        if los_rect is None:
+        if los_rect and player.animation.rect.colliderect(los_rect):
+            self.detected = True
+        else:
             self.detected = False
-            return
-        '''
-        TODO: Implement line of sight detection
-        If it's detected, set self.detected to True
-        '''
-        self.detected = False
 
     @classmethod
     @override

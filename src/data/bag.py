@@ -17,6 +17,14 @@ class Bag:
 
     def draw(self, screen: pg.Surface):
         pass
+    
+    @property
+    def monsters(self) -> list[Monster]:
+        return self._monsters_data
+    
+    @property
+    def items(self) -> list[Item]:
+        return self._items_data
 
     def to_dict(self) -> dict[str, object]:
         return {
