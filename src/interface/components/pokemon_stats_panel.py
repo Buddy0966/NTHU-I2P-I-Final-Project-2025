@@ -28,6 +28,10 @@ class PokemonStatsPanel:
 
     def update(self, dt: float) -> None:
         pass
+    
+    def update_pokemon(self, monster: Monster) -> None:
+        """Update the displayed pokemon data"""
+        self.monster = monster
 
     def draw(self, screen: pg.Surface) -> None:
         if self._bg_sprite:

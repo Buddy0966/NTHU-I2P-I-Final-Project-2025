@@ -85,9 +85,10 @@ class GameScene(Scene):
             panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
             panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
             self.bag_panel = BagPanel(
-                self.game_manager.bag._items_data,
+                self.game_manager.bag.items,
                 panel_x, panel_y, panel_w, panel_h,
-                on_exit=self._toggle_bag
+                on_exit=self._toggle_bag,
+                monsters=self.game_manager.bag.monsters
             )
 
     def _handle_mute(self, is_muted: bool) -> None:

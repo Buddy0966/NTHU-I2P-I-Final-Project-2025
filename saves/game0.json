@@ -65,14 +65,14 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 16.0,
-    "y": 30.0
+    "x": 24.38777878733776,
+    "y": 30.6837787873377
   },
   "bag": {
     "monsters": [
       {
         "name": "Florion",
-        "hp": 46,
+        "hp": 24,
         "max_hp": 46,
         "level": 28,
         "sprite_path": "menu_sprites/menusprite3.png"
@@ -118,6 +118,13 @@
         "max_hp": 220,
         "level": 40,
         "sprite_path": "menu_sprites/menusprite6.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 1,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
       }
     ],
     "items": [
@@ -133,7 +140,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 10,
+        "count": 7,
         "sprite_path": "ingame_ui/ball.png"
       }
     ]

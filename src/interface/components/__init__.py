@@ -7,3 +7,4 @@ from .component import UIComponent
 from .pokemon_stats_panel import PokemonStatsPanel
 from .bag_panel import BagPanel
 from .battle_action_button import BattleActionButton
+from .battle_item_panel import BattleItemPanel
