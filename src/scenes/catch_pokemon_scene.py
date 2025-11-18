@@ -1,6 +1,5 @@
 from __future__ import annotations
 import pygame as pg
-import random
 from src.scenes.scene import Scene
 from src.sprites import BackgroundSprite, Sprite
 from src.utils import GameSettings, Logger
@@ -11,9 +10,10 @@ from src.interface.components.battle_item_panel import BattleItemPanel
 from src.utils.definition import Monster
 from typing import override
 from enum import Enum
+import random
 
 
-class BattleState(Enum):
+class WildBattleState(Enum):
     INTRO = 0
     CHALLENGER = 1
     SEND_OPPONENT = 2
@@ -27,13 +27,14 @@ class BattleState(Enum):
     SHOW_DAMAGE = 10
     CATCHING = 11  # pokeball catching state
     CATCH_ANIMATION = 12  # pokeball flying animation
+    SWITCH_POKEMON = 13  # Player switching pokemon
 
 
-class BattleScene(Scene):
+class CatchPokemonScene(Scene):
+    """Wild Pokemon Battle Scene - Player encounters random wild pokemon"""
     background: BackgroundSprite
-    opponent_name: str
     game_manager: GameManager
-    state: BattleState
+    state: WildBattleState
     opponent_pokemon: Monster | None
     player_pokemon: Monster | None
     opponent_panel: PokemonStatsPanel | None
@@ -51,21 +52,49 @@ class BattleScene(Scene):
     item_panel: BattleItemPanel | None
     player_selected_item: dict | None
     
+    # Multi-pokemon enemy party system
+    enemy_party: list[Monster]  # Enemy's pokemon list
+    enemy_party_index: int  # Current opponent pokemon index
+    
     # pokeball catching animation
     pokeball_sprite: Sprite | None
     pokeball_x: float
     pokeball_y: float
     catch_panel: BattleItemPanel | None
     
-    def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
+    # Wild pokemon data pool
+    WILD_POKEMON_POOL = [
+        {
+            "name": "Leogreen",
+            "hp": 45,
+            "max_hp": 45,
+            "level": 10,
+            "sprite_path": "menu_sprites/menusprite2.png"
+        },
+        {
+            "name": "Bulbasaur",
+            "hp": 40,
+            "max_hp": 40,
+            "level": 8,
+            "sprite_path": "menu_sprites/menusprite1.png"
+        },
+        {
+            "name": "Charmander",
+            "hp": 39,
+            "max_hp": 39,
+            "level": 8,
+            "sprite_path": "menu_sprites/menusprite3.png"
+        },
+    ]
+    
+    def __init__(self, game_manager: GameManager):
         super().__init__()
         self.background = BackgroundSprite("backgrounds/background1.png")
-        self.opponent_name = opponent_name
         self.game_manager = game_manager
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 24)
         self._message_font = pg.font.Font('assets/fonts/Minecraft.ttf', 16)
         
-        self.state = BattleState.INTRO
+        self.state = WildBattleState.INTRO
         self.opponent_pokemon = None
         self.player_pokemon = None
         self.opponent_panel = None
@@ -82,6 +111,10 @@ class BattleScene(Scene):
         self.item_panel = None
         self.player_selected_item = None
         
+        # Enemy party system initialization
+        self.enemy_party = []
+        self.enemy_party_index = 0
+        
         # pokeball catching animation
         try:
             self.pokeball_sprite = Sprite("UI/pokeball.png", (30, 30))
@@ -96,10 +129,10 @@ class BattleScene(Scene):
         
         self.fight_btn = BattleActionButton("Fight", 0, 0, btn_w, btn_h, self._on_fight_click)
         self.item_btn = BattleActionButton("Item", 0, 0, btn_w, btn_h, self._on_item_click)
-        self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h)
+        self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h, self._on_switch_click)
         self.run_btn = BattleActionButton("Run", 0, 0, btn_w, btn_h, self._on_run_click)
         
-        # Move buttons (for attack selection) - 使用Document 1的2x2布局
+        # Move buttons (for attack selection) - 2x2 layout
         move_btn_w, move_btn_h = 120, 45
         move_gap_x = 30
         move_start_x = 150
@@ -116,28 +149,59 @@ class BattleScene(Scene):
 
     @override
     def enter(self) -> None:
-        Logger.info(f"Battle started against {self.opponent_name}")
-        self._init_pokemon()
+        Logger.info("Wild Pokemon Battle started")
+        self._init_battle()
         self._next_state()
 
     @override
     def exit(self) -> None:
         pass
     
-    def _init_pokemon(self) -> None:
-        self.opponent_pokemon = {
-            "name": "HornyMilf",
-            "hp": 45,
-            "max_hp": 45,
-            "level": 10,
-            "sprite_path": "menu_sprites/hornymenusprites1.png"
-        }
+    def _init_battle(self) -> None:
+        """Initialize battle with random enemy pokemon and their party"""
+        # Generate random enemy party (1-3 pokemon)
+        party_size = random.randint(1, 3)
+        self.enemy_party = []
         
+        for _ in range(party_size):
+            # Randomly select a pokemon from the pool
+            pokemon_data = random.choice(self.WILD_POKEMON_POOL)
+            # Create a copy with randomized HP slightly
+            enemy_pokemon = pokemon_data.copy()
+            enemy_pokemon['hp'] = random.randint(
+                int(enemy_pokemon['max_hp'] * 0.8),
+                enemy_pokemon['max_hp']
+            )
+            self.enemy_party.append(enemy_pokemon)
+        
+        self.enemy_party_index = 0
+        self.opponent_pokemon = self.enemy_party[self.enemy_party_index]
+        
+        Logger.info(f"Wild Pokemon Battle initiated! Enemy party size: {len(self.enemy_party)}")
+        for i, pokemon in enumerate(self.enemy_party):
+            Logger.info(f"  Enemy {i+1}: {pokemon['name']} (Lv.{pokemon['level']}, HP:{pokemon['hp']}/{pokemon['max_hp']})")
+        
+        # Initialize player pokemon
         if self.game_manager.bag and len(self.game_manager.bag._monsters_data) > 0:
             self.player_pokemon = self.game_manager.bag._monsters_data[0]
     
+    def _get_next_enemy_pokemon(self) -> bool:
+        """
+        Try to get next pokemon from enemy party.
+        Returns True if there's a next pokemon, False if party is defeated.
+        """
+        self.enemy_party_index += 1
+        if self.enemy_party_index < len(self.enemy_party):
+            self.opponent_pokemon = self.enemy_party[self.enemy_party_index]
+            Logger.info(f"Enemy sent out {self.opponent_pokemon['name']}!")
+            return True
+        
+        # Enemy party is defeated
+        Logger.info("Wild Pokemon party defeated!")
+        return False
+    
     def _on_fight_click(self) -> None:
-        self.state = BattleState.CHOOSE_MOVE
+        self.state = WildBattleState.CHOOSE_MOVE
         self.message = "Choose a move:"
     
     def _on_item_click(self) -> None:
@@ -152,13 +216,18 @@ class BattleScene(Scene):
             self.message = "No usable items in battle!"
             return
         
-        self.state = BattleState.CHOOSE_ITEM
+        self.state = WildBattleState.CHOOSE_ITEM
         self.item_panel = BattleItemPanel(
             battle_items,
             GameSettings.SCREEN_WIDTH // 2 - 150,
             GameSettings.SCREEN_HEIGHT // 2 - 200
         )
         self.message = "Choose an item:"
+    
+    def _on_switch_click(self) -> None:
+        """Switch pokemon - for future implementation"""
+        self.message = "Switch pokemon feature coming soon!"
+        self.state = WildBattleState.SWITCH_POKEMON
     
     def _show_catch_panel(self) -> None:
         """Show pokeball catching panel after opponent is defeated"""
@@ -171,10 +240,10 @@ class BattleScene(Scene):
         
         if not pokeballs:
             self.message = "No Pokeballs available! Battle ended."
-            self.state = BattleState.BATTLE_END
+            self.state = WildBattleState.BATTLE_END
             return
         
-        self.state = BattleState.CATCHING
+        self.state = WildBattleState.CATCHING
         self.catch_panel = BattleItemPanel(
             pokeballs,
             GameSettings.SCREEN_WIDTH // 2 - 150,
@@ -187,11 +256,11 @@ class BattleScene(Scene):
         self._state_timer = 0.0
     
     def _on_move_select(self, move: str) -> None:
-        """Document 1的版本 - 包含state設定，這是關鍵！"""
+        """Execute player's move selection"""
         if self.current_turn == "player":
             self.player_selected_move = move
             self.message = f"{self.player_pokemon['name']} used {move}!"
-            self.state = BattleState.PLAYER_TURN  # 這行很重要！
+            self.state = WildBattleState.PLAYER_TURN
             self._execute_player_attack()
     
     def _execute_player_attack(self) -> None:
@@ -206,12 +275,12 @@ class BattleScene(Scene):
         Logger.info(f"Player attacked: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
         
         if self._check_battle_end():
-            self.state = BattleState.SHOW_DAMAGE
+            self.state = WildBattleState.SHOW_DAMAGE
             return
         
         # Transition to show damage state first
         self._state_timer = 0.0
-        self.state = BattleState.SHOW_DAMAGE
+        self.state = WildBattleState.SHOW_DAMAGE
     
     def _execute_enemy_attack(self) -> None:
         if not self.opponent_pokemon or not self.player_pokemon:
@@ -242,24 +311,33 @@ class BattleScene(Scene):
         Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. Player HP: {self.player_pokemon['hp']}")
         
         if self._check_battle_end():
-            self.state = BattleState.SHOW_DAMAGE
+            self.state = WildBattleState.SHOW_DAMAGE
             self.enemy_selected_move = None
             return
         
         # Transition to show damage state
         self._state_timer = 0.0
-        self.state = BattleState.SHOW_DAMAGE
+        self.state = WildBattleState.SHOW_DAMAGE
         self.enemy_selected_move = None  # Reset for next turn
         
     def _check_battle_end(self) -> bool:
+        """Check if battle should end and handle pokemon switching"""
         if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
-            self.state = BattleState.CATCHING
-            self.message = f"{self.opponent_pokemon['name']} fainted! Throw a pokeball?"
-            Logger.info("Battle won! Ready to catch opponent pokemon!")
+            # Opponent pokemon fainted
+            if self._get_next_enemy_pokemon():
+                # There's a next enemy pokemon - show catch panel for this one first
+                self.state = WildBattleState.CATCHING
+                self.message = f"{self.enemy_party[self.enemy_party_index - 1]['name']} fainted! Throw a pokeball?"
+                Logger.info(f"Ready to catch {self.opponent_pokemon['name']}!")
+            else:
+                # All enemy pokemon defeated
+                self.state = WildBattleState.BATTLE_END
+                self.message = "You won the battle! All wild pokemon defeated!"
+                Logger.info("Battle won! All enemy pokemon defeated!")
             return True
         
         if self.player_pokemon and self.player_pokemon['hp'] <= 0:
-            self.state = BattleState.BATTLE_END
+            self.state = WildBattleState.BATTLE_END
             self.message = f"{self.player_pokemon['name']} fainted! You lost!"
             Logger.info("Battle lost!")
             return True
@@ -270,7 +348,7 @@ class BattleScene(Scene):
         if not self.opponent_pokemon:
             return
         
-        # Calculate damage based on item (using item name as fallback, can be customized)
+        # Calculate damage based on item
         damage = random.randint(5, 25)
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         
@@ -281,12 +359,12 @@ class BattleScene(Scene):
         item['count'] = max(0, item['count'] - 1)
         
         if self._check_battle_end():
-            self.state = BattleState.SHOW_DAMAGE
+            self.state = WildBattleState.SHOW_DAMAGE
             return
         
         # Transition to show damage state first
         self._state_timer = 0.0
-        self.state = BattleState.SHOW_DAMAGE
+        self.state = WildBattleState.SHOW_DAMAGE
     
     def _execute_pokeball_catch(self, item: dict) -> None:
         """Execute pokeball catch animation and logic"""
@@ -300,14 +378,14 @@ class BattleScene(Scene):
         # Reduce pokeball count
         item['count'] = max(0, item['count'] - 1)
         
-        self.state = BattleState.CATCH_ANIMATION
+        self.state = WildBattleState.CATCH_ANIMATION
         self._state_timer = 0.0
         Logger.info(f"pokeball catch animation started for {self.opponent_pokemon['name']}")
         
     def _catch_opponent_pokemon(self) -> None:
         """Complete the catch - add opponent pokemon to player's bag"""
         if not self.opponent_pokemon or not self.game_manager.bag:
-            self.state = BattleState.BATTLE_END
+            self.state = WildBattleState.BATTLE_END
             self.message = "Catch failed!"
             Logger.error("Catch failed: missing opponent_pokemon or bag")
             return
@@ -315,13 +393,12 @@ class BattleScene(Scene):
         # Add opponent pokemon to player's bag
         caught_pokemon = {
             "name": self.opponent_pokemon['name'],
-            "hp": self.opponent_pokemon['max_hp'],  # Document 2: 滿血
+            "hp": self.opponent_pokemon['max_hp'],
             "max_hp": self.opponent_pokemon['max_hp'],
             "level": self.opponent_pokemon['level'],
             "sprite_path": self.opponent_pokemon['sprite_path']
         }
         
-        # Document 2的版本：使用公共屬性 monsters
         self.game_manager.bag.monsters.append(caught_pokemon)
         Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag.")
         Logger.info(f"Current monsters in bag: {len(self.game_manager.bag._monsters_data)}")
@@ -330,22 +407,31 @@ class BattleScene(Scene):
 
         self.game_manager.save("saves/game0.json")
         self.game_manager.load("saves/game0.json")
-        self.state = BattleState.BATTLE_END
-        self.message = f"Successfully caught {self.opponent_pokemon['name']}!"
+        
+        # Check if there are more enemy pokemon to catch
+        if self._get_next_enemy_pokemon():
+            # Show next pokemon to catch
+            self.state = WildBattleState.CATCHING
+            self.message = f"Next wild {self.opponent_pokemon['name']} appeared! Use a pokeball?"
+            Logger.info(f"Next wild pokemon: {self.opponent_pokemon['name']}")
+        else:
+            # All pokemon caught
+            self.state = WildBattleState.BATTLE_END
+            self.message = "You caught all wild pokemon!"
         
         
     def _next_state(self) -> None:
-        if self.state == BattleState.INTRO:
-            self.state = BattleState.CHALLENGER
-            self.message = f"{self.opponent_name} challenged you to a battle!"
-        elif self.state == BattleState.CHALLENGER:
-            self.state = BattleState.SEND_OPPONENT
-            self.message = f"{self.opponent_name} sent out {self.opponent_pokemon['name']}!"
-        elif self.state == BattleState.SEND_OPPONENT:
-            self.state = BattleState.SEND_PLAYER
+        if self.state == WildBattleState.INTRO:
+            self.state = WildBattleState.CHALLENGER
+            self.message = f"A wild {self.opponent_pokemon['name']} appeared!"
+        elif self.state == WildBattleState.CHALLENGER:
+            self.state = WildBattleState.SEND_OPPONENT
+            self.message = f"Wild {self.opponent_pokemon['name']}!"
+        elif self.state == WildBattleState.SEND_OPPONENT:
+            self.state = WildBattleState.SEND_PLAYER
             self.message = f"Go, {self.player_pokemon['name']}!"
-        elif self.state == BattleState.SEND_PLAYER:
-            self.state = BattleState.PLAYER_TURN
+        elif self.state == WildBattleState.SEND_PLAYER:
+            self.state = WildBattleState.PLAYER_TURN
             self.current_turn = "player"
             self.message = "What will " + self.player_pokemon['name'] + " do?"
         self._state_timer = 0.0
@@ -355,74 +441,73 @@ class BattleScene(Scene):
         self._state_timer += dt
         
         if input_manager.key_pressed(pg.K_SPACE):
-            if self.state == BattleState.CHALLENGER:
+            if self.state == WildBattleState.CHALLENGER:
                 self._next_state()
                 self._pokemon_scale = 0.0
-            elif self.state == BattleState.SEND_OPPONENT:
+            elif self.state == WildBattleState.SEND_OPPONENT:
                 self._next_state()
                 self._pokemon_scale = 0.0
-            elif self.state == BattleState.SEND_PLAYER:
+            elif self.state == WildBattleState.SEND_PLAYER:
                 self._next_state()
                 self._pokemon_scale = 0.0
-            elif self.state == BattleState.SHOW_DAMAGE:
+            elif self.state == WildBattleState.SHOW_DAMAGE:
                 # After showing damage, transition to next state
                 if self._check_battle_end():
-                    # Battle ended - show catch panel if opponent fainted
+                    # Battle ended or next pokemon
                     if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
                         self._show_catch_panel()
                 else:
                     # Transition to next appropriate state
                     self._state_timer = 0.0
                     if self.current_turn == "player":
-                        self.state = BattleState.ENEMY_TURN
+                        self.state = WildBattleState.ENEMY_TURN
                         self.current_turn = "enemy"
                     else:
-                        self.state = BattleState.PLAYER_TURN
+                        self.state = WildBattleState.PLAYER_TURN
                         self.current_turn = "player"
                         self.message = "What will " + self.player_pokemon['name'] + " do?"
                         self.turn_message = ""
-            elif self.state == BattleState.CATCHING:
+            elif self.state == WildBattleState.CATCHING:
                 # Player can press SPACE to skip or will select item
                 pass
-            elif self.state == BattleState.BATTLE_END:
-                # Document 2: 加入自動儲存功能
+            elif self.state == WildBattleState.BATTLE_END:
                 self.game_manager.save("saves/game0.json")
                 scene_manager.change_scene("game")
         
-        # Handle Run Away action - Document 2: 加入自動儲存
-        if self.state == BattleState.PLAYER_TURN and self._state_timer > 2.0 and self.message == "Escaped from battle!":
+        # Handle Run Away action
+        if self.state == WildBattleState.PLAYER_TURN and self._state_timer > 2.0 and self.message == "Escaped from battle!":
             self.game_manager.save("saves/game0.json")
             scene_manager.change_scene("game")
         
         if self._pokemon_scale < 1.0:
             self._pokemon_scale += dt * 2.0
         
-        # Document 2的版本：更精確的面板初始化時機
-        if self.opponent_panel is None and self.opponent_pokemon and self.state == BattleState.SEND_OPPONENT:
+        # Panel initialization at correct timing
+        if self.opponent_panel is None and self.opponent_pokemon and self.state == WildBattleState.SEND_OPPONENT:
             self.opponent_panel = PokemonStatsPanel(
                 self.opponent_pokemon,
                 GameSettings.SCREEN_WIDTH - 180,
                 20
             )
         
-        if self.player_panel is None and self.player_pokemon and self.state == BattleState.SEND_PLAYER:
+        if self.player_panel is None and self.player_pokemon and self.state == WildBattleState.SEND_PLAYER:
             self.player_panel = PokemonStatsPanel(
                 self.player_pokemon,
                 20,
                 GameSettings.SCREEN_HEIGHT - 250
             )
         
-        if self.state == BattleState.PLAYER_TURN:
+        if self.state == WildBattleState.PLAYER_TURN:
             self.fight_btn.update(dt)
             self.item_btn.update(dt)
             self.switch_btn.update(dt)
             self.run_btn.update(dt)
         
-        if self.state == BattleState.CHOOSE_MOVE:
+        if self.state == WildBattleState.CHOOSE_MOVE:
             for btn in self.move_buttons:
                 btn.update(dt)
         
-        if self.state == BattleState.CHOOSE_ITEM:
+        if self.state == WildBattleState.CHOOSE_ITEM:
             if self.item_panel:
                 self.item_panel.update(dt)
                 selected = self.item_panel.get_selected_item()
@@ -431,12 +516,12 @@ class BattleScene(Scene):
                 
                 # Close item panel with ESC key
                 if input_manager.key_pressed(pg.K_ESCAPE):
-                    self.state = BattleState.PLAYER_TURN
+                    self.state = WildBattleState.PLAYER_TURN
                     self.item_panel = None
                     self.message = "What will " + self.player_pokemon['name'] + " do?"
         
         # Catching panel handling
-        if self.state == BattleState.CATCHING:
+        if self.state == WildBattleState.CATCHING:
             if self.catch_panel:
                 self.catch_panel.update(dt)
                 selected = self.catch_panel.get_selected_item()
@@ -445,12 +530,22 @@ class BattleScene(Scene):
                 
                 # Close catch panel with ESC key
                 if input_manager.key_pressed(pg.K_ESCAPE):
-                    self.state = BattleState.BATTLE_END
-                    self.catch_panel = None
-                    self.message = "Battle ended!"
+                    # Move to next state after attempt
+                    if self.enemy_party_index + 1 < len(self.enemy_party):
+                        # Continue with next pokemon
+                        self.enemy_party_index += 1
+                        self.opponent_pokemon = self.enemy_party[self.enemy_party_index]
+                        self.opponent_panel = None
+                        self.state = WildBattleState.SEND_OPPONENT
+                        self.message = f"Wild {self.opponent_pokemon['name']} appeared!"
+                        self.catch_panel = None
+                    else:
+                        self.state = WildBattleState.BATTLE_END
+                        self.catch_panel = None
+                        self.message = "Battle ended!"
         
         # pokeball catch animation
-        if self.state == BattleState.CATCH_ANIMATION:
+        if self.state == WildBattleState.CATCH_ANIMATION:
             # pokeball flies from bottom to opponent position
             opponent_x = GameSettings.SCREEN_WIDTH - 150
             opponent_y = 150
@@ -472,13 +567,14 @@ class BattleScene(Scene):
                 
         
         # Enemy turn handling
-        if self.state == BattleState.ENEMY_TURN:
+        if self.state == WildBattleState.ENEMY_TURN:
             if self._state_timer > 1.5 and self.enemy_selected_move is None:
                 # First call to ENEMY_TURN - select and show move
                 self._execute_enemy_attack()
-            elif self._state_timer > 3.0 and self.enemy_selected_move is not None:
-                # After delay, apply damage
-                self._apply_enemy_damage()
+            elif self.enemy_selected_move is not None:
+                # Wait for SPACE or auto-advance after 3 seconds
+                if self._state_timer > 3.0 or input_manager.key_pressed(pg.K_SPACE):
+                    self._apply_enemy_damage()
         
         # Update panels for HP changes
         if self.opponent_panel:
@@ -490,17 +586,17 @@ class BattleScene(Scene):
     def draw(self, screen: pg.Surface) -> None:
         self.background.draw(screen)
         
-        # Document 2的版本：明確列出需要顯示面板的狀態
-        if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM):
+        # Draw panels in appropriate states
+        if self.opponent_panel and self.state in (WildBattleState.SEND_OPPONENT, WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
             self.opponent_panel.draw(screen)
         
-        if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM):
+        if self.player_panel and self.state in (WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
             self.player_panel.draw(screen)
         
         
-        if (self.state == BattleState.SEND_OPPONENT or self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
+        if (self.state == WildBattleState.SEND_OPPONENT or self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
             sprite = Sprite(self.opponent_pokemon["sprite_path"], (200, 200))
-            if self.state == BattleState.SEND_OPPONENT:
+            if self.state == WildBattleState.SEND_OPPONENT:
                 scale = min(self._pokemon_scale, 1.0)
             else:
                 scale = 1.0
@@ -510,9 +606,9 @@ class BattleScene(Scene):
             y = 80
             screen.blit(scaled_sprite, (x, y))
         
-        if (self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE)) and self.player_pokemon:
+        if (self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE)) and self.player_pokemon:
             sprite = Sprite(self.player_pokemon["sprite_path"], (250, 250))
-            if self.state == BattleState.SEND_PLAYER:
+            if self.state == WildBattleState.SEND_PLAYER:
                 scale = min(self._pokemon_scale, 1.0)
             else:
                 scale = 1.0
@@ -529,22 +625,22 @@ class BattleScene(Scene):
         pg.draw.rect(screen, (255, 255, 255), (box_x, box_y, box_w, box_h), 2)
         
         # Display main message (skip during catch animation to avoid overlap)
-        if self.state != BattleState.CATCH_ANIMATION:
+        if self.state != WildBattleState.CATCH_ANIMATION:
             msg_text = self._message_font.render(self.message, True, (255, 255, 255))
             screen.blit(msg_text, (box_x + 10, box_y + 10))
         
         # Display turn message (damage dealt)
-        if self.turn_message and self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.PLAYER_TURN):
+        if self.turn_message and self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.PLAYER_TURN):
             turn_text = self._message_font.render(self.turn_message, True, (255, 200, 100))
             screen.blit(turn_text, (box_x + 10, box_y + 35))
         
-        if self.state not in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.CHOOSE_MOVE, BattleState.BATTLE_END, BattleState.SHOW_DAMAGE):
-            if self.state in (BattleState.CHALLENGER, BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER):
+        if self.state not in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.CHOOSE_MOVE, WildBattleState.BATTLE_END, WildBattleState.SHOW_DAMAGE):
+            if self.state in (WildBattleState.CHALLENGER, WildBattleState.SEND_OPPONENT, WildBattleState.SEND_PLAYER):
                 hint_text = self._message_font.render("Press SPACE to continue", True, (255, 255, 0))
                 screen.blit(hint_text, (box_x + box_w - 250, box_y + box_h - 30))
         
-        if self.state == BattleState.PLAYER_TURN:
-            # Document 2的版本：按鈕更居中
+        if self.state == WildBattleState.PLAYER_TURN:
+            # Position buttons more centered
             btn_w, btn_h = 80, 40
             gap = 10
             btn_start_x = box_x + 300
@@ -575,7 +671,7 @@ class BattleScene(Scene):
             self.switch_btn.draw(screen)
             self.run_btn.draw(screen)
         
-        if self.state == BattleState.CHOOSE_MOVE:
+        if self.state == WildBattleState.CHOOSE_MOVE:
             start_x = box_x + 180
             start_y = box_y + 120
             btn_w = 100  # 按鈕可能要窄一點才塞得下
@@ -591,34 +687,39 @@ class BattleScene(Scene):
                 
                 btn.draw(screen)
         
-        if self.state == BattleState.CHOOSE_ITEM:
+        if self.state == WildBattleState.CHOOSE_ITEM:
             if self.item_panel:
                 self.item_panel.draw(screen)
             
             hint_text = self._message_font.render("Press ESC to cancel", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
         
-        if self.state == BattleState.CATCHING:
+        if self.state == WildBattleState.CATCHING:
             if self.catch_panel:
                 self.catch_panel.draw(screen)
             
             hint_text = self._message_font.render("Press ESC to skip", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
         
-        if self.state == BattleState.CATCH_ANIMATION:
+        if self.state == WildBattleState.CATCH_ANIMATION:
             # Draw pokeball flying toward opponent
             if self.pokeball_sprite:
                 screen.blit(self.pokeball_sprite.image, (int(self.pokeball_x), int(self.pokeball_y)))
             
-            # Show animation message separately to prevent overlap
-            anim_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
-            screen.blit(anim_text, (box_x + 10, box_y + 10))
+            # Show animation message
+            msg_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
+            screen.blit(msg_text, (box_x + 10, box_y + 10))
         
-        if self.state == BattleState.SHOW_DAMAGE:
+        if self.state == WildBattleState.SHOW_DAMAGE:
             # Show damage message, wait for SPACE
             hint_text = self._message_font.render("Press SPACE to continue", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
         
-        if self.state == BattleState.BATTLE_END:
+        if self.state == WildBattleState.ENEMY_TURN and self.enemy_selected_move is not None:
+            # Show hint to continue during enemy attack display
+            hint_text = self._message_font.render("Press SPACE to continue", True, (255, 255, 0))
+            screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
+        
+        if self.state == WildBattleState.BATTLE_END:
             hint_text = self._message_font.render("Press SPACE to continue", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + box_w - 250, box_y + box_h - 30))

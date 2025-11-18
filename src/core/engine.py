@@ -7,6 +7,7 @@ from src.scenes.menu_scene import MenuScene
 from src.scenes.game_scene import GameScene
 from src.scenes.setting_scene import SettingScene
 from src.scenes.battle_scene import BattleScene
+from src.scenes.catch_pokemon_scene import CatchPokemonScene
 from src.scenes.battle_transition_scene import BattleTransitionScene
 from src.core.managers.game_manager import GameManager
 
@@ -34,6 +35,7 @@ class Engine:
         # Battle scenes (will be re-created dynamically)
         game_manager = GameManager.load("saves/game0.json")
         scene_manager.register_scene("battle", BattleScene(game_manager))
+        scene_manager.register_scene("catch_pokemon", CatchPokemonScene(game_manager))
         scene_manager.register_scene("battle_transition", BattleTransitionScene())
         
         scene_manager.change_scene("menu")

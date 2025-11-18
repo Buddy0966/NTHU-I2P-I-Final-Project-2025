@@ -72,7 +72,7 @@
     "monsters": [
       {
         "name": "Florion",
-        "hp": 99664,
+        "hp": 99189,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png"
@@ -125,22 +125,113 @@
         "max_hp": 45,
         "level": 10,
         "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
       }
     ],
     "items": [
       {
         "name": "Potion",
-        "count": 5,
+        "count": 4,
         "sprite_path": "ingame_ui/potion.png"
       },
       {
         "name": "Coins",
-        "count": 100000,
+        "count": 99999,
         "sprite_path": "ingame_ui/coin.png"
       },
       {
         "name": "Pokeball",
-        "count": 99955,
+        "count": 99905,
         "sprite_path": "ingame_ui/ball.png"
       }
     ]

@@ -154,6 +154,16 @@ class GameScene(Scene):
             if enemy.detected and input_manager.key_pressed(pg.K_SPACE):
                 scene_manager.change_scene("battle_transition")
                 return
+        
+        # Check bush collision - trigger wild pokemon battle
+        if self.game_manager.player and self.game_manager.current_map:
+            player_rect = self.game_manager.player.animation.rect
+            if self.game_manager.current_map.check_bush(player_rect):
+                # Encountered wild pokemon in bush
+                Logger.info("Wild pokemon encountered in bush!")
+                scene_manager.change_scene("catch_pokemon")
+                return
+        
         self.game_manager.bag.update(dt)
 
         if self.game_manager.player is not None and self.online_manager is not None:

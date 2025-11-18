@@ -13,6 +13,7 @@ class Map:
     # Rendering Properties
     _surface: pg.Surface
     _collision_map: list[pg.Rect]
+    _bush_map: list[pg.Rect]  # Bush collision rectangles
 
     def __init__(self, path: str, tp: list[Teleport], spawn: Position):
         self.path_name = path
@@ -28,6 +29,8 @@ class Map:
         self._render_all_layers(self._surface)
         # Prebake the collision map
         self._collision_map = self._create_collision_map()
+        # Prebake the bush map
+        self._bush_map = self._create_bush_map()
 
     def update(self, dt: float):
         return
@@ -59,6 +62,13 @@ class Map:
                 return teleporter
 
         return None
+    
+    def check_bush(self, rect: pg.Rect) -> bool:
+        '''
+        Check if the player is on a bush tile.
+        Returns True if player collides with bush
+        '''
+        return any(rect.colliderect(b) for b in self._bush_map)
         
 
     def _render_all_layers(self, target: pg.Surface) -> None:
@@ -92,6 +102,22 @@ class Map:
                         Remember scale the rectangle with the TILE_SIZE from settings
                         '''
 
+                        rect_x = x * GameSettings.TILE_SIZE
+                        rect_y = y * GameSettings.TILE_SIZE
+                        rect = pg.Rect(rect_x, rect_y, GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
+                        rects.append(rect)
+        return rects
+    
+    def _create_bush_map(self) -> list[pg.Rect]:
+        '''
+        Create bush collision rectangles from the "bush" layer in the Tiled map.
+        Returns a list of rectangles for all bush tiles.
+        '''
+        rects = []
+        for layer in self.tmxdata.visible_layers:
+            if isinstance(layer, pytmx.TiledTileLayer) and "bush" in layer.name.lower():
+                for x, y, gid in layer:
+                    if gid != 0:
                         rect_x = x * GameSettings.TILE_SIZE
                         rect_y = y * GameSettings.TILE_SIZE
                         rect = pg.Rect(rect_x, rect_y, GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
