@@ -98,7 +98,7 @@ class BattleScene(Scene):
         self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h)
         self.run_btn = BattleActionButton("Run", 0, 0, btn_w, btn_h, self._on_run_click)
         
-        # Move buttons (for attack selection)
+        # Move buttons (for attack selection) - 使用Document 1的2x2布局
         move_btn_w, move_btn_h = 120, 45
         move_gap_x = 30
         move_start_x = 150
@@ -186,10 +186,11 @@ class BattleScene(Scene):
         self._state_timer = 0.0
     
     def _on_move_select(self, move: str) -> None:
+        """Document 1的版本 - 包含state設定，這是關鍵！"""
         if self.current_turn == "player":
             self.player_selected_move = move
             self.message = f"{self.player_pokemon['name']} used {move}!"
-            self.state = BattleState.PLAYER_TURN
+            self.state = BattleState.PLAYER_TURN  # 這行很重要！
             self._execute_player_attack()
     
     def _execute_player_attack(self) -> None:
@@ -201,7 +202,6 @@ class BattleScene(Scene):
         damage = random.randint(10, 20)
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         
-        # 只設定 message，刪除 turn_message
         self.message = f"{self.opponent_pokemon['name']} took {damage} damage!"
         Logger.info(f"Player attacked: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
         
@@ -226,7 +226,6 @@ class BattleScene(Scene):
         damage = random.randint(8, 15)
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
         
-        # 只設定 message，刪除 turn_message
         self.message = f"{self.player_pokemon['name']} took {damage} damage!"
         Logger.info(f"Enemy attacked: {damage} damage. Player HP: {self.player_pokemon['hp']}")
         
@@ -262,7 +261,6 @@ class BattleScene(Scene):
         damage = random.randint(5, 25)
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         
-        # 只設定 message，刪除 turn_message
         self.message = f"{self.opponent_pokemon['name']} took {damage} damage!"
         Logger.info(f"Player used item {item['name']}: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
         
@@ -304,20 +302,24 @@ class BattleScene(Scene):
         # Add opponent pokemon to player's bag
         caught_pokemon = {
             "name": self.opponent_pokemon['name'],
-            "hp": 1,  # Reset HP to 1
+            "hp": self.opponent_pokemon['max_hp'],  # Document 2: 滿血
             "max_hp": self.opponent_pokemon['max_hp'],
             "level": self.opponent_pokemon['level'],
             "sprite_path": self.opponent_pokemon['sprite_path']
         }
         
-        self.game_manager.bag._monsters_data.append(caught_pokemon)
+        # Document 2的版本：使用公共屬性 monsters
+        self.game_manager.bag.monsters.append(caught_pokemon)
         Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag.")
         Logger.info(f"Current monsters in bag: {len(self.game_manager.bag._monsters_data)}")
         for monster in self.game_manager.bag._monsters_data:
             Logger.info(f"  - {monster['name']}")
-        
+            
+        self.game_manager.save("saves/game0.json")
+        self.game_manager.load("saves/game0.json")
         self.state = BattleState.BATTLE_END
         self.message = f"Successfully caught {self.opponent_pokemon['name']}!"
+        
         
     def _next_state(self) -> None:
         if self.state == BattleState.INTRO:
@@ -370,23 +372,27 @@ class BattleScene(Scene):
                 # Player can press SPACE to skip or will select item
                 pass
             elif self.state == BattleState.BATTLE_END:
+                # Document 2: 加入自動儲存功能
+                self.game_manager.save("saves/game0.json")
                 scene_manager.change_scene("game")
         
-        # Handle Run Away action
+        # Handle Run Away action - Document 2: 加入自動儲存
         if self.state == BattleState.PLAYER_TURN and self._state_timer > 2.0 and self.message == "Escaped from battle!":
+            self.game_manager.save("saves/game0.json")
             scene_manager.change_scene("game")
         
         if self._pokemon_scale < 1.0:
             self._pokemon_scale += dt * 2.0
         
-        if self.opponent_panel is None and self.opponent_pokemon and self.state != BattleState.INTRO and self.state != BattleState.CHALLENGER:
+        # Document 2的版本：更精確的面板初始化時機
+        if self.opponent_panel is None and self.opponent_pokemon and self.state == BattleState.SEND_OPPONENT:
             self.opponent_panel = PokemonStatsPanel(
                 self.opponent_pokemon,
                 GameSettings.SCREEN_WIDTH - 180,
                 20
             )
         
-        if self.player_panel is None and self.player_pokemon and self.state != BattleState.INTRO and self.state != BattleState.CHALLENGER:
+        if self.player_panel is None and self.player_pokemon and self.state == BattleState.SEND_PLAYER:
             self.player_panel = PokemonStatsPanel(
                 self.player_pokemon,
                 20,
@@ -462,10 +468,11 @@ class BattleScene(Scene):
     def draw(self, screen: pg.Surface) -> None:
         self.background.draw(screen)
         
-        if self.opponent_panel and self.state != BattleState.INTRO and self.state != BattleState.CHALLENGER:
+        # Document 2的版本：明確列出需要顯示面板的狀態
+        if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM):
             self.opponent_panel.draw(screen)
         
-        if self.player_panel and self.state != BattleState.INTRO and self.state != BattleState.CHALLENGER:
+        if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM):
             self.player_panel.draw(screen)
         
         
@@ -514,10 +521,10 @@ class BattleScene(Scene):
                 screen.blit(hint_text, (box_x + box_w - 250, box_y + box_h - 30))
         
         if self.state == BattleState.PLAYER_TURN:
-            # Reposition buttons inside the box
+            # Document 2的版本：按鈕更居中
             btn_w, btn_h = 80, 40
             gap = 10
-            btn_start_x = box_x + 20
+            btn_start_x = box_x + 300
             btn_y = box_y + 50
             
             self.fight_btn.rect.x = btn_start_x
@@ -552,6 +559,7 @@ class BattleScene(Scene):
             msg_text = self._message_font.render(self.message, True, (255, 255, 255))
             screen.blit(msg_text, (box_x + 10, box_y + 10))
             
+            # Document 1的版本：直接使用初始化的按鈕位置（2x2網格）
             for btn in self.move_buttons:
                 btn.draw(screen)
         

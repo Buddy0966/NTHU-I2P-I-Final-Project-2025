@@ -17,7 +17,7 @@ class PokemonStatsPanel:
         self._small_font = pg.font.Font('assets/fonts/Minecraft.ttf', 12)
         
         try:
-            self._bg_sprite = Sprite("UI/UI_Flat_Banner03a.png", (width, height))
+            self._bg_sprite = Sprite("UI/raw/UI_Flat_Banner03a.png", (width, height))
         except:
             self._bg_sprite = None
         

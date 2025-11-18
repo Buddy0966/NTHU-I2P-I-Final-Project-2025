@@ -65,15 +65,15 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 24.38777878733776,
+    "x": 21.643778787337737,
     "y": 30.6837787873377
   },
   "bag": {
     "monsters": [
       {
         "name": "Florion",
-        "hp": 24,
-        "max_hp": 46,
+        "hp": 99546,
+        "max_hp": 100000,
         "level": 28,
         "sprite_path": "menu_sprites/menusprite3.png"
       },
@@ -99,29 +99,8 @@
         "sprite_path": "menu_sprites/menusprite3.png"
       },
       {
-        "name": "Venusaur",
-        "hp": 90,
-        "max_hp": 160,
-        "level": 30,
-        "sprite_path": "menu_sprites/menusprite4.png"
-      },
-      {
-        "name": "Gengar",
-        "hp": 110,
-        "max_hp": 140,
-        "level": 28,
-        "sprite_path": "menu_sprites/menusprite5.png"
-      },
-      {
-        "name": "Dragonite",
-        "hp": 180,
-        "max_hp": 220,
-        "level": 40,
-        "sprite_path": "menu_sprites/menusprite6.png"
-      },
-      {
         "name": "Leogreen",
-        "hp": 1,
+        "hp": 45,
         "max_hp": 45,
         "level": 10,
         "sprite_path": "menu_sprites/menusprite2.png"
@@ -135,12 +114,12 @@
       },
       {
         "name": "Coins",
-        "count": 3,
+        "count": 2,
         "sprite_path": "ingame_ui/coin.png"
       },
       {
         "name": "Pokeball",
-        "count": 7,
+        "count": 49,
         "sprite_path": "ingame_ui/ball.png"
       }
     ]

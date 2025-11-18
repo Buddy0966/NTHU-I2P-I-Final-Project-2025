@@ -109,7 +109,7 @@ class GameScene(Scene):
 
     @override
     def enter(self) -> None:
-        sound_manager.play_bgm("RBY 103 Pallet Town.ogg")
+        # sound_manager.play_bgm("RBY 103 Pallet Town.ogg")
         if self.online_manager:
             self.online_manager.enter()
         
