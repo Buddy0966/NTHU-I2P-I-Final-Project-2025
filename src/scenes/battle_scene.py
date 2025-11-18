@@ -451,7 +451,12 @@ class BattleScene(Scene):
             
             if progress >= 1.0:
                 # Animation complete - catch the pokemon
+                self.game_manager.save("saves/game0.json")
+                self.game_manager.load("saves/game0.json")
                 self._catch_opponent_pokemon()
+                self.game_manager.save("saves/game0.json")
+                self.game_manager.load("saves/game0.json")
+                
         
         # Enemy turn handling
         if self.state == BattleState.ENEMY_TURN:

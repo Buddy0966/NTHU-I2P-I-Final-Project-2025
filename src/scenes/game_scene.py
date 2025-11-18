@@ -81,15 +81,19 @@ class GameScene(Scene):
     def _toggle_bag(self) -> None:
         self.show_bag = not self.show_bag
         if self.show_bag:
+            # Refresh bag panel with latest data from game_manager
             panel_w, panel_h = 600, 400
             panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
             panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
             self.bag_panel = BagPanel(
-                self.game_manager.bag.items,
+                self.game_manager.bag.items if self.game_manager.bag else [],
                 panel_x, panel_y, panel_w, panel_h,
                 on_exit=self._toggle_bag,
-                monsters=self.game_manager.bag.monsters
+                monsters=self.game_manager.bag.monsters if self.game_manager.bag else []
             )
+            Logger.info(f"BagPanel opened with {len(self.game_manager.bag.monsters if self.game_manager.bag else [])} monsters")
+        else:
+            self.bag_panel = None
 
     def _handle_mute(self, is_muted: bool) -> None:
         if is_muted:
@@ -109,6 +113,12 @@ class GameScene(Scene):
 
     @override
     def enter(self) -> None:
+        # Reload game data to sync with latest save (e.g., after battle)
+        loaded = GameManager.load("saves/game0.json")
+        if loaded:
+            self.game_manager = loaded
+            Logger.info("Game data reloaded from save file")
+        
         # sound_manager.play_bgm("RBY 103 Pallet Town.ogg")
         if self.online_manager:
             self.online_manager.enter()
