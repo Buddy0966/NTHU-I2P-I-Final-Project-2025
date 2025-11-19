@@ -386,27 +386,43 @@ class CatchPokemonScene(Scene):
         Logger.info(f"pokeball catch animation started for {self.opponent_pokemon['name']}")
         
     def _catch_opponent_pokemon(self) -> None:
-        """Complete the catch - add opponent pokemon to player's bag"""
+        """Complete the catch - add opponent pokemon to player's bag or increment count"""
         if not self.opponent_pokemon or not self.game_manager.bag:
             self.state = WildBattleState.BATTLE_END
             self.message = "Catch failed!"
             Logger.error("Catch failed: missing opponent_pokemon or bag")
             return
         
-        # Add opponent pokemon to player's bag
-        caught_pokemon = {
-            "name": self.opponent_pokemon['name'],
-            "hp": self.opponent_pokemon['max_hp'],
-            "max_hp": self.opponent_pokemon['max_hp'],
-            "level": self.opponent_pokemon['level'],
-            "sprite_path": self.opponent_pokemon['sprite_path']
-        }
+        # Check if pokemon already exists in bag
+        existing_pokemon = None
+        for monster in self.game_manager.bag.monsters:
+            if monster['name'] == self.opponent_pokemon['name']:
+                existing_pokemon = monster
+                break
         
-        self.game_manager.bag.monsters.append(caught_pokemon)
-        Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag.")
+        if existing_pokemon:
+            # Increment count if pokemon already exists
+            if 'count' not in existing_pokemon:
+                existing_pokemon['count'] = 1
+            existing_pokemon['count'] += 1
+            Logger.info(f"Caught another {self.opponent_pokemon['name']}! Count: {existing_pokemon['count']}")
+        else:
+            # Add new pokemon to player's bag
+            caught_pokemon = {
+                "name": self.opponent_pokemon['name'],
+                "hp": self.opponent_pokemon['max_hp'],
+                "max_hp": self.opponent_pokemon['max_hp'],
+                "level": self.opponent_pokemon['level'],
+                "sprite_path": self.opponent_pokemon['sprite_path'],
+                "count": 1
+            }
+            self.game_manager.bag.monsters.append(caught_pokemon)
+            Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag.")
+        
         Logger.info(f"Current monsters in bag: {len(self.game_manager.bag._monsters_data)}")
         for monster in self.game_manager.bag._monsters_data:
-            Logger.info(f"  - {monster['name']}")
+            count = monster.get('count', 1)
+            Logger.info(f"  - {monster['name']} (x{count})")
         
         
     def _next_state(self) -> None:

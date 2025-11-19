@@ -72,381 +72,75 @@
     "monsters": [
       {
         "name": "Florion",
-        "hp": 98039,
+        "hp": 97897,
         "max_hp": 100000,
         "level": 100,
-        "sprite_path": "menu_sprites/menusprite3.png"
+        "sprite_path": "menu_sprites/menusprite3.png",
+        "count": 1
       },
       {
         "name": "Pikachu",
         "hp": 85,
         "max_hp": 100,
         "level": 25,
-        "sprite_path": "menu_sprites/menusprite1.png"
+        "sprite_path": "menu_sprites/menusprite1.png",
+        "count": 1
       },
       {
         "name": "Charizard",
         "hp": 150,
         "max_hp": 200,
         "level": 36,
-        "sprite_path": "menu_sprites/menusprite2.png"
+        "sprite_path": "menu_sprites/menusprite2.png",
+        "count": 1
       },
       {
         "name": "Blastoise",
         "hp": 120,
         "max_hp": 180,
         "level": 32,
-        "sprite_path": "menu_sprites/menusprite3.png"
+        "sprite_path": "menu_sprites/menusprite3.png",
+        "count": 1
       },
       {
         "name": "Venusaur",
         "hp": 90,
         "max_hp": 160,
         "level": 30,
-        "sprite_path": "menu_sprites/menusprite4.png"
+        "sprite_path": "menu_sprites/menusprite4.png",
+        "count": 1
       },
       {
         "name": "Gengar",
         "hp": 110,
         "max_hp": 140,
         "level": 28,
-        "sprite_path": "menu_sprites/menusprite5.png"
+        "sprite_path": "menu_sprites/menusprite5.png",
+        "count": 1
       },
       {
         "name": "Dragonite",
         "hp": 180,
         "max_hp": 220,
         "level": 40,
-        "sprite_path": "menu_sprites/menusprite6.png"
+        "sprite_path": "menu_sprites/menusprite6.png",
+        "count": 1
       },
       {
         "name": "Leogreen",
         "hp": 45,
         "max_hp": 45,
         "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
+        "sprite_path": "menu_sprites/menusprite2.png",
+        "count": 2
       },
       {
         "name": "Charmander",
         "hp": 39,
         "max_hp": 39,
         "level": 8,
-        "sprite_path": "menu_sprites/menusprite3.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Charmander",
-        "hp": 39,
-        "max_hp": 39,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite3.png"
-      },
-      {
-        "name": "Charmander",
-        "hp": 39,
-        "max_hp": 39,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite3.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Charmander",
-        "hp": 39,
-        "max_hp": 39,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite3.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png"
+        "sprite_path": "menu_sprites/menusprite3.png",
+        "count": 1
       }
     ],
     "items": [
@@ -457,12 +151,12 @@
       },
       {
         "name": "Coins",
-        "count": 99983,
+        "count": 99978,
         "sprite_path": "ingame_ui/coin.png"
       },
       {
         "name": "Pokeball",
-        "count": 99767,
+        "count": 99750,
         "sprite_path": "ingame_ui/ball.png"
       }
     ]

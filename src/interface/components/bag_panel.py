@@ -133,6 +133,11 @@ class BagPanel(UIComponent):
             name_text = self._pokemon_font.render(monster["name"], True, (0, 0, 0))
             screen.blit(name_text, (pokemon_x + 70, y_pos + 5))
             
+            # Draw pokemon count (with 'x' prefix)
+            count = monster.get('count', 1)
+            count_text = self._pokemon_font.render(f"x{count}", True, (0, 0, 0))
+            screen.blit(count_text, (pokemon_x + 180, y_pos + 5))
+            
             # Draw pokemon level
             level_text = self._pokemon_font.render(f"Lv.{monster.get('level', 1)}", True, (0, 0, 0))
             screen.blit(level_text, (pokemon_x + 70, y_pos + 22))
