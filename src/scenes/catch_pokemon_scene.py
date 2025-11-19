@@ -66,7 +66,16 @@ class CatchPokemonScene(Scene):
     pokeball_sprite: Sprite | None
     pokeball_x: float
     pokeball_y: float
+    pokeball_rotation: float
+    pokeball_scale: float
     catch_panel: BattleItemPanel | None
+    shake_count: int
+    shake_timer: float
+
+    # Pokemon flashing animation
+    flash_count: int
+    flash_timer: float
+    pokemon_visible: bool
     
     # Wild pokemon data pool
     WILD_POKEMON_POOL = [
@@ -123,7 +132,7 @@ class CatchPokemonScene(Scene):
         
         # pokeball catching animation
         try:
-            self.pokeball_sprite = Sprite("ingame_ui/ball.png", (30, 30))
+            self.pokeball_sprite = Sprite("ingame_ui/ball.png", (40, 40))
         except:
             self.pokeball_sprite = None
         self.pokeball_x = 0.0
@@ -133,6 +142,11 @@ class CatchPokemonScene(Scene):
         self.catch_panel = None
         self.shake_count = 0
         self.shake_timer = 0.0
+
+        # Pokemon flashing animation
+        self.flash_count = 0
+        self.flash_timer = 0.0
+        self.pokemon_visible = True
         
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
@@ -549,56 +563,87 @@ class CatchPokemonScene(Scene):
         
         # pokeball catch animation
         if self.state == WildBattleState.CATCH_ANIMATION:
-            # pokeball flies from bottom to opponent position
-            start_x = 200 + 125
-            start_y = GameSettings.SCREEN_HEIGHT - 250 - 200
-            opponent_x = GameSettings.SCREEN_WIDTH - 250
-            opponent_y = 150
-            
-            animation_duration = 0.8  # seconds
+            # pokeball flies from player pokemon to opponent pokemon
+            # 出发点：玩家宝可梦在画面中的位置（Player Pokemon在左下方）
+            player_pokemon_x = 200 + 125  # Player pokemon center X
+            player_pokemon_y = GameSettings.SCREEN_HEIGHT - 250 - 100  # Player pokemon center Y
+
+            # 落点：敌方宝可梦在画面中的位置（Opponent Pokemon在右上方，提高位置）
+            opponent_pokemon_x = GameSettings.SCREEN_WIDTH - 200 - 100  # Opponent pokemon center X
+            opponent_pokemon_y = 80 + 50  # 提高落点位置（原本是 80 + 100）
+
+            animation_duration = 1.5  # 飞行1.5秒
             progress = min(self._state_timer / animation_duration, 1.0)
-            
+
             # Ease out cubic for smoother throw
             ease_progress = 1 - (1 - progress) ** 3
-            
+
             # 水平方向：線性移動
-            self.pokeball_x = start_x + (opponent_x - start_x) * ease_progress
-            
+            self.pokeball_x = player_pokemon_x + (opponent_pokemon_x - player_pokemon_x) * ease_progress
+
             # 垂直方向：拋物線移動
             arc_height = 200
             parabola = -4 * (progress - 0.5) ** 2 + 1
-            self.pokeball_y = start_y + (opponent_y - start_y) * ease_progress - arc_height * parabola
-            
-            # Rotation and Scale
+            self.pokeball_y = player_pokemon_y + (opponent_pokemon_y - player_pokemon_y) * ease_progress - arc_height * parabola
+
+            # Rotation and Scale - 随着距离慢慢缩小产生距离感
             self.pokeball_rotation = progress * 720  # Spin 2 times
-            self.pokeball_scale = 1.0 - (0.4 * progress)  # Scale down to 0.6
-            
+            self.pokeball_scale = 1.0 - (0.5 * progress)  # 从1.0缩小到0.5
+
             if progress >= 1.0:
-                # Animation complete - transition to falling state
+                # Animation complete - transition to flashing state
                 self._state_timer = 0.0
-                self.state = WildBattleState.CATCH_FALLING
-                self.pokeball_x = opponent_x
-                self.pokeball_y = opponent_y
+                self.state = WildBattleState.CATCH_FLASHING
+                self.pokeball_x = opponent_pokemon_x
+                self.pokeball_y = opponent_pokemon_y
+                self.flash_count = 0
+                self.flash_timer = 0.0
+                self.pokemon_visible = True
                 Logger.info(f"Pokéball hit {self.opponent_pokemon['name']}!")
-        
+
+        # Pokemon flashing animation (Pokemon flashes 3 times before being caught)
+        if self.state == WildBattleState.CATCH_FLASHING:
+            flash_interval = 0.5  # 每0.5秒闪烁一次
+            self.flash_timer += dt
+
+            # 切换可见性
+            if self.flash_timer >= flash_interval:
+                self.flash_timer = 0
+                self.pokemon_visible = not self.pokemon_visible
+                if not self.pokemon_visible:
+                    # 完成一次闪烁（消失）
+                    self.flash_count += 1
+                    Logger.info(f"Pokemon flash {self.flash_count}/3")
+
+                if self.flash_count >= 3 and not self.pokemon_visible:
+                    # 闪烁3次后转到falling状态
+                    self.state = WildBattleState.CATCH_FALLING
+                    self._state_timer = 0.0
+                    self.pokemon_visible = False  # 保持不可见
+                    Logger.info("Pokemon disappeared, ball falling!")
+
         # Pokeball falling animation (Ball drops to ground)
         if self.state == WildBattleState.CATCH_FALLING:
             fall_duration = 0.4
             progress = min(self._state_timer / fall_duration, 1.0)
-            
+
+            # 从击中位置开始计算
+            start_y = 80 + 50  # 击中敌方宝可梦的位置
+            ground_level = 280  # 地面高度（提高了很多，原本是450）
+
             # Bounce effect
-            bounce_height = 50
+            bounce_height = 30
             if progress < 0.5:
                 # Fall down
                 p = progress * 2
-                self.pokeball_y = 150 + (300) * p  # Fall 300px
+                self.pokeball_y = start_y + (ground_level - start_y) * p
             else:
                 # Small bounce
                 p = (progress - 0.5) * 2
-                self.pokeball_y = 450 - bounce_height * (1 - (2*p - 1)**2)
-                
+                self.pokeball_y = ground_level - bounce_height * (1 - (2*p - 1)**2)
+
             if progress >= 1.0:
-                self.pokeball_y = 450  # Ground level
+                self.pokeball_y = ground_level  # Ground level
                 self._state_timer = 0.0
                 self.state = WildBattleState.CATCH_SHAKE
                 self.shake_count = 0
@@ -673,7 +718,7 @@ class CatchPokemonScene(Scene):
             self.player_panel.draw(screen)
         
         
-        if (self.state == WildBattleState.SEND_OPPONENT or self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
+        if (self.state == WildBattleState.SEND_OPPONENT or self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
             sprite = Sprite(self.opponent_pokemon["sprite_path"], (200, 200))
             if self.state == WildBattleState.SEND_OPPONENT:
                 scale = min(self._pokemon_scale, 1.0)
@@ -683,9 +728,18 @@ class CatchPokemonScene(Scene):
             scaled_sprite = pg.transform.scale(sprite.image, (size, size))
             x = GameSettings.SCREEN_WIDTH - size - 150
             y = 80
-            
-            # Hide pokemon during catch phases
-            if self.state not in (WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
+
+            # 绘制逻辑：
+            # - CATCH_FLASHING: 根据pokemon_visible决定是否显示（闪烁效果）
+            # - CATCH_FALLING, CATCH_SHAKE, CATCH_SUCCESS: 完全隐藏
+            # - 其他状态: 正常显示
+            should_draw = True
+            if self.state == WildBattleState.CATCH_FLASHING:
+                should_draw = self.pokemon_visible
+            elif self.state in (WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
+                should_draw = False
+
+            if should_draw:
                 screen.blit(scaled_sprite, (x, y))
         
         if (self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE)) and self.player_pokemon:
@@ -783,20 +837,23 @@ class CatchPokemonScene(Scene):
             hint_text = self._message_font.render("Press ESC to skip", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
         
-        if self.state in (WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
+        if self.state in (WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
             # Draw pokeball
             if self.pokeball_sprite:
                 # Apply rotation and scale
-                scaled_size = int(30 * self.pokeball_scale)
+                scaled_size = int(40 * self.pokeball_scale)
                 scaled_img = pg.transform.scale(self.pokeball_sprite.image, (scaled_size, scaled_size))
                 rotated_img = pg.transform.rotate(scaled_img, self.pokeball_rotation)
-                
+
                 # Center the rotated image
                 rect = rotated_img.get_rect(center=(int(self.pokeball_x), int(self.pokeball_y)))
                 screen.blit(rotated_img, rect)
-            
+
             if self.state == WildBattleState.CATCH_ANIMATION:
                 msg_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+            elif self.state == WildBattleState.CATCH_FLASHING:
+                msg_text = self._message_font.render("Catching Pokemon...", True, (255, 255, 255))
                 screen.blit(msg_text, (box_x + 10, box_y + 10))
             elif self.state == WildBattleState.CATCH_SHAKE:
                 shake_text = ["Wiggle...", "Wobble...", "Shake..."]

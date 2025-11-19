@@ -28,9 +28,10 @@ class BattleState(Enum):
     SHOW_DAMAGE = 10
     CATCHING = 11  # pokeball catching state
     CATCH_ANIMATION = 12  # pokeball flying animation
-    CATCH_FALLING = 13  # Pokeball falling after catch
-    CATCH_SHAKE = 14    # Pokeball shaking on ground
-    CATCH_SUCCESS = 15  # Catch successful
+    CATCH_FLASHING = 13  # Pokemon flashing when caught
+    CATCH_FALLING = 14  # Pokeball falling after catch
+    CATCH_SHAKE = 15    # Pokeball shaking on ground
+    CATCH_SUCCESS = 16  # Catch successful
 
 
 class BattleScene(Scene):
@@ -116,6 +117,11 @@ class BattleScene(Scene):
     catch_panel: BattleItemPanel | None
     shake_count: int
     shake_timer: float
+
+    # Pokemon flashing animation
+    flash_count: int
+    flash_timer: float
+    pokemon_visible: bool
     
     def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
         super().__init__()
@@ -143,7 +149,7 @@ class BattleScene(Scene):
         self.player_selected_item = None
         
         # pokeball catching animation
-        self.pokeball_sprite = Sprite("ingame_ui/ball.png", (100, 100))
+        self.pokeball_sprite = Sprite("ingame_ui/ball.png", (40, 40))
         self.pokeball_x = 0.0
         self.pokeball_y = 0.0
         self.pokeball_rotation = 0.0
@@ -151,6 +157,11 @@ class BattleScene(Scene):
         self.catch_panel = None
         self.shake_count = 0
         self.shake_timer = 0.0
+
+        # Pokemon flashing animation
+        self.flash_count = 0
+        self.flash_timer = 0.0
+        self.pokemon_visible = True
         
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
@@ -368,28 +379,43 @@ class BattleScene(Scene):
         Logger.info(f"pokeball catch animation started for {self.opponent_pokemon['name']}")
         
     def _catch_opponent_pokemon(self) -> None:
-        """Complete the catch - add opponent pokemon to player's bag"""
+        """Complete the catch - add opponent pokemon to player's bag or increment count"""
         if not self.opponent_pokemon or not self.game_manager.bag:
             self.state = BattleState.BATTLE_END
             self.message = "Catch failed!"
             Logger.error("Catch failed: missing opponent_pokemon or bag")
             return
-        
-        # Add opponent pokemon to player's bag
-        caught_pokemon = {
-            "name": self.opponent_pokemon['name'],
-            "hp": self.opponent_pokemon['max_hp'],  # Document 2: 滿血
-            "max_hp": self.opponent_pokemon['max_hp'],
-            "level": self.opponent_pokemon['level'],
-            "sprite_path": self.opponent_pokemon['sprite_path']
-        }
-        
-        # Document 2的版本：使用公共屬性 monsters
-        self.game_manager.bag.monsters.append(caught_pokemon)
-        Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag.")
+
+        # Check if pokemon already exists in bag
+        existing_pokemon = None
+        for monster in self.game_manager.bag.monsters:
+            if monster['name'] == self.opponent_pokemon['name']:
+                existing_pokemon = monster
+                break
+
+        if existing_pokemon:
+            # Increment count if pokemon already exists
+            if 'count' not in existing_pokemon:
+                existing_pokemon['count'] = 1
+            existing_pokemon['count'] += 1
+            Logger.info(f"Caught another {self.opponent_pokemon['name']}! Count: {existing_pokemon['count']}")
+        else:
+            # Add new pokemon to player's bag
+            caught_pokemon = {
+                "name": self.opponent_pokemon['name'],
+                "hp": self.opponent_pokemon['max_hp'],  # Full HP
+                "max_hp": self.opponent_pokemon['max_hp'],
+                "level": self.opponent_pokemon['level'],
+                "sprite_path": self.opponent_pokemon['sprite_path'],
+                "count": 1
+            }
+            self.game_manager.bag.monsters.append(caught_pokemon)
+            Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag.")
+
         Logger.info(f"Current monsters in bag: {len(self.game_manager.bag._monsters_data)}")
         for monster in self.game_manager.bag._monsters_data:
-            Logger.info(f"  - {monster['name']}")
+            count = monster.get('count', 1)
+            Logger.info(f"  - {monster['name']} (x{count})")
 
         # self.game_manager.save("saves/game0.json") # Moved to CATCH_SUCCESS
         # self.game_manager.load("saves/game0.json") # Moved to CATCH_SUCCESS
@@ -514,56 +540,87 @@ class BattleScene(Scene):
         
         # pokeball catch animation
         if self.state == BattleState.CATCH_ANIMATION:
-            # pokeball flies from bottom to opponent position
-            start_x = 200 + 125
-            start_y = GameSettings.SCREEN_HEIGHT - 250 - 200
-            opponent_x = GameSettings.SCREEN_WIDTH - 250
-            opponent_y = 150
-            
-            animation_duration = 0.8  # seconds
+            # pokeball flies from player pokemon to opponent pokemon
+            # 出发点：玩家宝可梦在画面中的位置（Player Pokemon在左下方）
+            player_pokemon_x = 200 + 125  # Player pokemon center X
+            player_pokemon_y = GameSettings.SCREEN_HEIGHT - 250 - 100  # Player pokemon center Y
+
+            # 落点：敌方宝可梦在画面中的位置（Opponent Pokemon在右上方，提高位置）
+            opponent_pokemon_x = GameSettings.SCREEN_WIDTH - 200 - 100  # Opponent pokemon center X
+            opponent_pokemon_y = 80 + 50  # 提高落点位置（原本是 80 + 100）
+
+            animation_duration = 1.5  # 飞行1.5秒
             progress = min(self._state_timer / animation_duration, 1.0)
-            
+
             # Ease out cubic for smoother throw
             ease_progress = 1 - (1 - progress) ** 3
-            
+
             # 水平方向：線性移動
-            self.pokeball_x = start_x + (opponent_x - start_x) * ease_progress
-            
+            self.pokeball_x = player_pokemon_x + (opponent_pokemon_x - player_pokemon_x) * ease_progress
+
             # 垂直方向：拋物線移動
             arc_height = 200
             parabola = -4 * (progress - 0.5) ** 2 + 1
-            self.pokeball_y = start_y + (opponent_y - start_y) * ease_progress - arc_height * parabola
-            
-            # Rotation and Scale
+            self.pokeball_y = player_pokemon_y + (opponent_pokemon_y - player_pokemon_y) * ease_progress - arc_height * parabola
+
+            # Rotation and Scale - 随着距离慢慢缩小产生距离感
             self.pokeball_rotation = progress * 720  # Spin 2 times
-            self.pokeball_scale = 1.0 - (0.4 * progress)  # Scale down to 0.6
-            
+            self.pokeball_scale = 1.0 - (0.5 * progress)  # 从1.0缩小到0.5
+
             if progress >= 1.0:
-                # Animation complete - transition to falling state
+                # Animation complete - transition to flashing state
                 self._state_timer = 0.0
-                self.state = BattleState.CATCH_FALLING
-                self.pokeball_x = opponent_x
-                self.pokeball_y = opponent_y
+                self.state = BattleState.CATCH_FLASHING
+                self.pokeball_x = opponent_pokemon_x
+                self.pokeball_y = opponent_pokemon_y
+                self.flash_count = 0
+                self.flash_timer = 0.0
+                self.pokemon_visible = True
                 Logger.info(f"Pokéball hit {self.opponent_pokemon['name']}!")
-        
+
+        # Pokemon flashing animation (Pokemon flashes 3 times before being caught)
+        if self.state == BattleState.CATCH_FLASHING:
+            flash_interval = 0.5  # 每0.5秒闪烁一次
+            self.flash_timer += dt
+
+            # 切换可见性
+            if self.flash_timer >= flash_interval:
+                self.flash_timer = 0
+                self.pokemon_visible = not self.pokemon_visible
+                if not self.pokemon_visible:
+                    # 完成一次闪烁（消失）
+                    self.flash_count += 1
+                    Logger.info(f"Pokemon flash {self.flash_count}/3")
+
+                if self.flash_count >= 3 and not self.pokemon_visible:
+                    # 闪烁3次后转到falling状态
+                    self.state = BattleState.CATCH_FALLING
+                    self._state_timer = 0.0
+                    self.pokemon_visible = False  # 保持不可见
+                    Logger.info("Pokemon disappeared, ball falling!")
+
         # Pokeball falling animation (Ball drops to ground)
         if self.state == BattleState.CATCH_FALLING:
             fall_duration = 0.4
             progress = min(self._state_timer / fall_duration, 1.0)
-            
+
+            # 从击中位置开始计算
+            start_y = 80 + 50  # 击中敌方宝可梦的位置
+            ground_level = 280  # 地面高度（提高了很多，原本是450）
+
             # Bounce effect
-            bounce_height = 50
+            bounce_height = 30
             if progress < 0.5:
                 # Fall down
                 p = progress * 2
-                self.pokeball_y = 150 + (300) * p  # Fall 300px
+                self.pokeball_y = start_y + (ground_level - start_y) * p
             else:
                 # Small bounce
                 p = (progress - 0.5) * 2
-                self.pokeball_y = 450 - bounce_height * (1 - (2*p - 1)**2)
-                
+                self.pokeball_y = ground_level - bounce_height * (1 - (2*p - 1)**2)
+
             if progress >= 1.0:
-                self.pokeball_y = 450  # Ground level
+                self.pokeball_y = ground_level  # Ground level
                 self._state_timer = 0.0
                 self.state = BattleState.CATCH_SHAKE
                 self.shake_count = 0
@@ -709,56 +766,87 @@ class BattleScene(Scene):
         
         # pokeball catch animation
         if self.state == BattleState.CATCH_ANIMATION:
-            # pokeball flies from bottom to opponent position
-            start_x = 200 + 125
-            start_y = GameSettings.SCREEN_HEIGHT - 250 - 200
-            opponent_x = GameSettings.SCREEN_WIDTH - 250
-            opponent_y = 150
-            
-            animation_duration = 0.8  # seconds
+            # pokeball flies from player pokemon to opponent pokemon
+            # 出发点：玩家宝可梦在画面中的位置（Player Pokemon在左下方）
+            player_pokemon_x = 200 + 125  # Player pokemon center X
+            player_pokemon_y = GameSettings.SCREEN_HEIGHT - 250 - 100  # Player pokemon center Y
+
+            # 落点：敌方宝可梦在画面中的位置（Opponent Pokemon在右上方，提高位置）
+            opponent_pokemon_x = GameSettings.SCREEN_WIDTH - 200 - 100  # Opponent pokemon center X
+            opponent_pokemon_y = 80 + 100  # 提高落点位置（原本是 80 + 100）
+
+            animation_duration = 1.5  # 飞行1.5秒
             progress = min(self._state_timer / animation_duration, 1.0)
-            
+
             # Ease out cubic for smoother throw
             ease_progress = 1 - (1 - progress) ** 3
-            
+
             # 水平方向：線性移動
-            self.pokeball_x = start_x + (opponent_x - start_x) * ease_progress
-            
+            self.pokeball_x = player_pokemon_x + (opponent_pokemon_x - player_pokemon_x) * ease_progress
+
             # 垂直方向：拋物線移動
             arc_height = 200
             parabola = -4 * (progress - 0.5) ** 2 + 1
-            self.pokeball_y = start_y + (opponent_y - start_y) * ease_progress - arc_height * parabola
-            
-            # Rotation and Scale
+            self.pokeball_y = player_pokemon_y + (opponent_pokemon_y - player_pokemon_y) * ease_progress - arc_height * parabola
+
+            # Rotation and Scale - 随着距离慢慢缩小产生距离感
             self.pokeball_rotation = progress * 720  # Spin 2 times
-            self.pokeball_scale = 1.0 - (0.4 * progress)  # Scale down to 0.6
-            
+            self.pokeball_scale = 1.0 - (0.5 * progress)  # 从1.0缩小到0.5
+
             if progress >= 1.0:
-                # Animation complete - transition to falling state
+                # Animation complete - transition to flashing state
                 self._state_timer = 0.0
-                self.state = BattleState.CATCH_FALLING
-                self.pokeball_x = opponent_x
-                self.pokeball_y = opponent_y
+                self.state = BattleState.CATCH_FLASHING
+                self.pokeball_x = opponent_pokemon_x
+                self.pokeball_y = opponent_pokemon_y
+                self.flash_count = 0
+                self.flash_timer = 0.0
+                self.pokemon_visible = True
                 Logger.info(f"Pokéball hit {self.opponent_pokemon['name']}!")
-        
+
+        # Pokemon flashing animation (Pokemon flashes 3 times before being caught)
+        if self.state == BattleState.CATCH_FLASHING:
+            flash_interval = 0.5  # 每0.5秒闪烁一次
+            self.flash_timer += dt
+
+            # 切换可见性
+            if self.flash_timer >= flash_interval:
+                self.flash_timer = 0
+                self.pokemon_visible = not self.pokemon_visible
+                if not self.pokemon_visible:
+                    # 完成一次闪烁（消失）
+                    self.flash_count += 1
+                    Logger.info(f"Pokemon flash {self.flash_count}/3")
+
+                if self.flash_count >= 3 and not self.pokemon_visible:
+                    # 闪烁3次后转到falling状态
+                    self.state = BattleState.CATCH_FALLING
+                    self._state_timer = 0.0
+                    self.pokemon_visible = False  # 保持不可见
+                    Logger.info("Pokemon disappeared, ball falling!")
+
         # Pokeball falling animation (Ball drops to ground)
         if self.state == BattleState.CATCH_FALLING:
             fall_duration = 0.4
             progress = min(self._state_timer / fall_duration, 1.0)
-            
+
+            # 从击中位置开始计算
+            start_y = 80 + 50  # 击中敌方宝可梦的位置
+            ground_level = 280  # 地面高度（提高了很多，原本是450）
+
             # Bounce effect
-            bounce_height = 50
+            bounce_height = 30
             if progress < 0.5:
                 # Fall down
                 p = progress * 2
-                self.pokeball_y = 150 + (300) * p  # Fall 300px
+                self.pokeball_y = start_y + (ground_level - start_y) * p
             else:
                 # Small bounce
                 p = (progress - 0.5) * 2
-                self.pokeball_y = 450 - bounce_height * (1 - (2*p - 1)**2)
-                
+                self.pokeball_y = ground_level - bounce_height * (1 - (2*p - 1)**2)
+
             if progress >= 1.0:
-                self.pokeball_y = 450  # Ground level
+                self.pokeball_y = ground_level  # Ground level
                 self._state_timer = 0.0
                 self.state = BattleState.CATCH_SHAKE
                 self.shake_count = 0
@@ -815,15 +903,15 @@ class BattleScene(Scene):
         self.background.draw(screen)
         
         # Draw panels
-        if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+        if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             self.opponent_panel.draw(screen)
-        
-        if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+
+        if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             self.player_panel.draw(screen)
         
         
         # Draw Opponent Pokemon
-        if (self.state == BattleState.SEND_OPPONENT or self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
+        if (self.state == BattleState.SEND_OPPONENT or self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
             sprite = Sprite(self.opponent_pokemon["sprite_path"], (200, 200))
             if self.state == BattleState.SEND_OPPONENT:
                 scale = min(self._pokemon_scale, 1.0)
@@ -833,10 +921,18 @@ class BattleScene(Scene):
             scaled_sprite = pg.transform.scale(sprite.image, (size, size))
             x = GameSettings.SCREEN_WIDTH - size - 150
             y = 80
-            
-            # Hide pokemon during catch phases (Falling, Shake, Success)
-            # Note: Visible during CATCH_ANIMATION (flying ball) until it hits
-            if self.state not in (BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+
+            # 绘制逻辑：
+            # - CATCH_FLASHING: 根据pokemon_visible决定是否显示（闪烁效果）
+            # - CATCH_FALLING, CATCH_SHAKE, CATCH_SUCCESS: 完全隐藏
+            # - 其他状态: 正常显示
+            should_draw = True
+            if self.state == BattleState.CATCH_FLASHING:
+                should_draw = self.pokemon_visible
+            elif self.state in (BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+                should_draw = False
+
+            if should_draw:
                 screen.blit(scaled_sprite, (x, y))
         
         # Draw Player Pokemon
@@ -937,20 +1033,23 @@ class BattleScene(Scene):
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
         
         # Draw Pokeball Animation
-        if self.state in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+        if self.state in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             # Draw pokeball
             if self.pokeball_sprite:
                 # Apply rotation and scale
-                scaled_size = int(30 * self.pokeball_scale)
+                scaled_size = int(40 * self.pokeball_scale)
                 scaled_img = pg.transform.scale(self.pokeball_sprite.image, (scaled_size, scaled_size))
                 rotated_img = pg.transform.rotate(scaled_img, self.pokeball_rotation)
-                
+
                 # Center the rotated image
                 rect = rotated_img.get_rect(center=(int(self.pokeball_x), int(self.pokeball_y)))
                 screen.blit(rotated_img, rect)
-            
+
             if self.state == BattleState.CATCH_ANIMATION:
                 msg_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+            elif self.state == BattleState.CATCH_FLASHING:
+                msg_text = self._message_font.render("Catching Pokemon...", True, (255, 255, 255))
                 screen.blit(msg_text, (box_x + 10, box_y + 10))
             elif self.state == BattleState.CATCH_SHAKE:
                 shake_text = ["Wiggle...", "Wobble...", "Shake..."]

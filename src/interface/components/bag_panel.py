@@ -158,8 +158,13 @@ class BagPanel(UIComponent):
             name_text = self._item_font.render(monster["name"], True, name_color)
             screen.blit(name_text, (pokemon_x + 85, y_pos + 10))
 
-            # Draw pokemon level on same line as name
-            level_text = self._pokemon_font.render(f"Lv.{monster.get('level', 1)}", True, (100, 80, 60))
+            # Draw pokemon level and count on same line as name
+            level_count_str = f"Lv.{monster.get('level', 1)}"
+            # Add count if it exists and is greater than 1
+            count = monster.get('count', 1)
+            
+            level_count_str += f" x{count}"
+            level_text = self._pokemon_font.render(level_count_str, True, (100, 80, 60))
             screen.blit(level_text, (pokemon_x + 85, y_pos + 30))
 
             # Draw HP bar with better styling (wider for larger panel)
