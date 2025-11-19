@@ -63,7 +63,7 @@ class GameScene(Scene):
     def _toggle_settings(self) -> None:
         self.show_settings = not self.show_settings
         if self.show_settings:
-            panel_w, panel_h = 600, 320
+            panel_w, panel_h = 600, 400
             panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
             panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
             self.settings_panel = SettingsPanelGame(
@@ -82,7 +82,7 @@ class GameScene(Scene):
         self.show_bag = not self.show_bag
         if self.show_bag:
             # Refresh bag panel with latest data from game_manager
-            panel_w, panel_h = 600, 400
+            panel_w, panel_h = 700, 500
             panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
             panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
             self.bag_panel = BagPanel(

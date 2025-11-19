@@ -6,17 +6,17 @@ from src.utils.definition import Item, Monster
 from .component import UIComponent
 
 class BagPanel(UIComponent):
-    def __init__(self, items: list[Item], x: int, y: int, width: int = 600, height: int = 400, on_exit=None, monsters: list[Monster] | None = None):
+    def __init__(self, items: list[Item], x: int, y: int, width: int = 700, height: int = 500, on_exit=None, monsters: list[Monster] | None = None):
         self.sprite = Sprite("UI/raw/UI_Flat_Frame03a.png", (width, height))
         self.rect = pg.Rect(x, y, width, height)
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 40)
-        self._item_font = pg.font.Font('assets/fonts/Minecraft.ttf', 14)
-        self._pokemon_font = pg.font.Font('assets/fonts/Minecraft.ttf', 12)
+        self._item_font = pg.font.Font('assets/fonts/Minecraft.ttf', 16)
+        self._pokemon_font = pg.font.Font('assets/fonts/Minecraft.ttf', 14)
         self.items = items
         self.monsters = monsters if monsters else []
-        
+
         self.title_surf = self._font.render("BAG", True, (0, 0, 0))
-        
+
         margin = 12
         btn_w, btn_h = 50, 50
         self.exit_button = Button(
@@ -38,14 +38,14 @@ class BagPanel(UIComponent):
         # Scrolling parameters
         self.pokemon_scroll_offset = 0
         self.item_scroll_offset = 0
-        self.pokemon_line_height = 90
-        self.item_line_height = 60
+        self.pokemon_line_height = 95  # Increased spacing for bigger panel
+        self.item_line_height = 65
         self.scroll_speed = 30  # pixels per scroll
-        
+
         # Calculate content heights
         self.pokemon_content_height = len(self.monsters) * self.pokemon_line_height
         self.item_content_height = len(self.items) * self.item_line_height
-        
+
         # Viewport dimensions (height available for scrollable content)
         self.pokemon_viewport_height = self.rect.height - 100
         self.item_viewport_height = self.rect.height - 100
@@ -100,123 +100,169 @@ class BagPanel(UIComponent):
                     self._pokemon_sprites[monster["name"]] = None
 
     def draw(self, screen: pg.Surface) -> None:
+        # Draw base panel with gradient-like effect
         screen.blit(self.sprite.image, self.rect)
+
+        # Add a warm orange overlay for that Pokemon feel
+        overlay = pg.Surface((self.rect.width, self.rect.height), pg.SRCALPHA)
+        overlay.fill((255, 180, 60, 40))  # Warm orange with transparency
+        screen.blit(overlay, self.rect)
+
+        # Draw title with shadow for depth
+        shadow_surf = self._font.render("BAG", True, (80, 40, 0))
+        screen.blit(shadow_surf, (self.rect.x + 18, self.rect.y + 18))
         screen.blit(self.title_surf, (self.rect.x + 16, self.rect.y + 16))
-        
+
         # Draw Pokemon section on the left
         pokemon_x = self.rect.x + 20
         pokemon_y = self.rect.y + 70
         pokemon_viewport_y = pokemon_y
         pokemon_viewport_height = self.rect.height - 100
-        
-        # Pokemon header
-        pokemon_header = self._pokemon_font.render("Pokemon", True, (0, 0, 0))
-        screen.blit(pokemon_header, (pokemon_x, pokemon_y - 30))
+
+        # Pokemon header - no header needed, similar to reference image
+        # pokemon_header = self._pokemon_font.render("Pokemon", True, (0, 0, 0))
+        # screen.blit(pokemon_header, (pokemon_x, pokemon_y - 30))
         
         # Debug: Log monsters count
         from src.utils import Logger
         # Logger.debug(f"BagPanel drawing {len(self.monsters)} monsters")
         
         # Create a clip rect for pokemon section to prevent drawing outside viewport
-        pokemon_clip_rect = pg.Rect(pokemon_x, pokemon_viewport_y, 270, pokemon_viewport_height)
+        pokemon_clip_rect = pg.Rect(pokemon_x, pokemon_viewport_y, 320, pokemon_viewport_height)
         old_clip = screen.get_clip()
         screen.set_clip(pokemon_clip_rect)
-        
+
         for i, monster in enumerate(self.monsters):
             y_pos = pokemon_y + i * self.pokemon_line_height - self.pokemon_scroll_offset
-            
-            # Draw pokemon sprite
+
+            # Draw Pokemon card background with border (scaled for larger panel)
+            card_rect = pg.Rect(pokemon_x, y_pos, 300, 85)
+
+            # Card background - cream/beige color
+            card_bg = pg.Surface((300, 85), pg.SRCALPHA)
+            card_bg.fill((245, 235, 210, 255))  # Warm cream color
+
+            # Draw rounded rectangle effect with border
+            pg.draw.rect(screen, (200, 160, 100), card_rect, border_radius=8)  # Dark border
+            pg.draw.rect(screen, (245, 235, 210), card_rect.inflate(-6, -6), border_radius=6)  # Inner cream
+
+            # Add inner border accent (orange/brown)
+            pg.draw.rect(screen, (220, 180, 120), card_rect.inflate(-4, -4), 2, border_radius=7)
+
+            # Draw pokemon sprite with slight offset
             if monster["name"] in self._pokemon_sprites and self._pokemon_sprites[monster["name"]]:
-                screen.blit(self._pokemon_sprites[monster["name"]].image, (pokemon_x, y_pos))
-            
-            # Draw pokemon name
-            name_text = self._pokemon_font.render(monster["name"], True, (0, 0, 0))
-            screen.blit(name_text, (pokemon_x + 70, y_pos + 5))
-            
-            # Draw pokemon count (with 'x' prefix)
-            count = monster.get('count', 1)
-            count_text = self._pokemon_font.render(f"x{count}", True, (0, 0, 0))
-            screen.blit(count_text, (pokemon_x + 180, y_pos + 5))
-            
-            # Draw pokemon level
-            level_text = self._pokemon_font.render(f"Lv.{monster.get('level', 1)}", True, (0, 0, 0))
-            screen.blit(level_text, (pokemon_x + 70, y_pos + 22))
-            
-            # Draw HP bar
+                screen.blit(self._pokemon_sprites[monster["name"]].image, (pokemon_x + 10, y_pos + 10))
+
+            # Draw pokemon name with better font
+            name_color = (60, 40, 20)  # Dark brown
+            name_text = self._item_font.render(monster["name"], True, name_color)
+            screen.blit(name_text, (pokemon_x + 85, y_pos + 10))
+
+            # Draw pokemon level on same line as name
+            level_text = self._pokemon_font.render(f"Lv.{monster.get('level', 1)}", True, (100, 80, 60))
+            screen.blit(level_text, (pokemon_x + 85, y_pos + 30))
+
+            # Draw HP bar with better styling (wider for larger panel)
             hp_ratio = monster.get("hp", monster.get("max_hp", 100)) / monster.get("max_hp", 100)
-            hp_color = (0, 255, 0) if hp_ratio > 0.3 else (255, 165, 0) if hp_ratio > 0.1 else (255, 0, 0)
-            hp_bar_w = int(50 * hp_ratio)
-            
-            pg.draw.rect(screen, hp_color, (pokemon_x + 70, y_pos + 40, hp_bar_w, 8))
-            pg.draw.rect(screen, (0, 0, 0), (pokemon_x + 70, y_pos + 40, 50, 8), 1)
-            
-            # Draw HP text
-            hp_text = self._pokemon_font.render(f"{monster.get('hp', monster.get('max_hp', 100))}/{monster.get('max_hp', 100)}", True, (0, 0, 0))
-            screen.blit(hp_text, (pokemon_x + 70, y_pos + 52))
+            hp_bar_x = pokemon_x + 85
+            hp_bar_y = y_pos + 50
+            hp_bar_width = 200
+            hp_bar_height = 12
+
+            # HP bar background
+            pg.draw.rect(screen, (180, 150, 120), (hp_bar_x, hp_bar_y, hp_bar_width, hp_bar_height), border_radius=5)
+
+            # HP bar fill with gradient-like effect
+            if hp_ratio > 0:
+                hp_color = (100, 200, 80) if hp_ratio > 0.5 else (255, 200, 60) if hp_ratio > 0.25 else (220, 80, 60)
+                hp_fill_width = int(hp_bar_width * hp_ratio)
+                pg.draw.rect(screen, hp_color, (hp_bar_x, hp_bar_y, hp_fill_width, hp_bar_height), border_radius=5)
+
+            # HP bar border
+            pg.draw.rect(screen, (120, 90, 60), (hp_bar_x, hp_bar_y, hp_bar_width, hp_bar_height), 2, border_radius=5)
+
+            # Draw HP text below the bar
+            hp_text = self._pokemon_font.render(f"{monster.get('hp', monster.get('max_hp', 100))}/{monster.get('max_hp', 100)}", True, (80, 60, 40))
+            screen.blit(hp_text, (pokemon_x + 85, y_pos + 66))
         
         screen.set_clip(old_clip)
         
-        # Draw pokemon scrollbar
+        # Draw pokemon scrollbar with enhanced styling
         if self.pokemon_content_height > self.pokemon_viewport_height:
-            scrollbar_x = pokemon_x + 260
+            scrollbar_x = pokemon_x + 310
             scrollbar_y = pokemon_viewport_y
-            scrollbar_width = 8
+            scrollbar_width = 10
             scrollbar_height = pokemon_viewport_height
-            
-            # Draw scrollbar background
-            pg.draw.rect(screen, (200, 200, 200), (scrollbar_x, scrollbar_y, scrollbar_width, scrollbar_height))
-            
+
+            # Draw scrollbar background with rounded edges
+            pg.draw.rect(screen, (200, 170, 140), (scrollbar_x, scrollbar_y, scrollbar_width, scrollbar_height), border_radius=5)
+
             # Calculate scrollbar thumb position and size
-            thumb_height = (self.pokemon_viewport_height / self.pokemon_content_height) * scrollbar_height
+            thumb_height = max(20, (self.pokemon_viewport_height / self.pokemon_content_height) * scrollbar_height)
             thumb_y = scrollbar_y + (self.pokemon_scroll_offset / self.pokemon_content_height) * scrollbar_height
-            
-            # Draw scrollbar thumb
-            pg.draw.rect(screen, (100, 100, 100), (scrollbar_x, thumb_y, scrollbar_width, thumb_height))
-        
-        # Draw Items section on the right
-        item_x = self.rect.x + 320
+
+            # Draw scrollbar thumb with gradient-like effect
+            pg.draw.rect(screen, (140, 110, 80), (scrollbar_x, thumb_y, scrollbar_width, thumb_height), border_radius=5)
+            pg.draw.rect(screen, (100, 80, 60), (scrollbar_x, thumb_y, scrollbar_width, thumb_height), 2, border_radius=5)
+
+        # Draw Items section on the right (scaled for larger panel)
+        item_x = self.rect.x + 350
         item_y = self.rect.y + 70
         item_viewport_y = item_y
         item_viewport_height = self.rect.height - 100
-        
-        # Items header
-        items_header = self._item_font.render("Items", True, (0, 0, 0))
-        screen.blit(items_header, (item_x, item_y - 30))
-        
+
         # Create a clip rect for items section
-        item_clip_rect = pg.Rect(item_x, item_viewport_y, 260, item_viewport_height)
+        item_clip_rect = pg.Rect(item_x, item_viewport_y, 330, item_viewport_height)
         screen.set_clip(item_clip_rect)
-        
+
         for i, item in enumerate(self.items):
             y_pos = item_y + i * self.item_line_height - self.item_scroll_offset
-            
+
+            # Draw item row with subtle background (scaled for larger panel)
+            item_row_rect = pg.Rect(item_x, y_pos, 320, 55)
+
+            # Alternating row colors for better readability
+            row_color = (255, 250, 240) if i % 2 == 0 else (250, 240, 220)
+            pg.draw.rect(screen, row_color, item_row_rect, border_radius=6)
+
+            # Item border
+            pg.draw.rect(screen, (200, 170, 130), item_row_rect, 2, border_radius=6)
+
+            # Draw item sprite (slightly larger)
             if item["name"] in self._item_sprites and self._item_sprites[item["name"]]:
-                screen.blit(self._item_sprites[item["name"]].image, (item_x, y_pos))
-            
-            name_text = self._item_font.render(item["name"], True, (0, 0, 0))
-            screen.blit(name_text, (item_x + 50, y_pos + 5))
-            
-            count_text = self._item_font.render(f"x{item['count']}", True, (0, 0, 0))
-            screen.blit(count_text, (item_x + 50, y_pos + 25))
+                sprite_size = 45
+                scaled_sprite = pg.transform.scale(self._item_sprites[item["name"]].image, (sprite_size, sprite_size))
+                screen.blit(scaled_sprite, (item_x + 5, y_pos + 5))
+
+            # Draw item name with better styling
+            name_text = self._item_font.render(item["name"], True, (60, 40, 20))
+            screen.blit(name_text, (item_x + 60, y_pos + 12))
+
+            # Draw count with distinctive styling
+            count_text = self._item_font.render(f"x{item['count']}", True, (120, 90, 60))
+            count_text_rect = count_text.get_rect()
+            count_x = item_x + 300 - count_text_rect.width
+            screen.blit(count_text, (count_x, y_pos + 22))
         
         screen.set_clip(old_clip)
         
-        # Draw items scrollbar
+        # Draw items scrollbar with enhanced styling
         if self.item_content_height > self.item_viewport_height:
-            scrollbar_x = item_x + 250
+            scrollbar_x = item_x + 320
             scrollbar_y = item_viewport_y
-            scrollbar_width = 8
+            scrollbar_width = 10
             scrollbar_height = item_viewport_height
-            
-            # Draw scrollbar background
-            pg.draw.rect(screen, (200, 200, 200), (scrollbar_x, scrollbar_y, scrollbar_width, scrollbar_height))
-            
+
+            # Draw scrollbar background with rounded edges
+            pg.draw.rect(screen, (200, 170, 140), (scrollbar_x, scrollbar_y, scrollbar_width, scrollbar_height), border_radius=5)
+
             # Calculate scrollbar thumb position and size
-            thumb_height = (self.item_viewport_height / self.item_content_height) * scrollbar_height
+            thumb_height = max(20, (self.item_viewport_height / self.item_content_height) * scrollbar_height)
             thumb_y = scrollbar_y + (self.item_scroll_offset / self.item_content_height) * scrollbar_height
-            
-            # Draw scrollbar thumb
-            pg.draw.rect(screen, (100, 100, 100), (scrollbar_x, thumb_y, scrollbar_width, thumb_height))
+
+            # Draw scrollbar thumb with gradient-like effect
+            pg.draw.rect(screen, (140, 110, 80), (scrollbar_x, thumb_y, scrollbar_width, thumb_height), border_radius=5)
+            pg.draw.rect(screen, (100, 80, 60), (scrollbar_x, thumb_y, scrollbar_width, thumb_height), 2, border_radius=5)
         
         self.exit_button.draw(screen)
 
