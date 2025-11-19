@@ -10,6 +10,7 @@ from src.interface.components.battle_item_panel import BattleItemPanel
 from src.utils.definition import Monster
 from typing import override
 from enum import Enum
+import math
 import random
 
 
@@ -28,6 +29,11 @@ class WildBattleState(Enum):
     CATCHING = 11  # pokeball catching state
     CATCH_ANIMATION = 12  # pokeball flying animation
     SWITCH_POKEMON = 13  # Player switching pokemon
+    CATCH_FLASHING = 14  # Pokemon flashing when caught
+    # CATCH_FLASHING = 14  # Pokemon flashing when caught
+    CATCH_FALLING = 15  # Pokeball falling after catch
+    CATCH_SHAKE = 16    # Pokeball shaking on ground
+    CATCH_SUCCESS = 17  # Catch successful
 
 
 class CatchPokemonScene(Scene):
@@ -117,12 +123,16 @@ class CatchPokemonScene(Scene):
         
         # pokeball catching animation
         try:
-            self.pokeball_sprite = Sprite("UI/pokeball.png", (30, 30))
+            self.pokeball_sprite = Sprite("ingame_ui/ball.png", (30, 30))
         except:
             self.pokeball_sprite = None
         self.pokeball_x = 0.0
         self.pokeball_y = 0.0
+        self.pokeball_rotation = 0.0
+        self.pokeball_scale = 1.0
         self.catch_panel = None
+        self.shake_count = 0
+        self.shake_timer = 0.0
         
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
@@ -324,16 +334,7 @@ class CatchPokemonScene(Scene):
         """Check if battle should end and handle pokemon switching"""
         if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
             # Opponent pokemon fainted
-            if self._get_next_enemy_pokemon():
-                # There's a next enemy pokemon - show catch panel for this one first
-                self.state = WildBattleState.CATCHING
-                self.message = f"{self.enemy_party[self.enemy_party_index - 1]['name']} fainted! Throw a pokeball?"
-                Logger.info(f"Ready to catch {self.opponent_pokemon['name']}!")
-            else:
-                # All enemy pokemon defeated
-                self.state = WildBattleState.BATTLE_END
-                self.message = "You won the battle! All wild pokemon defeated!"
-                Logger.info("Battle won! All enemy pokemon defeated!")
+            # Do not switch yet - let the player decide to catch or not
             return True
         
         if self.player_pokemon and self.player_pokemon['hp'] <= 0:
@@ -380,6 +381,8 @@ class CatchPokemonScene(Scene):
         
         self.state = WildBattleState.CATCH_ANIMATION
         self._state_timer = 0.0
+        self.pokeball_rotation = 0.0
+        self.pokeball_scale = 1.0
         Logger.info(f"pokeball catch animation started for {self.opponent_pokemon['name']}")
         
     def _catch_opponent_pokemon(self) -> None:
@@ -404,20 +407,6 @@ class CatchPokemonScene(Scene):
         Logger.info(f"Current monsters in bag: {len(self.game_manager.bag._monsters_data)}")
         for monster in self.game_manager.bag._monsters_data:
             Logger.info(f"  - {monster['name']}")
-
-        self.game_manager.save("saves/game0.json")
-        self.game_manager.load("saves/game0.json")
-        
-        # Check if there are more enemy pokemon to catch
-        if self._get_next_enemy_pokemon():
-            # Show next pokemon to catch
-            self.state = WildBattleState.CATCHING
-            self.message = f"Next wild {self.opponent_pokemon['name']} appeared! Use a pokeball?"
-            Logger.info(f"Next wild pokemon: {self.opponent_pokemon['name']}")
-        else:
-            # All pokemon caught
-            self.state = WildBattleState.BATTLE_END
-            self.message = "You caught all wild pokemon!"
         
         
     def _next_state(self) -> None:
@@ -456,6 +445,7 @@ class CatchPokemonScene(Scene):
                     # Battle ended or next pokemon
                     if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
                         self._show_catch_panel()
+                        self.message = f"{self.opponent_pokemon['name']} fainted! Catch it?"
                 else:
                     # Transition to next appropriate state
                     self._state_timer = 0.0
@@ -530,41 +520,114 @@ class CatchPokemonScene(Scene):
                 
                 # Close catch panel with ESC key
                 if input_manager.key_pressed(pg.K_ESCAPE):
-                    # Move to next state after attempt
-                    if self.enemy_party_index + 1 < len(self.enemy_party):
-                        # Continue with next pokemon
-                        self.enemy_party_index += 1
-                        self.opponent_pokemon = self.enemy_party[self.enemy_party_index]
-                        self.opponent_panel = None
+                    # Skip catching, move to next pokemon
+                    if self._get_next_enemy_pokemon():
                         self.state = WildBattleState.SEND_OPPONENT
                         self.message = f"Wild {self.opponent_pokemon['name']} appeared!"
+                        self.opponent_panel = None
                         self.catch_panel = None
                     else:
                         self.state = WildBattleState.BATTLE_END
+                        self.message = "You won the battle! All wild pokemon defeated!"
                         self.catch_panel = None
-                        self.message = "Battle ended!"
         
         # pokeball catch animation
         if self.state == WildBattleState.CATCH_ANIMATION:
             # pokeball flies from bottom to opponent position
-            opponent_x = GameSettings.SCREEN_WIDTH - 150
+            start_x = 200 + 125
+            start_y = GameSettings.SCREEN_HEIGHT - 250 - 200
+            opponent_x = GameSettings.SCREEN_WIDTH - 250
             opponent_y = 150
             
             animation_duration = 0.8  # seconds
             progress = min(self._state_timer / animation_duration, 1.0)
             
-            # Linear interpolation from current position to opponent position
-            self.pokeball_x = GameSettings.SCREEN_WIDTH // 2 + (opponent_x - GameSettings.SCREEN_WIDTH // 2) * progress
-            self.pokeball_y = GameSettings.SCREEN_HEIGHT - 100 + (opponent_y - (GameSettings.SCREEN_HEIGHT - 100)) * progress
+            # Ease out cubic for smoother throw
+            ease_progress = 1 - (1 - progress) ** 3
+            
+            # 水平方向：線性移動
+            self.pokeball_x = start_x + (opponent_x - start_x) * ease_progress
+            
+            # 垂直方向：拋物線移動
+            arc_height = 200
+            parabola = -4 * (progress - 0.5) ** 2 + 1
+            self.pokeball_y = start_y + (opponent_y - start_y) * ease_progress - arc_height * parabola
+            
+            # Rotation and Scale
+            self.pokeball_rotation = progress * 720  # Spin 2 times
+            self.pokeball_scale = 1.0 - (0.4 * progress)  # Scale down to 0.6
             
             if progress >= 1.0:
-                # Animation complete - catch the pokemon
-                self.game_manager.save("saves/game0.json")
-                self.game_manager.load("saves/game0.json")
-                self._catch_opponent_pokemon()
+                # Animation complete - transition to falling state
+                self._state_timer = 0.0
+                self.state = WildBattleState.CATCH_FALLING
+                self.pokeball_x = opponent_x
+                self.pokeball_y = opponent_y
+                Logger.info(f"Pokéball hit {self.opponent_pokemon['name']}!")
+        
+        # Pokeball falling animation (Ball drops to ground)
+        if self.state == WildBattleState.CATCH_FALLING:
+            fall_duration = 0.4
+            progress = min(self._state_timer / fall_duration, 1.0)
+            
+            # Bounce effect
+            bounce_height = 50
+            if progress < 0.5:
+                # Fall down
+                p = progress * 2
+                self.pokeball_y = 150 + (300) * p  # Fall 300px
+            else:
+                # Small bounce
+                p = (progress - 0.5) * 2
+                self.pokeball_y = 450 - bounce_height * (1 - (2*p - 1)**2)
+                
+            if progress >= 1.0:
+                self.pokeball_y = 450  # Ground level
+                self._state_timer = 0.0
+                self.state = WildBattleState.CATCH_SHAKE
+                self.shake_count = 0
+                self.shake_timer = 0.0
+        
+        # Pokeball shaking animation
+        if self.state == WildBattleState.CATCH_SHAKE:
+            shake_interval = 1.0
+            self.shake_timer += dt
+            
+            # Shake logic: 3 shakes
+            if self.shake_timer > shake_interval:
+                self.shake_timer = 0
+                self.shake_count += 1
+                if self.shake_count >= 3:
+                    self.state = WildBattleState.CATCH_SUCCESS
+                    self._state_timer = 0.0
+                    self._catch_opponent_pokemon()
+            
+            # Calculate rotation for shake
+            t = self.shake_timer / shake_interval
+            if t < 0.2: # Shake left
+                self.pokeball_rotation = 15 * math.sin(t * 5 * math.pi)
+            elif t < 0.4: # Shake right
+                self.pokeball_rotation = -15 * math.sin((t-0.2) * 5 * math.pi)
+            else:
+                self.pokeball_rotation = 0
+                
+        if self.state == WildBattleState.CATCH_SUCCESS:
+            if self._state_timer > 1.0: # Wait 1 second after catch
                 self.game_manager.save("saves/game0.json")
                 self.game_manager.load("saves/game0.json")
                 
+                # Check if there are more enemy pokemon to catch
+                if self._get_next_enemy_pokemon():
+                    # Show next pokemon
+                    self.state = WildBattleState.SEND_OPPONENT
+                    self.message = f"Wild {self.opponent_pokemon['name']} appeared!"
+                    self.opponent_panel = None
+                else:
+                    # All pokemon caught/defeated
+                    self.state = WildBattleState.BATTLE_END
+                    self.message = "You caught all wild pokemon!"
+                
+        
         
         # Enemy turn handling
         if self.state == WildBattleState.ENEMY_TURN:
@@ -587,10 +650,10 @@ class CatchPokemonScene(Scene):
         self.background.draw(screen)
         
         # Draw panels in appropriate states
-        if self.opponent_panel and self.state in (WildBattleState.SEND_OPPONENT, WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
+        if self.opponent_panel and self.state in (WildBattleState.SEND_OPPONENT, WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
             self.opponent_panel.draw(screen)
         
-        if self.player_panel and self.state in (WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
+        if self.player_panel and self.state in (WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
             self.player_panel.draw(screen)
         
         
@@ -604,7 +667,10 @@ class CatchPokemonScene(Scene):
             scaled_sprite = pg.transform.scale(sprite.image, (size, size))
             x = GameSettings.SCREEN_WIDTH - size - 150
             y = 80
-            screen.blit(scaled_sprite, (x, y))
+            
+            # Hide pokemon during catch phases
+            if self.state not in (WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
+                screen.blit(scaled_sprite, (x, y))
         
         if (self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE)) and self.player_pokemon:
             sprite = Sprite(self.player_pokemon["sprite_path"], (250, 250))
@@ -625,7 +691,7 @@ class CatchPokemonScene(Scene):
         pg.draw.rect(screen, (255, 255, 255), (box_x, box_y, box_w, box_h), 2)
         
         # Display main message (skip during catch animation to avoid overlap)
-        if self.state != WildBattleState.CATCH_ANIMATION:
+        if self.state not in (WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING):
             msg_text = self._message_font.render(self.message, True, (255, 255, 255))
             screen.blit(msg_text, (box_x + 10, box_y + 10))
         
@@ -701,14 +767,29 @@ class CatchPokemonScene(Scene):
             hint_text = self._message_font.render("Press ESC to skip", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
         
-        if self.state == WildBattleState.CATCH_ANIMATION:
-            # Draw pokeball flying toward opponent
+        if self.state in (WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
+            # Draw pokeball
             if self.pokeball_sprite:
-                screen.blit(self.pokeball_sprite.image, (int(self.pokeball_x), int(self.pokeball_y)))
+                # Apply rotation and scale
+                scaled_size = int(30 * self.pokeball_scale)
+                scaled_img = pg.transform.scale(self.pokeball_sprite.image, (scaled_size, scaled_size))
+                rotated_img = pg.transform.rotate(scaled_img, self.pokeball_rotation)
+                
+                # Center the rotated image
+                rect = rotated_img.get_rect(center=(int(self.pokeball_x), int(self.pokeball_y)))
+                screen.blit(rotated_img, rect)
             
-            # Show animation message
-            msg_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
-            screen.blit(msg_text, (box_x + 10, box_y + 10))
+            if self.state == WildBattleState.CATCH_ANIMATION:
+                msg_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+            elif self.state == WildBattleState.CATCH_SHAKE:
+                shake_text = ["Wiggle...", "Wobble...", "Shake..."]
+                idx = min(self.shake_count, 2)
+                msg_text = self._message_font.render(shake_text[idx], True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+            elif self.state == WildBattleState.CATCH_SUCCESS:
+                msg_text = self._message_font.render("Gotcha! " + self.opponent_pokemon['name'] + " was caught!", True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
         
         if self.state == WildBattleState.SHOW_DAMAGE:
             # Show damage message, wait for SPACE

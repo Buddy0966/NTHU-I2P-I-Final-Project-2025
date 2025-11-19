@@ -72,7 +72,7 @@
     "monsters": [
       {
         "name": "Florion",
-        "hp": 99189,
+        "hp": 98039,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png"
@@ -216,22 +216,253 @@
         "max_hp": 45,
         "level": 10,
         "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "Charmander",
+        "hp": 39,
+        "max_hp": 39,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite3.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Charmander",
+        "hp": 39,
+        "max_hp": 39,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite3.png"
+      },
+      {
+        "name": "Charmander",
+        "hp": 39,
+        "max_hp": 39,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite3.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Charmander",
+        "hp": 39,
+        "max_hp": 39,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite3.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
+      },
+      {
+        "name": "Bulbasaur",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 8,
+        "sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Leogreen",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "HornyMilf",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "menu_sprites/hornymenusprites1.png"
       }
     ],
     "items": [
       {
         "name": "Potion",
-        "count": 4,
+        "count": 0,
         "sprite_path": "ingame_ui/potion.png"
       },
       {
         "name": "Coins",
-        "count": 99999,
+        "count": 99983,
         "sprite_path": "ingame_ui/coin.png"
       },
       {
         "name": "Pokeball",
-        "count": 99905,
+        "count": 99767,
         "sprite_path": "ingame_ui/ball.png"
       }
     ]

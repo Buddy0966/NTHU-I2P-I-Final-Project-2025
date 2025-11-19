@@ -1,5 +1,6 @@
 from __future__ import annotations
 import pygame as pg
+import math
 import random
 from src.scenes.scene import Scene
 from src.sprites import BackgroundSprite, Sprite
@@ -27,6 +28,9 @@ class BattleState(Enum):
     SHOW_DAMAGE = 10
     CATCHING = 11  # pokeball catching state
     CATCH_ANIMATION = 12  # pokeball flying animation
+    CATCH_FALLING = 13  # Pokeball falling after catch
+    CATCH_SHAKE = 14    # Pokeball shaking on ground
+    CATCH_SUCCESS = 15  # Catch successful
 
 
 class BattleScene(Scene):
@@ -78,18 +82,75 @@ class BattleScene(Scene):
         self.current_turn = "player"
         self.player_selected_move = None
         self.enemy_selected_move = None
+    CATCH_SUCCESS = 15  # Catch successful
+
+
+class BattleScene(Scene):
+    background: BackgroundSprite
+    opponent_name: str
+    game_manager: GameManager
+    state: BattleState
+    opponent_pokemon: Monster | None
+    player_pokemon: Monster | None
+    opponent_panel: PokemonStatsPanel | None
+    player_panel: PokemonStatsPanel | None
+    message: str
+    fight_btn: BattleActionButton | None
+    item_btn: BattleActionButton | None
+    switch_btn: BattleActionButton | None
+    run_btn: BattleActionButton | None
+    move_buttons: list[BattleActionButton]
+    current_turn: str  # "player" or "enemy"
+    player_selected_move: str | None
+    enemy_selected_move: str | None
+    turn_message: str
+    item_panel: BattleItemPanel | None
+    player_selected_item: dict | None
+    
+    # pokeball catching animation
+    pokeball_sprite: Sprite | None
+    pokeball_x: float
+    pokeball_y: float
+    pokeball_rotation: float
+    pokeball_scale: float
+    catch_panel: BattleItemPanel | None
+    shake_count: int
+    shake_timer: float
+    
+    def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
+        super().__init__()
+        self.background = BackgroundSprite("backgrounds/background1.png")
+        self.opponent_name = opponent_name
+        self.game_manager = game_manager
+        self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 24)
+        self._message_font = pg.font.Font('assets/fonts/Minecraft.ttf', 16)
+        
+        self.state = BattleState.INTRO
+        self.opponent_pokemon = None
+        self.player_pokemon = None
+        self.opponent_panel = None
+        self.player_panel = None
+        self.message = ""
+        self._state_timer = 0.0
+        self._pokemon_scale = 0.0
+        
+        # Turn system initialization
+        self.current_turn = "player"
+        self.player_selected_move = None
+        self.enemy_selected_move = None
         self.turn_message = ""
         self.item_panel = None
         self.player_selected_item = None
         
         # pokeball catching animation
-        try:
-            self.pokeball_sprite = Sprite("UI/pokeball.png", (30, 30))
-        except:
-            self.pokeball_sprite = None
+        self.pokeball_sprite = Sprite("ingame_ui/ball.png", (100, 100))
         self.pokeball_x = 0.0
         self.pokeball_y = 0.0
+        self.pokeball_rotation = 0.0
+        self.pokeball_scale = 1.0
         self.catch_panel = None
+        self.shake_count = 0
+        self.shake_timer = 0.0
         
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
@@ -302,6 +363,8 @@ class BattleScene(Scene):
         
         self.state = BattleState.CATCH_ANIMATION
         self._state_timer = 0.0
+        self.pokeball_rotation = 0.0
+        self.pokeball_scale = 1.0
         Logger.info(f"pokeball catch animation started for {self.opponent_pokemon['name']}")
         
     def _catch_opponent_pokemon(self) -> None:
@@ -328,10 +391,10 @@ class BattleScene(Scene):
         for monster in self.game_manager.bag._monsters_data:
             Logger.info(f"  - {monster['name']}")
 
-        self.game_manager.save("saves/game0.json")
-        self.game_manager.load("saves/game0.json")
-        self.state = BattleState.BATTLE_END
-        self.message = f"Successfully caught {self.opponent_pokemon['name']}!"
+        # self.game_manager.save("saves/game0.json") # Moved to CATCH_SUCCESS
+        # self.game_manager.load("saves/game0.json") # Moved to CATCH_SUCCESS
+        # self.state = BattleState.BATTLE_END # Moved to CATCH_SUCCESS
+        # self.message = f"Successfully caught {self.opponent_pokemon['name']}!" # Moved to CATCH_SUCCESS
         
         
     def _next_state(self) -> None:
@@ -452,23 +515,284 @@ class BattleScene(Scene):
         # pokeball catch animation
         if self.state == BattleState.CATCH_ANIMATION:
             # pokeball flies from bottom to opponent position
-            opponent_x = GameSettings.SCREEN_WIDTH - 150
+            start_x = 200 + 125
+            start_y = GameSettings.SCREEN_HEIGHT - 250 - 200
+            opponent_x = GameSettings.SCREEN_WIDTH - 250
             opponent_y = 150
             
             animation_duration = 0.8  # seconds
             progress = min(self._state_timer / animation_duration, 1.0)
             
-            # Linear interpolation from current position to opponent position
-            self.pokeball_x = GameSettings.SCREEN_WIDTH // 2 + (opponent_x - GameSettings.SCREEN_WIDTH // 2) * progress
-            self.pokeball_y = GameSettings.SCREEN_HEIGHT - 100 + (opponent_y - (GameSettings.SCREEN_HEIGHT - 100)) * progress
+            # Ease out cubic for smoother throw
+            ease_progress = 1 - (1 - progress) ** 3
+            
+            # 水平方向：線性移動
+            self.pokeball_x = start_x + (opponent_x - start_x) * ease_progress
+            
+            # 垂直方向：拋物線移動
+            arc_height = 200
+            parabola = -4 * (progress - 0.5) ** 2 + 1
+            self.pokeball_y = start_y + (opponent_y - start_y) * ease_progress - arc_height * parabola
+            
+            # Rotation and Scale
+            self.pokeball_rotation = progress * 720  # Spin 2 times
+            self.pokeball_scale = 1.0 - (0.4 * progress)  # Scale down to 0.6
             
             if progress >= 1.0:
-                # Animation complete - catch the pokemon
+                # Animation complete - transition to falling state
+                self._state_timer = 0.0
+                self.state = BattleState.CATCH_FALLING
+                self.pokeball_x = opponent_x
+                self.pokeball_y = opponent_y
+                Logger.info(f"Pokéball hit {self.opponent_pokemon['name']}!")
+        
+        # Pokeball falling animation (Ball drops to ground)
+        if self.state == BattleState.CATCH_FALLING:
+            fall_duration = 0.4
+            progress = min(self._state_timer / fall_duration, 1.0)
+            
+            # Bounce effect
+            bounce_height = 50
+            if progress < 0.5:
+                # Fall down
+                p = progress * 2
+                self.pokeball_y = 150 + (300) * p  # Fall 300px
+            else:
+                # Small bounce
+                p = (progress - 0.5) * 2
+                self.pokeball_y = 450 - bounce_height * (1 - (2*p - 1)**2)
+                
+            if progress >= 1.0:
+                self.pokeball_y = 450  # Ground level
+                self._state_timer = 0.0
+                self.state = BattleState.CATCH_SHAKE
+                self.shake_count = 0
+                self.shake_timer = 0.0
+        
+        # Pokeball shaking animation
+        if self.state == BattleState.CATCH_SHAKE:
+            shake_interval = 1.0
+            self.shake_timer += dt
+            
+            # Shake logic: 3 shakes
+            if self.shake_timer > shake_interval:
+                self.shake_timer = 0
+                self.shake_count += 1
+                if self.shake_count >= 3:
+                    self.state = BattleState.CATCH_SUCCESS
+                    self._state_timer = 0.0
+                    self._catch_opponent_pokemon()
+            
+            # Calculate rotation for shake
+            t = self.shake_timer / shake_interval
+            if t < 0.2: # Shake left
+                self.pokeball_rotation = 15 * math.sin(t * 5 * math.pi)
+            elif t < 0.4: # Shake right
+                self.pokeball_rotation = -15 * math.sin((t-0.2) * 5 * math.pi)
+            else:
+                self.pokeball_rotation = 0
+                
+        if self.state == BattleState.CATCH_SUCCESS:
+            if self._state_timer > 1.0: # Wait 1 second after catch
                 self.game_manager.save("saves/game0.json")
                 self.game_manager.load("saves/game0.json")
-                self._catch_opponent_pokemon()
+                self.state = BattleState.BATTLE_END
+                self.message = f"Successfully caught {self.opponent_pokemon['name']}!"
+                
+        
+        # Enemy turn handling
+        if self.state == BattleState.ENEMY_TURN:
+            if self._state_timer > 1.5 and self.enemy_selected_move is None:
+                # First call to ENEMY_TURN - select and show move
+                self._execute_enemy_attack()
+            elif self._state_timer > 3.0 and self.enemy_selected_move is not None:
+                # After delay, apply damage
+                self._apply_enemy_damage()
+        
+        # Update panels for HP changes
+        self._state_timer += dt
+        
+        if input_manager.key_pressed(pg.K_SPACE):
+            if self.state == BattleState.CHALLENGER:
+                self._next_state()
+                self._pokemon_scale = 0.0
+            elif self.state == BattleState.SEND_OPPONENT:
+                self._next_state()
+                self._pokemon_scale = 0.0
+            elif self.state == BattleState.SEND_PLAYER:
+                self._next_state()
+                self._pokemon_scale = 0.0
+            elif self.state == BattleState.SHOW_DAMAGE:
+                # After showing damage, transition to next state
+                if self._check_battle_end():
+                    # Battle ended - show catch panel if opponent fainted
+                    if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
+                        self._show_catch_panel()
+                else:
+                    # Transition to next appropriate state
+                    self._state_timer = 0.0
+                    if self.current_turn == "player":
+                        self.state = BattleState.ENEMY_TURN
+                        self.current_turn = "enemy"
+                    else:
+                        self.state = BattleState.PLAYER_TURN
+                        self.current_turn = "player"
+                        self.message = "What will " + self.player_pokemon['name'] + " do?"
+                        self.turn_message = ""
+            elif self.state == BattleState.CATCHING:
+                # Player can press SPACE to skip or will select item
+                pass
+            elif self.state == BattleState.BATTLE_END:
+                # Document 2: 加入自動儲存功能
+                self.game_manager.save("saves/game0.json")
+                scene_manager.change_scene("game")
+        
+        # Handle Run Away action - Document 2: 加入自動儲存
+        if self.state == BattleState.PLAYER_TURN and self._state_timer > 2.0 and self.message == "Escaped from battle!":
+            self.game_manager.save("saves/game0.json")
+            scene_manager.change_scene("game")
+        
+        if self._pokemon_scale < 1.0:
+            self._pokemon_scale += dt * 2.0
+        
+        # Document 2的版本：更精確的面板初始化時機
+        if self.opponent_panel is None and self.opponent_pokemon and self.state == BattleState.SEND_OPPONENT:
+            self.opponent_panel = PokemonStatsPanel(
+                self.opponent_pokemon,
+                GameSettings.SCREEN_WIDTH - 180,
+                20
+            )
+        
+        if self.player_panel is None and self.player_pokemon and self.state == BattleState.SEND_PLAYER:
+            self.player_panel = PokemonStatsPanel(
+                self.player_pokemon,
+                20,
+                GameSettings.SCREEN_HEIGHT - 250
+            )
+        
+        if self.state == BattleState.PLAYER_TURN:
+            self.fight_btn.update(dt)
+            self.item_btn.update(dt)
+            self.switch_btn.update(dt)
+            self.run_btn.update(dt)
+        
+        if self.state == BattleState.CHOOSE_MOVE:
+            for btn in self.move_buttons:
+                btn.update(dt)
+        
+        if self.state == BattleState.CHOOSE_ITEM:
+            if self.item_panel:
+                self.item_panel.update(dt)
+                selected = self.item_panel.get_selected_item()
+                if selected:
+                    self._execute_item_attack(selected)
+                
+                # Close item panel with ESC key
+                if input_manager.key_pressed(pg.K_ESCAPE):
+                    self.state = BattleState.PLAYER_TURN
+                    self.item_panel = None
+                    self.message = "What will " + self.player_pokemon['name'] + " do?"
+        
+        # Catching panel handling
+        if self.state == BattleState.CATCHING:
+            if self.catch_panel:
+                self.catch_panel.update(dt)
+                selected = self.catch_panel.get_selected_item()
+                if selected:
+                    self._execute_pokeball_catch(selected)
+                
+                # Close catch panel with ESC key
+                if input_manager.key_pressed(pg.K_ESCAPE):
+                    self.state = BattleState.BATTLE_END
+                    self.catch_panel = None
+                    self.message = "Battle ended!"
+        
+        # pokeball catch animation
+        if self.state == BattleState.CATCH_ANIMATION:
+            # pokeball flies from bottom to opponent position
+            start_x = 200 + 125
+            start_y = GameSettings.SCREEN_HEIGHT - 250 - 200
+            opponent_x = GameSettings.SCREEN_WIDTH - 250
+            opponent_y = 150
+            
+            animation_duration = 0.8  # seconds
+            progress = min(self._state_timer / animation_duration, 1.0)
+            
+            # Ease out cubic for smoother throw
+            ease_progress = 1 - (1 - progress) ** 3
+            
+            # 水平方向：線性移動
+            self.pokeball_x = start_x + (opponent_x - start_x) * ease_progress
+            
+            # 垂直方向：拋物線移動
+            arc_height = 200
+            parabola = -4 * (progress - 0.5) ** 2 + 1
+            self.pokeball_y = start_y + (opponent_y - start_y) * ease_progress - arc_height * parabola
+            
+            # Rotation and Scale
+            self.pokeball_rotation = progress * 720  # Spin 2 times
+            self.pokeball_scale = 1.0 - (0.4 * progress)  # Scale down to 0.6
+            
+            if progress >= 1.0:
+                # Animation complete - transition to falling state
+                self._state_timer = 0.0
+                self.state = BattleState.CATCH_FALLING
+                self.pokeball_x = opponent_x
+                self.pokeball_y = opponent_y
+                Logger.info(f"Pokéball hit {self.opponent_pokemon['name']}!")
+        
+        # Pokeball falling animation (Ball drops to ground)
+        if self.state == BattleState.CATCH_FALLING:
+            fall_duration = 0.4
+            progress = min(self._state_timer / fall_duration, 1.0)
+            
+            # Bounce effect
+            bounce_height = 50
+            if progress < 0.5:
+                # Fall down
+                p = progress * 2
+                self.pokeball_y = 150 + (300) * p  # Fall 300px
+            else:
+                # Small bounce
+                p = (progress - 0.5) * 2
+                self.pokeball_y = 450 - bounce_height * (1 - (2*p - 1)**2)
+                
+            if progress >= 1.0:
+                self.pokeball_y = 450  # Ground level
+                self._state_timer = 0.0
+                self.state = BattleState.CATCH_SHAKE
+                self.shake_count = 0
+                self.shake_timer = 0.0
+        
+        # Pokeball shaking animation
+        if self.state == BattleState.CATCH_SHAKE:
+            shake_interval = 1.0
+            self.shake_timer += dt
+            
+            # Shake logic: 3 shakes
+            if self.shake_timer > shake_interval:
+                self.shake_timer = 0
+                self.shake_count += 1
+                if self.shake_count >= 3:
+                    self.state = BattleState.CATCH_SUCCESS
+                    self._state_timer = 0.0
+                    self._catch_opponent_pokemon()
+            
+            # Calculate rotation for shake
+            t = self.shake_timer / shake_interval
+            if t < 0.2: # Shake left
+                self.pokeball_rotation = 15 * math.sin(t * 5 * math.pi)
+            elif t < 0.4: # Shake right
+                self.pokeball_rotation = -15 * math.sin((t-0.2) * 5 * math.pi)
+            else:
+                self.pokeball_rotation = 0
+                
+        if self.state == BattleState.CATCH_SUCCESS:
+            if self._state_timer > 1.0: # Wait 1 second after catch
                 self.game_manager.save("saves/game0.json")
                 self.game_manager.load("saves/game0.json")
+                self.state = BattleState.BATTLE_END
+                self.message = f"Successfully caught {self.opponent_pokemon['name']}!"
                 
         
         # Enemy turn handling
@@ -490,14 +814,15 @@ class BattleScene(Scene):
     def draw(self, screen: pg.Surface) -> None:
         self.background.draw(screen)
         
-        # Document 2的版本：明確列出需要顯示面板的狀態
-        if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM):
+        # Draw panels
+        if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             self.opponent_panel.draw(screen)
         
-        if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM):
+        if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             self.player_panel.draw(screen)
         
         
+        # Draw Opponent Pokemon
         if (self.state == BattleState.SEND_OPPONENT or self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
             sprite = Sprite(self.opponent_pokemon["sprite_path"], (200, 200))
             if self.state == BattleState.SEND_OPPONENT:
@@ -508,9 +833,14 @@ class BattleScene(Scene):
             scaled_sprite = pg.transform.scale(sprite.image, (size, size))
             x = GameSettings.SCREEN_WIDTH - size - 150
             y = 80
-            screen.blit(scaled_sprite, (x, y))
+            
+            # Hide pokemon during catch phases (Falling, Shake, Success)
+            # Note: Visible during CATCH_ANIMATION (flying ball) until it hits
+            if self.state not in (BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+                screen.blit(scaled_sprite, (x, y))
         
-        if (self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE)) and self.player_pokemon:
+        # Draw Player Pokemon
+        if (self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS)) and self.player_pokemon:
             sprite = Sprite(self.player_pokemon["sprite_path"], (250, 250))
             if self.state == BattleState.SEND_PLAYER:
                 scale = min(self._pokemon_scale, 1.0)
@@ -522,6 +852,7 @@ class BattleScene(Scene):
             y = GameSettings.SCREEN_HEIGHT - size - 200
             screen.blit(scaled_sprite, (x, y))
         
+        # Draw Message Box
         box_h, box_w = 120, GameSettings.SCREEN_WIDTH - 40
         box_x, box_y = 20, GameSettings.SCREEN_HEIGHT - box_h - 20
         
@@ -529,7 +860,7 @@ class BattleScene(Scene):
         pg.draw.rect(screen, (255, 255, 255), (box_x, box_y, box_w, box_h), 2)
         
         # Display main message (skip during catch animation to avoid overlap)
-        if self.state != BattleState.CATCH_ANIMATION:
+        if self.state not in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             msg_text = self._message_font.render(self.message, True, (255, 255, 255))
             screen.blit(msg_text, (box_x + 10, box_y + 10))
         
@@ -538,7 +869,7 @@ class BattleScene(Scene):
             turn_text = self._message_font.render(self.turn_message, True, (255, 200, 100))
             screen.blit(turn_text, (box_x + 10, box_y + 35))
         
-        if self.state not in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.CHOOSE_MOVE, BattleState.BATTLE_END, BattleState.SHOW_DAMAGE):
+        if self.state not in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.CHOOSE_MOVE, BattleState.BATTLE_END, BattleState.SHOW_DAMAGE, BattleState.CATCH_ANIMATION, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             if self.state in (BattleState.CHALLENGER, BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER):
                 hint_text = self._message_font.render("Press SPACE to continue", True, (255, 255, 0))
                 screen.blit(hint_text, (box_x + box_w - 250, box_y + box_h - 30))
@@ -605,14 +936,30 @@ class BattleScene(Scene):
             hint_text = self._message_font.render("Press ESC to skip", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
         
-        if self.state == BattleState.CATCH_ANIMATION:
-            # Draw pokeball flying toward opponent
+        # Draw Pokeball Animation
+        if self.state in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+            # Draw pokeball
             if self.pokeball_sprite:
-                screen.blit(self.pokeball_sprite.image, (int(self.pokeball_x), int(self.pokeball_y)))
+                # Apply rotation and scale
+                scaled_size = int(30 * self.pokeball_scale)
+                scaled_img = pg.transform.scale(self.pokeball_sprite.image, (scaled_size, scaled_size))
+                rotated_img = pg.transform.rotate(scaled_img, self.pokeball_rotation)
+                
+                # Center the rotated image
+                rect = rotated_img.get_rect(center=(int(self.pokeball_x), int(self.pokeball_y)))
+                screen.blit(rotated_img, rect)
             
-            # Show animation message separately to prevent overlap
-            anim_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
-            screen.blit(anim_text, (box_x + 10, box_y + 10))
+            if self.state == BattleState.CATCH_ANIMATION:
+                msg_text = self._message_font.render("Throwing Pokeball...", True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+            elif self.state == BattleState.CATCH_SHAKE:
+                shake_text = ["Wiggle...", "Wobble...", "Shake..."]
+                idx = min(self.shake_count, 2)
+                msg_text = self._message_font.render(shake_text[idx], True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+            elif self.state == BattleState.CATCH_SUCCESS:
+                msg_text = self._message_font.render("Gotcha! " + self.opponent_pokemon['name'] + " was caught!", True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
         
         if self.state == BattleState.SHOW_DAMAGE:
             # Show damage message, wait for SPACE
