@@ -189,6 +189,40 @@ class BattleScene(Scene):
     @override
     def enter(self) -> None:
         Logger.info(f"Battle started against {self.opponent_name}")
+
+        # Reset all battle state variables
+        self.state = BattleState.INTRO
+        self.opponent_pokemon = None
+        self.player_pokemon = None
+        self.opponent_panel = None
+        self.player_panel = None
+        self.message = ""
+        self._state_timer = 0.0
+        self._pokemon_scale = 0.0
+
+        # Reset turn system
+        self.current_turn = "player"
+        self.player_selected_move = None
+        self.enemy_selected_move = None
+        self.turn_message = ""
+        self.item_panel = None
+        self.player_selected_item = None
+
+        # Reset pokeball catching animation
+        self.pokeball_x = 0.0
+        self.pokeball_y = 0.0
+        self.pokeball_rotation = 0.0
+        self.pokeball_scale = 1.0
+        self.catch_panel = None
+        self.shake_count = 0
+        self.shake_timer = 0.0
+
+        # Reset Pokemon flashing animation
+        self.flash_count = 0
+        self.flash_timer = 0.0
+        self.pokemon_visible = True
+
+        # Initialize battle
         self._init_pokemon()
         self._next_state()
 
@@ -956,7 +990,7 @@ class BattleScene(Scene):
         pg.draw.rect(screen, (255, 255, 255), (box_x, box_y, box_w, box_h), 2)
         
         # Display main message (skip during catch animation to avoid overlap)
-        if self.state not in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+        if self.state not in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             msg_text = self._message_font.render(self.message, True, (255, 255, 255))
             screen.blit(msg_text, (box_x + 10, box_y + 10))
         

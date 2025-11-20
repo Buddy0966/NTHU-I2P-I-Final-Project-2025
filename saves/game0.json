@@ -72,7 +72,7 @@
     "monsters": [
       {
         "name": "Florion",
-        "hp": 97337,
+        "hp": 97005,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png",
@@ -132,7 +132,7 @@
         "max_hp": 45,
         "level": 10,
         "sprite_path": "menu_sprites/menusprite2.png",
-        "count": 2
+        "count": 3
       },
       {
         "name": "Charmander",
@@ -140,7 +140,7 @@
         "max_hp": 39,
         "level": 8,
         "sprite_path": "menu_sprites/menusprite3.png",
-        "count": 3
+        "count": 6
       },
       {
         "name": "Bulbasaur",
@@ -148,7 +148,7 @@
         "max_hp": 40,
         "level": 8,
         "sprite_path": "menu_sprites/menusprite1.png",
-        "count": 5
+        "count": 6
       },
       {
         "name": "HornyMilf",
@@ -156,23 +156,23 @@
         "max_hp": 45,
         "level": 10,
         "sprite_path": "menu_sprites/hornymenusprites1.png",
-        "count": 3
+        "count": 6
       }
     ],
     "items": [
       {
         "name": "Potion",
-        "count": 0,
+        "count": 500,
         "sprite_path": "ingame_ui/potion.png"
       },
       {
         "name": "Coins",
-        "count": 99975,
+        "count": 100000,
         "sprite_path": "ingame_ui/coin.png"
       },
       {
         "name": "Pokeball",
-        "count": 99665,
+        "count": 100000,
         "sprite_path": "ingame_ui/ball.png"
       }
     ]
