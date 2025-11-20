@@ -252,7 +252,7 @@ class BattleScene(Scene):
             return
         
         # Filter out coins - they are not battle items
-        battle_items = [item for item in self.game_manager.bag.items if item['name'].lower() != 'coin']
+        battle_items = [item for item in self.game_manager.bag.items if item['name'].lower() != 'coins' and item['name'].lower() != 'pokeball']
         
         if not battle_items:
             self.message = "No usable items in battle!"
@@ -688,7 +688,7 @@ class BattleScene(Scene):
                 self.game_manager.save("saves/game0.json")
                 self.game_manager.load("saves/game0.json")
                 self.state = BattleState.BATTLE_END
-                self.message = f"Successfully caught {self.opponent_pokemon['name']}!"
+                self.message = f"Successfully caught {self.opponent_pokemon['name']}, Added to bag!"
                 
         
         # Enemy turn handling

@@ -272,7 +272,7 @@ class CatchPokemonScene(Scene):
             return
         
         # Filter out coins - they are not battle items
-        battle_items = [item for item in self.game_manager.bag.items if item['name'].lower() != 'coin']
+        battle_items = [item for item in self.game_manager.bag.items if item['name'].lower() != 'coins' and item['name'].lower() != 'pokeball']
         
         if not battle_items:
             self.message = "No usable items in battle!"
@@ -899,7 +899,7 @@ class CatchPokemonScene(Scene):
                 msg_text = self._message_font.render(shake_text[idx], True, (255, 255, 255))
                 screen.blit(msg_text, (box_x + 10, box_y + 10))
             elif self.state == WildBattleState.CATCH_SUCCESS:
-                msg_text = self._message_font.render("Gotcha! " + self.opponent_pokemon['name'] + " was caught!", True, (255, 255, 255))
+                msg_text = self._message_font.render("Gotcha! " + self.opponent_pokemon['name'] + " was caught, added to bag!", True, (255, 255, 255))
                 screen.blit(msg_text, (box_x + 10, box_y + 10))
         
         if self.state == WildBattleState.SHOW_DAMAGE:
