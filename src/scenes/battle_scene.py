@@ -190,6 +190,12 @@ class BattleScene(Scene):
     def enter(self) -> None:
         Logger.info(f"Battle started against {self.opponent_name}")
 
+        # Reload game manager to get latest position and state
+        loaded = GameManager.load("saves/game0.json")
+        if loaded:
+            self.game_manager = loaded
+            Logger.info("BattleScene: Game data reloaded from save file")
+
         # Reset all battle state variables
         self.state = BattleState.INTRO
         self.opponent_pokemon = None

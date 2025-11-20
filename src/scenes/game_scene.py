@@ -118,6 +118,8 @@ class GameScene(Scene):
         if loaded:
             self.game_manager = loaded
             Logger.info("Game data reloaded from save file")
+            # Set bush cooldown when returning from battle to prevent immediate re-encounter
+            self.game_manager.bush_cooldown = self.game_manager.BUSH_WAIT
         
         # sound_manager.play_bgm("RBY 103 Pallet Town.ogg")
         if self.online_manager:
@@ -152,15 +154,18 @@ class GameScene(Scene):
             enemy.update(dt)
             # Battle trigger
             if enemy.detected and input_manager.key_pressed(pg.K_SPACE):
+                self.game_manager.save("saves/game0.json")
                 scene_manager.change_scene("battle_transition")
                 return
         
         # Check bush collision - trigger wild pokemon battle
         if self.game_manager.player and self.game_manager.current_map:
             player_rect = self.game_manager.player.animation.rect
-            if self.game_manager.current_map.check_bush(player_rect):
+            # Only check bush if cooldown has expired
+            if self.game_manager.bush_cooldown <= 0.0 and self.game_manager.current_map.check_bush(player_rect):
                 # Encountered wild pokemon in bush
                 Logger.info("Wild pokemon encountered in bush!")
+                self.game_manager.save("saves/game0.json")
                 scene_manager.change_scene("catch_pokemon")
                 return
         

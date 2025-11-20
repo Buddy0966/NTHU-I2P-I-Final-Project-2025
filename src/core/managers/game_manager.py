@@ -54,11 +54,17 @@ class GameManager:
         self.teleport_cooldown = 0.0
         # Default wait time after teleport (seconds)
         self.TELEPORT_WAIT = 0.5
+        # Bush encounter cooldown (seconds) to prevent immediate re-encounter after battle
+        self.bush_cooldown = 0.0
+        # Default wait time after bush encounter (seconds)
+        self.BUSH_WAIT = 1.0
 
     def update(self, dt: float) -> None:
         """Update per-frame timers for the game manager."""
         if self.teleport_cooldown > 0.0:
             self.teleport_cooldown = max(0.0, self.teleport_cooldown - dt)
+        if self.bush_cooldown > 0.0:
+            self.bush_cooldown = max(0.0, self.bush_cooldown - dt)
         
     @property
     def current_map(self) -> Map:

@@ -175,6 +175,12 @@ class CatchPokemonScene(Scene):
     def enter(self) -> None:
         Logger.info("Wild Pokemon Battle started")
 
+        # Reload game manager to get latest position and state
+        loaded = GameManager.load("saves/game0.json")
+        if loaded:
+            self.game_manager = loaded
+            Logger.info("CatchPokemonScene: Game data reloaded from save file")
+
         # Reset all battle state variables
         self.state = WildBattleState.INTRO
         self.opponent_pokemon = None
