@@ -482,11 +482,15 @@ class BattleScene(Scene):
                 self._next_state()
                 self._pokemon_scale = 0.0
             elif self.state == BattleState.SEND_OPPONENT:
-                self._next_state()
-                self._pokemon_scale = 0.0
+                # Only allow continuing after animation is complete
+                if self._pokemon_scale >= 1.0:
+                    self._next_state()
+                    self._pokemon_scale = 0.0
             elif self.state == BattleState.SEND_PLAYER:
-                self._next_state()
-                self._pokemon_scale = 0.0
+                # Only allow continuing after animation is complete
+                if self._pokemon_scale >= 1.0:
+                    self._next_state()
+                    self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
                 # After showing damage, transition to next state
                 if self._check_battle_end():
@@ -708,11 +712,15 @@ class BattleScene(Scene):
                 self._next_state()
                 self._pokemon_scale = 0.0
             elif self.state == BattleState.SEND_OPPONENT:
-                self._next_state()
-                self._pokemon_scale = 0.0
+                # Only allow continuing after animation is complete
+                if self._pokemon_scale >= 1.0:
+                    self._next_state()
+                    self._pokemon_scale = 0.0
             elif self.state == BattleState.SEND_PLAYER:
-                self._next_state()
-                self._pokemon_scale = 0.0
+                # Only allow continuing after animation is complete
+                if self._pokemon_scale >= 1.0:
+                    self._next_state()
+                    self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
                 # After showing damage, transition to next state
                 if self._check_battle_end():
@@ -1000,9 +1008,14 @@ class BattleScene(Scene):
             screen.blit(turn_text, (box_x + 10, box_y + 35))
         
         if self.state not in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.CHOOSE_MOVE, BattleState.BATTLE_END, BattleState.SHOW_DAMAGE, BattleState.CATCH_ANIMATION, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
-            if self.state in (BattleState.CHALLENGER, BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER):
+            if self.state == BattleState.CHALLENGER:
                 hint_text = self._message_font.render("Press SPACE to continue", True, (255, 255, 0))
                 screen.blit(hint_text, (box_x + box_w - 250, box_y + box_h - 30))
+            elif self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER):
+                # Only show hint after animation is complete
+                if self._pokemon_scale >= 1.0:
+                    hint_text = self._message_font.render("Press SPACE to continue", True, (255, 255, 0))
+                    screen.blit(hint_text, (box_x + box_w - 250, box_y + box_h - 30))
         
         if self.state == BattleState.PLAYER_TURN:
             # Document 2的版本：按鈕更居中
