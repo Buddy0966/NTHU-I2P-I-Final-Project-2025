@@ -72,7 +72,7 @@
     "monsters": [
       {
         "name": "Florion",
-        "hp": 97363,
+        "hp": 97337,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png",
@@ -140,7 +140,7 @@
         "max_hp": 39,
         "level": 8,
         "sprite_path": "menu_sprites/menusprite3.png",
-        "count": 2
+        "count": 3
       },
       {
         "name": "Bulbasaur",
@@ -167,12 +167,12 @@
       },
       {
         "name": "Coins",
-        "count": 99976,
+        "count": 99975,
         "sprite_path": "ingame_ui/coin.png"
       },
       {
         "name": "Pokeball",
-        "count": 99668,
+        "count": 99665,
         "sprite_path": "ingame_ui/ball.png"
       }
     ]
