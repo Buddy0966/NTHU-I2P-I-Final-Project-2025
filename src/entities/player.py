@@ -96,7 +96,9 @@ class Player(Entity):
             tp = self.game_manager.current_map.check_teleport(self.position)
             if tp:
                 dest = tp.destination
-                self.game_manager.switch_map(dest)
+                # Don't auto-teleport to world map - require prompt confirmation
+                if dest != "maps/world.tmx":
+                    self.game_manager.switch_map(dest)
                 
         super().update(dt)
 

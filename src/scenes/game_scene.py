@@ -21,6 +21,8 @@ class GameScene(Scene):
     bag_panel: BagPanel | None
     show_settings: bool
     show_bag: bool
+    show_teleport_prompt: bool
+    pending_teleport_destination: str | None
 
     def __init__(self):
         super().__init__()
@@ -59,6 +61,10 @@ class GameScene(Scene):
         self.show_bag = False
         self.settings_panel = None
         self.bag_panel = None
+
+        # Teleport prompt state
+        self.show_teleport_prompt = False
+        self.pending_teleport_destination = None
 
     def _toggle_settings(self) -> None:
         self.show_settings = not self.show_settings
@@ -120,6 +126,8 @@ class GameScene(Scene):
             Logger.info("Game data reloaded from save file")
             # Set bush cooldown when returning from battle to prevent immediate re-encounter
             self.game_manager.bush_cooldown = self.game_manager.BUSH_WAIT
+            # Set teleport cooldown to prevent immediate teleportation on load
+            self.game_manager.teleport_cooldown = self.game_manager.TELEPORT_WAIT
         
         # sound_manager.play_bgm("RBY 103 Pallet Town.ogg")
         if self.online_manager:
@@ -142,7 +150,26 @@ class GameScene(Scene):
         if self.show_bag and self.bag_panel:
             self.bag_panel.update(dt)
             return
-        
+
+        # Handle teleport prompt
+        if self.show_teleport_prompt:
+            if input_manager.key_pressed(pg.K_RETURN) and self.pending_teleport_destination:
+                # Player pressed Enter - teleport
+                self.game_manager.switch_map(self.pending_teleport_destination)
+                self.show_teleport_prompt = False
+                self.pending_teleport_destination = None
+            elif not self._is_player_on_teleporter():
+                # Player walked away - hide prompt
+                self.show_teleport_prompt = False
+                self.pending_teleport_destination = None
+        else:
+            # Check if player just stepped on a teleporter
+            if self.game_manager.player and getattr(self.game_manager, "teleport_cooldown", 0.0) <= 0.0:
+                tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
+                if tp and tp.destination == "maps/world.tmx":  # Only show prompt for world map teleporter
+                    self.show_teleport_prompt = True
+                    self.pending_teleport_destination = tp.destination
+
         # Check if there is assigned next scene
         self.game_manager.try_switch_map()
         # Update game manager timers (e.g., teleport cooldown)
@@ -216,3 +243,55 @@ class GameScene(Scene):
             overlay.fill((0, 0, 0))
             screen.blit(overlay, (0, 0))
             self.bag_panel.draw(screen)
+
+        # Draw teleport prompt
+        if self.show_teleport_prompt:
+            self._draw_teleport_prompt(screen)
+
+    def _is_player_on_teleporter(self) -> bool:
+        """Check if player is currently on or near a teleporter tile (within 1 tile left/right)"""
+        if not self.game_manager.player:
+            return False
+
+        # Check if directly on teleporter
+        tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
+        if tp and tp.destination == "maps/world.tmx":
+            return True
+
+        # Check adjacent tiles (left and right)
+        player_pos = self.game_manager.player.position
+        for offset_x in [-GameSettings.TILE_SIZE, GameSettings.TILE_SIZE]:
+            adjacent_pos = Position(player_pos.x + offset_x, player_pos.y)
+            tp_adjacent = self.game_manager.current_map.check_teleport(adjacent_pos)
+            if tp_adjacent and tp_adjacent.destination == "maps/world.tmx":
+                return True
+
+        return False
+
+    def _draw_teleport_prompt(self, screen: pg.Surface):
+        """Draw the teleport prompt speech bubble"""
+        # Load UI banner/frame
+        from src.utils import load_img
+        banner = load_img("UI/raw/UI_Flat_InputField01a.png")
+
+        # Size and position
+        banner_width = 400
+        banner_height = 100
+        banner_x = (GameSettings.SCREEN_WIDTH - banner_width) // 2
+        banner_y = GameSettings.SCREEN_HEIGHT // 2 - 300
+
+        # Scale banner
+        banner = pg.transform.scale(banner, (banner_width, banner_height))
+        screen.blit(banner, (banner_x, banner_y))
+
+        # Draw text
+        font = pg.font.Font(None, 32)
+        text1 = font.render("Enter a New World?", True, (0, 0, 0))
+        text3 = font.render("ENTER to confirm", True, (0, 0, 0))
+
+        # Center text
+        text1_rect = text1.get_rect(center=(banner_x + banner_width // 2, banner_y + 30))
+        text3_rect = text3.get_rect(center=(banner_x + banner_width // 2, banner_y + 70))
+
+        screen.blit(text1, text1_rect)
+        screen.blit(text3, text3_rect)

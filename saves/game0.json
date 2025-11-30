@@ -7,11 +7,16 @@
           "x": 24,
           "y": 23,
           "destination": "gym.tmx"
+        },
+        {
+          "x": 35,
+          "y": 18,
+          "destination": "maps/world.tmx"
         }
       ],
       "player": {
-        "x": 16.0,
-        "y": 30.0
+        "x": 34.86423549801218,
+        "y": 12.02103362133363
       },
       "enemy_trainers": [
         {
@@ -58,21 +63,36 @@
       ],
       "player": {
         "x": 12.0,
-        "y": 12.0
+        "y": 14.004
+      },
+      "enemy_trainers": []
+    },
+    {
+      "path": "maps/world.tmx",
+      "teleport": [
+        {
+          "x": 27,
+          "y": 40,
+          "destination": "map.tmx"
+        }
+      ],
+      "player": {
+        "x": 27.0,
+        "y": 38.0
       },
       "enemy_trainers": []
     }
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 23.252000000000013,
-    "y": 26.944631601080083
+    "x": 39.89130187412767,
+    "y": 17.737116882454327
   },
   "bag": {
     "monsters": [
       {
         "name": "Florion",
-        "hp": 96108,
+        "hp": 96099,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png",
@@ -162,7 +182,7 @@
     "items": [
       {
         "name": "Potion",
-        "count": 430,
+        "count": 429,
         "sprite_path": "ingame_ui/potion.png"
       },
       {

@@ -53,7 +53,7 @@ class GameManager:
     # Teleport cooldown (seconds) to ignore immediate re-teleport or movement after switching
         self.teleport_cooldown = 0.0
         # Default wait time after teleport (seconds)
-        self.TELEPORT_WAIT = 0.5
+        self.TELEPORT_WAIT = 2.0
         # Bush encounter cooldown (seconds) to prevent immediate re-encounter after battle
         self.bush_cooldown = 0.0
         # Default wait time after bush encounter (seconds)

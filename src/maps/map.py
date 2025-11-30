@@ -117,7 +117,7 @@ class Map:
         for layer in self.tmxdata.visible_layers:
             if isinstance(layer, pytmx.TiledTileLayer) and "bush" in layer.name.lower():
                 for x, y, gid in layer:
-                    if gid != 0:
+                    if gid == 81:
                         rect_x = x * GameSettings.TILE_SIZE
                         rect_y = y * GameSettings.TILE_SIZE
                         rect = pg.Rect(rect_x, rect_y, GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
