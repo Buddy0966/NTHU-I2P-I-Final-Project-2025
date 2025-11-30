@@ -6,6 +6,7 @@ from src.scenes.scene import Scene
 from src.core import GameManager, OnlineManager
 from src.utils import Logger, PositionCamera, GameSettings, Position
 from src.interface.components import Button, SettingsPanelGame, BagPanel
+from src.interface.components.shop_panel import ShopPanel
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
 from src.sprites import Sprite
@@ -19,8 +20,10 @@ class GameScene(Scene):
     backpack_button: Button
     settings_panel: SettingsPanelGame | None
     bag_panel: BagPanel | None
+    shop_panel: ShopPanel | None
     show_settings: bool
     show_bag: bool
+    show_shop: bool
     show_teleport_prompt: bool
     pending_teleport_destination: str | None
 
@@ -59,8 +62,10 @@ class GameScene(Scene):
         
         self.show_settings = False
         self.show_bag = False
+        self.show_shop = False
         self.settings_panel = None
         self.bag_panel = None
+        self.shop_panel = None
 
         # Teleport prompt state
         self.show_teleport_prompt = False
@@ -100,6 +105,11 @@ class GameScene(Scene):
             Logger.info(f"BagPanel opened with {len(self.game_manager.bag.monsters if self.game_manager.bag else [])} monsters")
         else:
             self.bag_panel = None
+
+    def _toggle_shop(self) -> None:
+        self.show_shop = not self.show_shop
+        if not self.show_shop:
+            self.shop_panel = None
 
     def _handle_mute(self, is_muted: bool) -> None:
         if is_muted:
@@ -151,6 +161,10 @@ class GameScene(Scene):
             self.bag_panel.update(dt)
             return
 
+        if self.show_shop and self.shop_panel:
+            self.shop_panel.update(dt)
+            return
+
         # Handle teleport prompt
         if self.show_teleport_prompt:
             if input_manager.key_pressed(pg.K_RETURN) and self.pending_teleport_destination:
@@ -184,6 +198,28 @@ class GameScene(Scene):
                 self.game_manager.save("saves/game0.json")
                 scene_manager.change_scene("battle_transition")
                 return
+
+        # NPC interaction
+        for npc in self.game_manager.current_npcs:
+            npc.update(dt)
+            # Shop trigger - press E to interact
+            if npc.is_near_player and input_manager.key_pressed(pg.K_e):
+                self.show_shop = True
+                panel_w, panel_h = 800, 600
+                panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
+                panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
+                self.shop_panel = ShopPanel(
+                    npc.shop_inventory,
+                    self.game_manager.bag,
+                    npc.name,
+                    panel_x,
+                    panel_y,
+                    panel_w,
+                    panel_h,
+                    on_exit=self._toggle_shop
+                )
+                Logger.info(f"Opened shop: {npc.name}")
+                return
         
         # Check bush collision - trigger wild pokemon battle
         if self.game_manager.player and self.game_manager.current_map:
@@ -216,6 +252,8 @@ class GameScene(Scene):
             self.game_manager.current_map.draw(screen, camera)
         for enemy in self.game_manager.current_enemy_trainers:
             enemy.draw(screen, camera)
+        for npc in self.game_manager.current_npcs:
+            npc.draw(screen, camera)
 
         self.game_manager.bag.draw(screen)
         self.setting_button.draw(screen)
@@ -243,6 +281,13 @@ class GameScene(Scene):
             overlay.fill((0, 0, 0))
             screen.blit(overlay, (0, 0))
             self.bag_panel.draw(screen)
+
+        if self.show_shop and self.shop_panel:
+            overlay = pg.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
+            overlay.set_alpha(128)
+            overlay.fill((0, 0, 0))
+            screen.blit(overlay, (0, 0))
+            self.shop_panel.draw(screen)
 
         # Draw teleport prompt
         if self.show_teleport_prompt:

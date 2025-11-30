@@ -40,6 +40,36 @@
           "facing": "UP",
           "max_tiles": 2
         }
+      ],
+      "npcs": [
+        {
+          "x": 30.0,
+          "y": 12.0,
+          "name": "Potion Merchant",
+          "npc_type": "merchant",
+          "shop_inventory": [
+            {
+              "name": "Potion",
+              "count": 999,
+              "sprite_path": "ingame_ui/potion.png",
+              "price": 50
+            },
+            {
+              "name": "Super Potion",
+              "count": 999,
+              "sprite_path": "ingame_ui/potion.png",
+              "price": 150
+            },
+            {
+              "name": "Pokeball",
+              "count": 999,
+              "sprite_path": "ingame_ui/ball.png",
+              "price": 100
+            }
+          ],
+          "dialogue": "Welcome! I sell potions and pokeballs!",
+          "facing": "DOWN"
+        }
       ]
     },
     {
@@ -65,7 +95,8 @@
         "x": 12.0,
         "y": 14.004
       },
-      "enemy_trainers": []
+      "enemy_trainers": [],
+      "npcs": []
     },
     {
       "path": "maps/world.tmx",
@@ -80,13 +111,14 @@
         "x": 27.0,
         "y": 38.0
       },
-      "enemy_trainers": []
+      "enemy_trainers": [],
+      "npcs": []
     }
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 39.89130187412767,
-    "y": 17.737116882454327
+    "x": 31.0,
+    "y": 12.06507402640469
   },
   "bag": {
     "monsters": [
@@ -183,18 +215,22 @@
       {
         "name": "Potion",
         "count": 429,
-        "sprite_path": "ingame_ui/potion.png"
+        "sprite_path": "ingame_ui/potion.png",
+        "price": 50
       },
       {
         "name": "Coins",
         "count": 100000,
-        "sprite_path": "ingame_ui/coin.png"
+        "sprite_path": "ingame_ui/coin.png",
+        "price": 1
       },
       {
         "name": "Pokeball",
         "count": 99967,
-        "sprite_path": "ingame_ui/ball.png"
+        "sprite_path": "ingame_ui/ball.png",
+        "price": 100
       }
-    ]
+    ],
+    "money": 5000
   }
 }
