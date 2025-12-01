@@ -43,8 +43,8 @@
       ],
       "npcs": [
         {
-          "x": 30.0,
-          "y": 12.0,
+          "x": 48.0,
+          "y": 14.0,
           "name": "Potion Merchant",
           "npc_type": "merchant",
           "shop_inventory": [
@@ -67,7 +67,7 @@
               "price": 100
             }
           ],
-          "dialogue": "Welcome! I sell potions and pokeballs!",
+          "dialogue": "Welcome to my shop!",
           "facing": "DOWN"
         }
       ]
@@ -117,8 +117,8 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.0,
-    "y": 12.06507402640469
+    "x": 42.96800000000004,
+    "y": 19.317027704147993
   },
   "bag": {
     "monsters": [

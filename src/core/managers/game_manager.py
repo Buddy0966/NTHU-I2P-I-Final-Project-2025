@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from src.maps.map import Map
     from src.entities.player import Player
     from src.entities.enemy_trainer import EnemyTrainer
-    from src.entities.npc import NPC
+    from src.entities.merchant_npc import NPC
     from src.data.bag import Bag
 
 class GameManager:
@@ -164,7 +164,7 @@ class GameManager:
         from src.maps.map import Map
         from src.entities.player import Player
         from src.entities.enemy_trainer import EnemyTrainer
-        from src.entities.npc import NPC
+        from src.entities.merchant_npc import NPC
         from src.data.bag import Bag
 
         Logger.info("Loading maps")

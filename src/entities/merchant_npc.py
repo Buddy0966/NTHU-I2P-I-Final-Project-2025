@@ -33,8 +33,17 @@ class NPC(Entity):
         shop_inventory: list[Item] | None = None,
         dialogue: str = "Welcome to my shop!",
         facing: Direction = Direction.DOWN,
+        sprite_path: str = "character/ow2.png",
     ) -> None:
         super().__init__(x, y, game_manager)
+        # Override the default animation with NPC-specific sprite
+        from src.sprites import Animation
+        self.animation = Animation(
+            sprite_path, ["down", "left", "right", "up"], 4,
+            (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
+        )
+        self.animation.update_pos(self.position)
+
         self.name = name
         self.npc_type = npc_type
         self.shop_inventory = shop_inventory if shop_inventory else []
@@ -85,6 +94,7 @@ class NPC(Entity):
             data.get("shop_inventory", []),
             data.get("dialogue", "Welcome to my shop!"),
             facing,
+            data.get("sprite_path", "character/ow2.png"),
         )
 
     @override

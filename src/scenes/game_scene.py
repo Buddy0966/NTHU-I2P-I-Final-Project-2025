@@ -26,6 +26,8 @@ class GameScene(Scene):
     show_shop: bool
     show_teleport_prompt: bool
     pending_teleport_destination: str | None
+    show_npc_dialogue: bool
+    current_npc_dialogue: str | None
 
     def __init__(self):
         super().__init__()
@@ -70,6 +72,10 @@ class GameScene(Scene):
         # Teleport prompt state
         self.show_teleport_prompt = False
         self.pending_teleport_destination = None
+
+        # NPC dialogue bubble state
+        self.show_npc_dialogue = False
+        self.current_npc_dialogue = None
 
     def _toggle_settings(self) -> None:
         self.show_settings = not self.show_settings
@@ -200,26 +206,40 @@ class GameScene(Scene):
                 return
 
         # NPC interaction
+        npc_near = False
         for npc in self.game_manager.current_npcs:
             npc.update(dt)
-            # Shop trigger - press E to interact
-            if npc.is_near_player and input_manager.key_pressed(pg.K_e):
-                self.show_shop = True
-                panel_w, panel_h = 800, 600
-                panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
-                panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
-                self.shop_panel = ShopPanel(
-                    npc.shop_inventory,
-                    self.game_manager.bag,
-                    npc.name,
-                    panel_x,
-                    panel_y,
-                    panel_w,
-                    panel_h,
-                    on_exit=self._toggle_shop
-                )
-                Logger.info(f"Opened shop: {npc.name}")
-                return
+            # Show dialogue bubble when near NPC
+            if npc.is_near_player:
+                npc_near = True
+                self.show_npc_dialogue = True
+                self.current_npc_dialogue = npc.dialogue
+                # Shop trigger - press E to interact
+                if input_manager.key_pressed(pg.K_e):
+                    self.show_shop = True
+                    # Hide dialogue bubble when opening shop
+                    self.show_npc_dialogue = False
+                    self.current_npc_dialogue = None
+                    panel_w, panel_h = 800, 600
+                    panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
+                    panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
+                    self.shop_panel = ShopPanel(
+                        npc.shop_inventory,
+                        self.game_manager.bag,
+                        npc.name,
+                        panel_x,
+                        panel_y,
+                        panel_w,
+                        panel_h,
+                        on_exit=self._toggle_shop
+                    )
+                    Logger.info(f"Opened shop: {npc.name}")
+                    return
+
+        # Hide dialogue bubble if not near any NPC
+        if not npc_near:
+            self.show_npc_dialogue = False
+            self.current_npc_dialogue = None
         
         # Check bush collision - trigger wild pokemon battle
         if self.game_manager.player and self.game_manager.current_map:
@@ -293,6 +313,10 @@ class GameScene(Scene):
         if self.show_teleport_prompt:
             self._draw_teleport_prompt(screen)
 
+        # Draw NPC dialogue bubble
+        if self.show_npc_dialogue and self.current_npc_dialogue:
+            self._draw_npc_dialogue(screen)
+
     def _is_player_on_teleporter(self) -> bool:
         """Check if player is currently on or near a teleporter tile (within 1 tile left/right)"""
         if not self.game_manager.player:
@@ -340,3 +364,31 @@ class GameScene(Scene):
 
         screen.blit(text1, text1_rect)
         screen.blit(text3, text3_rect)
+
+    def _draw_npc_dialogue(self, screen: pg.Surface):
+        """Draw the NPC dialogue speech bubble"""
+        # Load UI banner/frame
+        from src.utils import load_img
+        banner = load_img("UI/raw/UI_Flat_InputField01a.png")
+
+        # Size and position
+        banner_width = 400
+        banner_height = 100
+        banner_x = (GameSettings.SCREEN_WIDTH - banner_width) // 2
+        banner_y = GameSettings.SCREEN_HEIGHT // 2 - 300
+
+        # Scale banner
+        banner = pg.transform.scale(banner, (banner_width, banner_height))
+        screen.blit(banner, (banner_x, banner_y))
+
+        # Draw text
+        font = pg.font.Font(None, 32)
+        text1 = font.render(self.current_npc_dialogue or "Welcome to my shop!", True, (0, 0, 0))
+        text2 = font.render("Press E to interact", True, (0, 0, 0))
+
+        # Center text
+        text1_rect = text1.get_rect(center=(banner_x + banner_width // 2, banner_y + 30))
+        text2_rect = text2.get_rect(center=(banner_x + banner_width // 2, banner_y + 70))
+
+        screen.blit(text1, text1_rect)
+        screen.blit(text2, text2_rect)
