@@ -4,6 +4,7 @@ import math
 import random
 from src.scenes.scene import Scene
 from src.sprites import BackgroundSprite, Sprite
+from src.sprites.animated_battle_sprite import AnimatedBattleSprite
 from src.utils import GameSettings, Logger
 from src.core.services import input_manager, scene_manager
 from src.core import GameManager
@@ -122,7 +123,11 @@ class BattleScene(Scene):
     flash_count: int
     flash_timer: float
     pokemon_visible: bool
-    
+
+    # Animated sprites
+    opponent_sprite: AnimatedBattleSprite | None
+    player_sprite: AnimatedBattleSprite | None
+
     def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
         super().__init__()
         self.background = BackgroundSprite("backgrounds/background1.png")
@@ -162,7 +167,11 @@ class BattleScene(Scene):
         self.flash_count = 0
         self.flash_timer = 0.0
         self.pokemon_visible = True
-        
+
+        # Animated sprites (initialized in _init_pokemon)
+        self.opponent_sprite = None
+        self.player_sprite = None
+
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
         
@@ -237,16 +246,83 @@ class BattleScene(Scene):
         pass
     
     def _init_pokemon(self) -> None:
+        # Pool of available opponents with varied stats
+        # Using animated sprites from sprites folder (sprite1-16)
+        opponent_pool = [
+            {"name": "Leafeon", "base_hp": 40, "level_range": (5, 10), "sprite_id": 1, "rarity": "common"},
+            {"name": "Aquafin", "base_hp": 50, "level_range": (6, 12), "sprite_id": 2, "rarity": "common"},
+            {"name": "Blazewing", "base_hp": 45, "level_range": (5, 11), "sprite_id": 3, "rarity": "common"},
+            {"name": "Rockfist", "base_hp": 55, "level_range": (7, 13), "sprite_id": 4, "rarity": "common"},
+            {"name": "Thunderpaw", "base_hp": 42, "level_range": (6, 11), "sprite_id": 5, "rarity": "common"},
+            {"name": "Frostbite", "base_hp": 48, "level_range": (7, 12), "sprite_id": 6, "rarity": "uncommon"},
+            {"name": "Shadowclaw", "base_hp": 43, "level_range": (8, 14), "sprite_id": 7, "rarity": "uncommon"},
+            {"name": "Steelwing", "base_hp": 52, "level_range": (9, 15), "sprite_id": 8, "rarity": "uncommon"},
+            {"name": "Mysticsoul", "base_hp": 46, "level_range": (7, 13), "sprite_id": 9, "rarity": "uncommon"},
+            {"name": "Venomfang", "base_hp": 44, "level_range": (8, 12), "sprite_id": 10, "rarity": "uncommon"},
+            {"name": "Sandstorm", "base_hp": 49, "level_range": (9, 14), "sprite_id": 11, "rarity": "rare"},
+            {"name": "Ghostflame", "base_hp": 41, "level_range": (10, 16), "sprite_id": 12, "rarity": "rare"},
+            {"name": "Crystalhorn", "base_hp": 60, "level_range": (11, 17), "sprite_id": 13, "rarity": "rare"},
+            {"name": "Stormchaser", "base_hp": 53, "level_range": (10, 15), "sprite_id": 14, "rarity": "rare"},
+            {"name": "Lavaguard", "base_hp": 58, "level_range": (12, 18), "sprite_id": 15, "rarity": "rare"},
+            {"name": "Cosmicdrake", "base_hp": 65, "level_range": (14, 20), "sprite_id": 16, "rarity": "legendary"},
+        ]
+
+        # Weighted random selection based on rarity
+        rarity_weights = {"common": 50, "uncommon": 30, "rare": 15, "legendary": 5}
+        weighted_pool = []
+        for opponent in opponent_pool:
+            weight = rarity_weights.get(opponent["rarity"], 10)
+            weighted_pool.extend([opponent] * weight)
+
+        # Select random opponent
+        selected = random.choice(weighted_pool)
+
+        # Generate random level within range
+        level = random.randint(selected["level_range"][0], selected["level_range"][1])
+
+        # Calculate HP with some variance (±20%)
+        hp_variance = random.uniform(0.8, 1.2)
+        max_hp = int(selected["base_hp"] * hp_variance)
+
+        # Build sprite paths
+        sprite_base_path = f"sprites/sprite{selected['sprite_id']}"  # For animated sprite
+        panel_sprite_path = f"sprites/sprite{selected['sprite_id']}.png"  # For panel (static image)
+
         self.opponent_pokemon = {
-            "name": "HornyMilf",
-            "hp": 45,
-            "max_hp": 45,
-            "level": 10,
-            "sprite_path": "menu_sprites/hornymenusprites1.png"
+            "name": selected["name"],
+            "hp": max_hp,
+            "max_hp": max_hp,
+            "level": level,
+            "sprite_path": panel_sprite_path  # Panel uses the static .png file
         }
-        
+
+        # Create animated sprite for opponent
+        self.opponent_sprite = AnimatedBattleSprite(
+            base_path=sprite_base_path,
+            size=(200, 200),
+            frames=4,
+            loop_speed=0.8
+        )
+
+        Logger.info(f"Wild {selected['name']} (Lv.{level}) appeared! Rarity: {selected['rarity']}")
+
+        # Initialize player pokemon
         if self.game_manager.bag and len(self.game_manager.bag._monsters_data) > 0:
             self.player_pokemon = self.game_manager.bag._monsters_data[0]
+
+            # Create animated sprite for player (if they have a sprite_path with animated version)
+            player_sprite_path = self.player_pokemon.get("sprite_path", "")
+            # Try to use animated version if available, otherwise fallback to static
+            if "sprite" in player_sprite_path and not "menu_sprites" in player_sprite_path:
+                self.player_sprite = AnimatedBattleSprite(
+                    base_path=player_sprite_path.replace(".png", ""),
+                    size=(250, 250),
+                    frames=4,
+                    loop_speed=0.8
+                )
+            else:
+                # Player has old static sprite, keep it for now
+                self.player_sprite = None
     
     def _on_fight_click(self) -> None:
         self.state = BattleState.CHOOSE_MOVE
@@ -309,18 +385,22 @@ class BattleScene(Scene):
     def _execute_player_attack(self) -> None:
         if not self.player_selected_move or not self.opponent_pokemon:
             return
-        
+
+        # Trigger player attack animation
+        if self.player_sprite:
+            self.player_sprite.switch_animation("attack")
+
         # Calculate damage (simplified: random between 10-20)
         damage = random.randint(10, 20)
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
-        
+
         self.message = f"{self.opponent_pokemon['name']} took {damage} damage!"
         Logger.info(f"Player attacked: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
-        
+
         if self._check_battle_end():
             self.state = BattleState.SHOW_DAMAGE
             return
-        
+
         # Transition to show damage state first
         self._state_timer = 0.0
         self.state = BattleState.SHOW_DAMAGE
@@ -345,7 +425,11 @@ class BattleScene(Scene):
         """Apply damage from enemy's selected move"""
         if not self.opponent_pokemon or not self.player_pokemon or not self.enemy_selected_move:
             return
-        
+
+        # Trigger opponent attack animation
+        if self.opponent_sprite:
+            self.opponent_sprite.switch_animation("attack")
+
         # Calculate damage
         damage = random.randint(8, 15)
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
@@ -482,7 +566,13 @@ class BattleScene(Scene):
     @override
     def update(self, dt: float) -> None:
         self._state_timer += dt
-        
+
+        # Update animated sprites
+        if self.opponent_sprite:
+            self.opponent_sprite.update(dt)
+        if self.player_sprite:
+            self.player_sprite.update(dt)
+
         if input_manager.key_pressed(pg.K_SPACE):
             if self.state == BattleState.CHALLENGER:
                 self._next_state()
@@ -499,6 +589,12 @@ class BattleScene(Scene):
                     self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
                 # After showing damage, transition to next state
+                # Switch sprites back to idle animation
+                if self.opponent_sprite:
+                    self.opponent_sprite.switch_animation("idle")
+                if self.player_sprite:
+                    self.player_sprite.switch_animation("idle")
+
                 if self._check_battle_end():
                     # Battle ended - show catch panel if opponent fainted
                     if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
@@ -729,6 +825,12 @@ class BattleScene(Scene):
                     self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
                 # After showing damage, transition to next state
+                # Switch sprites back to idle animation
+                if self.opponent_sprite:
+                    self.opponent_sprite.switch_animation("idle")
+                if self.player_sprite:
+                    self.player_sprite.switch_animation("idle")
+
                 if self._check_battle_end():
                     # Battle ended - show catch panel if opponent fainted
                     if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
@@ -960,41 +1062,58 @@ class BattleScene(Scene):
         
         # Draw Opponent Pokemon
         if (self.state == BattleState.SEND_OPPONENT or self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
-            sprite = Sprite(self.opponent_pokemon["sprite_path"], (200, 200))
-            if self.state == BattleState.SEND_OPPONENT:
-                scale = min(self._pokemon_scale, 1.0)
-            else:
-                scale = 1.0
-            size = int(200 * scale)
-            scaled_sprite = pg.transform.scale(sprite.image, (size, size))
-            x = GameSettings.SCREEN_WIDTH - size - 150
-            y = 80
-
-            # 绘制逻辑：
-            # - CATCH_FLASHING: 根据pokemon_visible决定是否显示（闪烁效果）
-            # - CATCH_FALLING, CATCH_SHAKE, CATCH_SUCCESS: 完全隐藏
-            # - 其他状态: 正常显示
+            # Determine drawing logic
             should_draw = True
             if self.state == BattleState.CATCH_FLASHING:
                 should_draw = self.pokemon_visible
             elif self.state in (BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
                 should_draw = False
 
-            if should_draw:
-                screen.blit(scaled_sprite, (x, y))
+            if should_draw and self.opponent_sprite:
+                # Use animated sprite
+                if self.state == BattleState.SEND_OPPONENT:
+                    scale = min(self._pokemon_scale, 1.0)
+                else:
+                    scale = 1.0
+
+                # Get current frame and scale it
+                frame = self.opponent_sprite.get_current_frame()
+                size = int(200 * scale)
+                scaled_frame = pg.transform.smoothscale(frame, (size, size))
+
+                x = GameSettings.SCREEN_WIDTH - size - 150
+                y = 80
+                screen.blit(scaled_frame, (x, y))
         
         # Draw Player Pokemon
         if (self.state == BattleState.SEND_PLAYER or self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.SHOW_DAMAGE, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS)) and self.player_pokemon:
-            sprite = Sprite(self.player_pokemon["sprite_path"], (250, 250))
-            if self.state == BattleState.SEND_PLAYER:
-                scale = min(self._pokemon_scale, 1.0)
+            if self.player_sprite:
+                # Use animated sprite
+                if self.state == BattleState.SEND_PLAYER:
+                    scale = min(self._pokemon_scale, 1.0)
+                else:
+                    scale = 1.0
+
+                # Get current frame and scale it
+                frame = self.player_sprite.get_current_frame()
+                size = int(250 * scale)
+                scaled_frame = pg.transform.smoothscale(frame, (size, size))
+
+                x = 200
+                y = GameSettings.SCREEN_HEIGHT - size - 200
+                screen.blit(scaled_frame, (x, y))
             else:
-                scale = 1.0
-            size = int(250 * scale)
-            scaled_sprite = pg.transform.scale(sprite.image, (size, size))
-            x = 200
-            y = GameSettings.SCREEN_HEIGHT - size - 200
-            screen.blit(scaled_sprite, (x, y))
+                # Fallback to static sprite for old pokemon
+                sprite = Sprite(self.player_pokemon["sprite_path"], (250, 250))
+                if self.state == BattleState.SEND_PLAYER:
+                    scale = min(self._pokemon_scale, 1.0)
+                else:
+                    scale = 1.0
+                size = int(250 * scale)
+                scaled_sprite = pg.transform.scale(sprite.image, (size, size))
+                x = 200
+                y = GameSettings.SCREEN_HEIGHT - size - 200
+                screen.blit(scaled_sprite, (x, y))
         
         # Draw Message Box
         box_h, box_w = 120, GameSettings.SCREEN_WIDTH - 40

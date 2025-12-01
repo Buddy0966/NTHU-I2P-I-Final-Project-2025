@@ -4,7 +4,10 @@
       "Bash(dir /s /b *.png 2)",
       "Bash(nul)",
       "Bash(findstr:*)",
-      "Bash(dir /s /b src*.py 2)"
+      "Bash(dir /s /b src*.py 2)",
+      "Bash(dir /s /b assetsmenu_sprites*.png)",
+      "Bash(dir /s /b *.png)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

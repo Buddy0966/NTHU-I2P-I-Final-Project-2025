@@ -22,9 +22,26 @@ class PokemonStatsPanel:
             self._bg_sprite = None
         
         try:
-            self.sprite = Sprite(monster["sprite_path"], (50, 50))
-        except:
+            # Load sprite and check if it needs to be cropped (for dual-view sprites)
+            temp_sprite = Sprite(monster["sprite_path"])
+            sprite_img = temp_sprite.image
+
+            # Check if this is a dual-view sprite (width is roughly 2x height)
+            width, height = sprite_img.get_size()
+            if width > height * 1.5:  # Dual-view sprite (front + back)
+                # Extract only the left half (front view)
+                half_width = width // 2
+                front_view = sprite_img.subsurface(pg.Rect(0, 0, half_width, height))
+                # Scale the front view
+                self.sprite_image = pg.transform.smoothscale(front_view, (50, 50))
+                self.sprite = None  # We'll use sprite_image directly
+            else:
+                # Single view sprite, use as-is
+                self.sprite = Sprite(monster["sprite_path"], (50, 50))
+                self.sprite_image = None
+        except Exception as e:
             self.sprite = None
+            self.sprite_image = None
 
     def update(self, dt: float) -> None:
         pass
@@ -40,7 +57,10 @@ class PokemonStatsPanel:
             pg.draw.rect(screen, (255, 255, 255), self.rect, 2)
             pg.draw.rect(screen, (200, 200, 200), self.rect)
         
-        if self.sprite:
+        # Draw sprite (either extracted front view or original)
+        if self.sprite_image:
+            screen.blit(self.sprite_image, (self.rect.x + 5, self.rect.y + 5))
+        elif self.sprite:
             screen.blit(self.sprite.image, (self.rect.x + 5, self.rect.y + 5))
         
         name_text = self._font.render(self.monster["name"], True, (0, 0, 0))

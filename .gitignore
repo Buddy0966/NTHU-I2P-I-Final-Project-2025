@@ -235,3 +235,7 @@ pyproject.toml
 uv.lock
 
 log.txt
+
+# Windows reserved filenames (accidentally created)
+nul
+assets/nul
