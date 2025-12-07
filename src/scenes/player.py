@@ -1,11 +1,12 @@
 from __future__ import annotations
 import pygame as pg
-from .entity import Entity
+from ..entities.entity import Entity
 from src.core.services import input_manager
 from src.utils import Position, PositionCamera, GameSettings, Logger, Direction
 from src.core import GameManager
 import math
 from typing import override
+
 
 class Player(Entity):
     speed: float = 4.0 * GameSettings.TILE_SIZE

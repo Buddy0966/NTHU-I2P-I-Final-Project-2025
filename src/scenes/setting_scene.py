@@ -4,7 +4,10 @@ from src.sprites import BackgroundSprite
 from src.scenes.scene import Scene
 from src.interface.components import SettingsPanel
 from src.core.services import scene_manager, sound_manager, input_manager
-from typing import override
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 
 class SettingScene(Scene):
     background: BackgroundSprite

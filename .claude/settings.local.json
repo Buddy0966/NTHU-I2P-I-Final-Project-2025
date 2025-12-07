@@ -7,7 +7,9 @@
       "Bash(dir /s /b src*.py 2)",
       "Bash(dir /s /b assetsmenu_sprites*.png)",
       "Bash(dir /s /b *.png)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(python main.py:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,9 @@
 from __future__ import annotations
 import pygame as pg
-from typing import override
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 from src.sprites import Animation
 from src.utils import Position, PositionCamera, Direction, GameSettings
 from src.core import GameManager

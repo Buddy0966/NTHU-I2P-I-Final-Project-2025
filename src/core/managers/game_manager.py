@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.maps.map import Map
-    from src.entities.player import Player
+    from src.scenes.player import Player
     from src.entities.enemy_trainer import EnemyTrainer
     from src.entities.merchant_npc import NPC
     from src.data.bag import Bag
@@ -162,7 +162,7 @@ class GameManager:
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> "GameManager":
         from src.maps.map import Map
-        from src.entities.player import Player
+        from src.scenes.player import Player
         from src.entities.enemy_trainer import EnemyTrainer
         from src.entities.merchant_npc import NPC
         from src.data.bag import Bag

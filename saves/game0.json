@@ -117,18 +117,22 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.48816652224137,
-    "y": 29.0
+    "x": 23.818814141774865,
+    "y": 31.162457428549555
   },
   "bag": {
     "monsters": [
       {
         "name": "Florion",
-        "hp": 96099,
+        "hp": 96040,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png",
-        "count": 1
+        "count": 1,
+        "type": "None",
+        "moves": [
+          "QuickSlash"
+        ]
       },
       {
         "name": "Pikachu",
@@ -209,6 +213,38 @@
         "level": 10,
         "sprite_path": "menu_sprites/hornymenusprites1.png",
         "count": 16
+      },
+      {
+        "name": "Thunderpaw",
+        "hp": 38,
+        "max_hp": 38,
+        "level": 9,
+        "sprite_path": "sprites/sprite5.png",
+        "count": 1
+      },
+      {
+        "name": "Leafeon",
+        "hp": 36,
+        "max_hp": 36,
+        "level": 7,
+        "sprite_path": "sprites/sprite1.png",
+        "count": 1
+      },
+      {
+        "name": "Shadowclaw",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 9,
+        "sprite_path": "sprites/sprite7.png",
+        "count": 1
+      },
+      {
+        "name": "Rockfist",
+        "hp": 52,
+        "max_hp": 52,
+        "level": 8,
+        "sprite_path": "sprites/sprite4.png",
+        "count": 1
       }
     ],
     "items": [
@@ -226,7 +262,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99967,
+        "count": 99963,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }

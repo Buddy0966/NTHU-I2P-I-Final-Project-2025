@@ -1,6 +1,9 @@
 from __future__ import annotations
 import pygame as pg
-from typing import override
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 from enum import Enum
 
 from .entity import Entity

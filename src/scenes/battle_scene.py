@@ -5,13 +5,18 @@ import random
 from src.scenes.scene import Scene
 from src.sprites import BackgroundSprite, Sprite
 from src.sprites.animated_battle_sprite import AnimatedBattleSprite
+from src.sprites.attack_animation import AttackAnimation
 from src.utils import GameSettings, Logger
 from src.core.services import input_manager, scene_manager
 from src.core import GameManager
 from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
 from src.utils.definition import Monster
-from typing import override
+from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 from enum import Enum
 
 
@@ -128,6 +133,9 @@ class BattleScene(Scene):
     opponent_sprite: AnimatedBattleSprite | None
     player_sprite: AnimatedBattleSprite | None
 
+    # Attack animation
+    attack_animation: AttackAnimation | None
+
     def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
         super().__init__()
         self.background = BackgroundSprite("backgrounds/background1.png")
@@ -152,6 +160,7 @@ class BattleScene(Scene):
         self.turn_message = ""
         self.item_panel = None
         self.player_selected_item = None
+        self.effectiveness_message = ""  # Type effectiveness message
         
         # pokeball catching animation
         self.pokeball_sprite = Sprite("ingame_ui/ball.png", (40, 40))
@@ -172,6 +181,9 @@ class BattleScene(Scene):
         self.opponent_sprite = None
         self.player_sprite = None
 
+        # Attack animation
+        self.attack_animation = None
+
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
         
@@ -180,20 +192,8 @@ class BattleScene(Scene):
         self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h)
         self.run_btn = BattleActionButton("Run", 0, 0, btn_w, btn_h, self._on_run_click)
         
-        # Move buttons (for attack selection) - 使用Document 1的2x2布局
-        move_btn_w, move_btn_h = 120, 45
-        move_gap_x = 30
-        move_start_x = 150
-        move_start_y = GameSettings.SCREEN_HEIGHT - 150
-        
-        moves = ["Woodhammer", "Headbutt", "Howl", "Leer"]
+        # Move buttons (for attack selection) - will be populated dynamically
         self.move_buttons = []
-        for i, move in enumerate(moves):
-            x = move_start_x + (move_btn_w + move_gap_x) * (i % 2)
-            y = move_start_y - (move_btn_h + 15) * (i // 2)
-            btn = BattleActionButton(move, x, y, move_btn_w, move_btn_h, 
-                                    lambda m=move: self._on_move_select(m))
-            self.move_buttons.append(btn)
 
     @override
     def enter(self) -> None:
@@ -222,6 +222,7 @@ class BattleScene(Scene):
         self.turn_message = ""
         self.item_panel = None
         self.player_selected_item = None
+        self.effectiveness_message = ""
 
         # Reset pokeball catching animation
         self.pokeball_x = 0.0
@@ -288,12 +289,17 @@ class BattleScene(Scene):
         sprite_base_path = f"sprites/sprite{selected['sprite_id']}"  # For animated sprite
         panel_sprite_path = f"sprites/sprite{selected['sprite_id']}.png"  # For panel (static image)
 
+        # Get Pokemon species data for type and moves
+        species_data = POKEMON_SPECIES.get(selected["name"], {"type": "None", "moves": ["QuickSlash"]})
+
         self.opponent_pokemon = {
             "name": selected["name"],
             "hp": max_hp,
             "max_hp": max_hp,
             "level": level,
-            "sprite_path": panel_sprite_path  # Panel uses the static .png file
+            "sprite_path": panel_sprite_path,  # Panel uses the static .png file
+            "type": species_data["type"],
+            "moves": species_data["moves"].copy()
         }
 
         # Create animated sprite for opponent
@@ -310,6 +316,15 @@ class BattleScene(Scene):
         if self.game_manager.bag and len(self.game_manager.bag._monsters_data) > 0:
             self.player_pokemon = self.game_manager.bag._monsters_data[0]
 
+            # Ensure player pokemon has type and moves
+            if "type" not in self.player_pokemon or "moves" not in self.player_pokemon:
+                player_species_data = POKEMON_SPECIES.get(
+                    self.player_pokemon["name"],
+                    {"type": "None", "moves": ["QuickSlash"]}
+                )
+                self.player_pokemon["type"] = player_species_data["type"]
+                self.player_pokemon["moves"] = player_species_data["moves"].copy()
+
             # Create animated sprite for player (if they have a sprite_path with animated version)
             player_sprite_path = self.player_pokemon.get("sprite_path", "")
             # Try to use animated version if available, otherwise fallback to static
@@ -324,7 +339,27 @@ class BattleScene(Scene):
                 # Player has old static sprite, keep it for now
                 self.player_sprite = None
     
+    def _init_move_buttons(self) -> None:
+        """Initialize move buttons based on player's Pokemon moves"""
+        if not self.player_pokemon or "moves" not in self.player_pokemon:
+            return
+
+        self.move_buttons = []
+        move_btn_w, move_btn_h = 120, 45
+        move_gap_x = 30
+        move_start_x = 150
+        move_start_y = GameSettings.SCREEN_HEIGHT - 150
+
+        moves = self.player_pokemon["moves"]
+        for i, move in enumerate(moves):
+            x = move_start_x + (move_btn_w + move_gap_x) * (i % 2)
+            y = move_start_y - (move_btn_h + 15) * (i // 2)
+            btn = BattleActionButton(move, x, y, move_btn_w, move_btn_h,
+                                    lambda m=move: self._on_move_select(m))
+            self.move_buttons.append(btn)
+
     def _on_fight_click(self) -> None:
+        self._init_move_buttons()  # Initialize move buttons with player's moves
         self.state = BattleState.CHOOSE_MOVE
         self.message = "Choose a move:"
     
@@ -390,12 +425,38 @@ class BattleScene(Scene):
         if self.player_sprite:
             self.player_sprite.switch_animation("attack")
 
-        # Calculate damage (simplified: random between 10-20)
-        damage = random.randint(10, 20)
+        # Create attack effect animation at opponent position
+        move_data = MOVES_DATABASE.get(self.player_selected_move)
+        if move_data and move_data.get("animation"):
+            # Position animation at opponent pokemon
+            opponent_x = GameSettings.SCREEN_WIDTH - 150 - 100
+            opponent_y = 80 + 100
+            self.attack_animation = AttackAnimation(
+                move_data["animation"],
+                (opponent_x, opponent_y),
+                duration=0.6
+            )
+
+        # Calculate damage with type effectiveness
+        attacker_type = self.player_pokemon.get("type", "None")
+        defender_type = self.opponent_pokemon.get("type", "None")
+        level = self.player_pokemon.get("level", 10)
+
+        damage, effectiveness_msg, _move_type = calculate_damage(
+            self.player_selected_move,
+            attacker_type,
+            defender_type,
+            level
+        )
+
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
+        self.effectiveness_message = effectiveness_msg
 
         self.message = f"{self.opponent_pokemon['name']} took {damage} damage!"
-        Logger.info(f"Player attacked: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
+        if effectiveness_msg:
+            self.message += f" {effectiveness_msg}"
+
+        Logger.info(f"Player attacked with {self.player_selected_move}: {damage} damage. {effectiveness_msg}. Opponent HP: {self.opponent_pokemon['hp']}")
 
         if self._check_battle_end():
             self.state = BattleState.SHOW_DAMAGE
@@ -408,16 +469,16 @@ class BattleScene(Scene):
     def _execute_enemy_attack(self) -> None:
         if not self.opponent_pokemon or not self.player_pokemon:
             return
-        
-        # Enemy selects a random move
-        moves = ["Woodhammer", "Headbutt", "Howl", "Leer"]
+
+        # Enemy selects a random move from their moveset
+        moves = self.opponent_pokemon.get("moves", ["QuickSlash"])
         self.enemy_selected_move = random.choice(moves)
-        
+
         # Show enemy's move selection
         self.message = f"{self.opponent_pokemon['name']} used {self.enemy_selected_move}!"
         self.turn_message = ""  # Clear any previous turn message
         Logger.info(f"Enemy selected move: {self.enemy_selected_move}")
-        
+
         # Stay in ENEMY_TURN state to show move before applying damage
         self._state_timer = 0.0
     
@@ -430,18 +491,44 @@ class BattleScene(Scene):
         if self.opponent_sprite:
             self.opponent_sprite.switch_animation("attack")
 
-        # Calculate damage
-        damage = random.randint(8, 15)
+        # Create attack effect animation at player position
+        move_data = MOVES_DATABASE.get(self.enemy_selected_move)
+        if move_data and move_data.get("animation"):
+            # Position animation at player pokemon
+            player_x = 200 + 125
+            player_y = GameSettings.SCREEN_HEIGHT - 250 - 100
+            self.attack_animation = AttackAnimation(
+                move_data["animation"],
+                (player_x, player_y),
+                duration=0.6
+            )
+
+        # Calculate damage with type effectiveness
+        attacker_type = self.opponent_pokemon.get("type", "None")
+        defender_type = self.player_pokemon.get("type", "None")
+        level = self.opponent_pokemon.get("level", 10)
+
+        damage, effectiveness_msg, _move_type = calculate_damage(
+            self.enemy_selected_move,
+            attacker_type,
+            defender_type,
+            level
+        )
+
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
-        
+        self.effectiveness_message = effectiveness_msg
+
         self.message = f"{self.player_pokemon['name']} took {damage} damage!"
-        Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. Player HP: {self.player_pokemon['hp']}")
-        
+        if effectiveness_msg:
+            self.message += f" {effectiveness_msg}"
+
+        Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. {effectiveness_msg}. Player HP: {self.player_pokemon['hp']}")
+
         if self._check_battle_end():
             self.state = BattleState.SHOW_DAMAGE
             self.enemy_selected_move = None
             return
-        
+
         # Transition to show damage state
         self._state_timer = 0.0
         self.state = BattleState.SHOW_DAMAGE
@@ -572,6 +659,12 @@ class BattleScene(Scene):
             self.opponent_sprite.update(dt)
         if self.player_sprite:
             self.player_sprite.update(dt)
+
+        # Update attack animation
+        if self.attack_animation:
+            self.attack_animation.update(dt)
+            if self.attack_animation.is_finished():
+                self.attack_animation = None
 
         if input_manager.key_pressed(pg.K_SPACE):
             if self.state == BattleState.CHALLENGER:
@@ -1058,6 +1151,10 @@ class BattleScene(Scene):
 
         if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             self.player_panel.draw(screen)
+
+        # Draw attack animation (before Pokemon so it appears behind them)
+        if self.attack_animation:
+            self.attack_animation.draw(screen)
         
         
         # Draw Opponent Pokemon
@@ -1124,8 +1221,26 @@ class BattleScene(Scene):
         
         # Display main message (skip during catch animation to avoid overlap)
         if self.state not in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
-            msg_text = self._message_font.render(self.message, True, (255, 255, 255))
-            screen.blit(msg_text, (box_x + 10, box_y + 10))
+            # Split message and effectiveness message for better formatting
+            if self.effectiveness_message and self.effectiveness_message in self.message:
+                # Display main damage message
+                main_msg = self.message.replace(self.effectiveness_message, "").strip()
+                msg_text = self._message_font.render(main_msg, True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+
+                # Display effectiveness message with special color
+                if "super effective" in self.effectiveness_message:
+                    eff_color = (100, 255, 100)  # Green for super effective
+                elif "not very effective" in self.effectiveness_message:
+                    eff_color = (255, 100, 100)  # Red for not very effective
+                else:
+                    eff_color = (255, 255, 255)
+
+                eff_text = self._message_font.render(self.effectiveness_message, True, eff_color)
+                screen.blit(eff_text, (box_x + 10, box_y + 30))
+            else:
+                msg_text = self._message_font.render(self.message, True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
         
         # Display turn message (damage dealt)
         if self.turn_message and self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.PLAYER_TURN):

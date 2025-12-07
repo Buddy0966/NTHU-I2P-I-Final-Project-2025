@@ -5,7 +5,10 @@ from src.scenes.scene import Scene
 from src.sprites import BackgroundSprite
 from src.utils import GameSettings, Logger
 from src.core.services import scene_manager
-from typing import override
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 
 
 class BattleTransitionScene(Scene):

@@ -4,7 +4,11 @@ import pygame as pg
 from src.sprites import Sprite
 from src.core.services import input_manager
 from src.utils import Logger
-from typing import Callable, override
+from typing import Callable
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 from .component import UIComponent
 
 class Button(UIComponent):

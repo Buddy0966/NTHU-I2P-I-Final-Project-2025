@@ -2,7 +2,10 @@ from __future__ import annotations
 import pygame
 from enum import Enum
 from dataclasses import dataclass
-from typing import override
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 
 from .entity import Entity
 from src.sprites import Sprite

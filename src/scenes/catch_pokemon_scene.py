@@ -2,13 +2,17 @@ from __future__ import annotations
 import pygame as pg
 from src.scenes.scene import Scene
 from src.sprites import BackgroundSprite, Sprite
+from src.sprites.attack_animation import AttackAnimation
 from src.utils import GameSettings, Logger
 from src.core.services import input_manager, scene_manager
 from src.core import GameManager
 from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
 from src.utils.definition import Monster
+from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE
+
 from typing import override
+
 from enum import Enum
 import math
 import random
@@ -76,6 +80,10 @@ class CatchPokemonScene(Scene):
     flash_count: int
     flash_timer: float
     pokemon_visible: bool
+
+    # Attack animation
+    attack_animation: AttackAnimation | None
+    effectiveness_message: str  # Type effectiveness message
     
     # Wild pokemon data pool
     WILD_POKEMON_POOL = [
@@ -147,6 +155,10 @@ class CatchPokemonScene(Scene):
         self.flash_count = 0
         self.flash_timer = 0.0
         self.pokemon_visible = True
+
+        # Attack animation and effectiveness
+        self.attack_animation = None
+        self.effectiveness_message = ""
         
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
@@ -156,20 +168,8 @@ class CatchPokemonScene(Scene):
         self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h, self._on_switch_click)
         self.run_btn = BattleActionButton("Run", 0, 0, btn_w, btn_h, self._on_run_click)
         
-        # Move buttons (for attack selection) - 2x2 layout
-        move_btn_w, move_btn_h = 120, 45
-        move_gap_x = 30
-        move_start_x = 150
-        move_start_y = GameSettings.SCREEN_HEIGHT - 150
-        
-        moves = ["Woodhammer", "Headbutt", "Howl", "Leer"]
+        # Move buttons (for attack selection) - will be populated dynamically
         self.move_buttons = []
-        for i, move in enumerate(moves):
-            x = move_start_x + (move_btn_w + move_gap_x) * (i % 2)
-            y = move_start_y - (move_btn_h + 15) * (i // 2)
-            btn = BattleActionButton(move, x, y, move_btn_w, move_btn_h, 
-                                    lambda m=move: self._on_move_select(m))
-            self.move_buttons.append(btn)
 
     @override
     def enter(self) -> None:
@@ -217,6 +217,10 @@ class CatchPokemonScene(Scene):
         self.flash_timer = 0.0
         self.pokemon_visible = True
 
+        # Reset attack animation and effectiveness
+        self.attack_animation = None
+        self.effectiveness_message = ""
+
         # Initialize battle
         self._init_battle()
         self._next_state()
@@ -230,7 +234,7 @@ class CatchPokemonScene(Scene):
         # Generate random enemy party (1-3 pokemon)
         party_size = random.randint(1, 3)
         self.enemy_party = []
-        
+
         for _ in range(party_size):
             # Randomly select a pokemon from the pool
             pokemon_data = random.choice(self.WILD_POKEMON_POOL)
@@ -240,18 +244,33 @@ class CatchPokemonScene(Scene):
                 int(enemy_pokemon['max_hp'] * 0.8),
                 enemy_pokemon['max_hp']
             )
+
+            # Add type and moves from species database
+            species_data = POKEMON_SPECIES.get(enemy_pokemon["name"], {"type": "None", "moves": ["QuickSlash"]})
+            enemy_pokemon["type"] = species_data["type"]
+            enemy_pokemon["moves"] = species_data["moves"].copy()
+
             self.enemy_party.append(enemy_pokemon)
-        
+
         self.enemy_party_index = 0
         self.opponent_pokemon = self.enemy_party[self.enemy_party_index]
-        
+
         Logger.info(f"Wild Pokemon Battle initiated! Enemy party size: {len(self.enemy_party)}")
         for i, pokemon in enumerate(self.enemy_party):
             Logger.info(f"  Enemy {i+1}: {pokemon['name']} (Lv.{pokemon['level']}, HP:{pokemon['hp']}/{pokemon['max_hp']})")
-        
+
         # Initialize player pokemon
         if self.game_manager.bag and len(self.game_manager.bag._monsters_data) > 0:
             self.player_pokemon = self.game_manager.bag._monsters_data[0]
+
+            # Ensure player pokemon has type and moves
+            if "type" not in self.player_pokemon or "moves" not in self.player_pokemon:
+                player_species_data = POKEMON_SPECIES.get(
+                    self.player_pokemon["name"],
+                    {"type": "None", "moves": ["QuickSlash"]}
+                )
+                self.player_pokemon["type"] = player_species_data["type"]
+                self.player_pokemon["moves"] = player_species_data["moves"].copy()
     
     def _get_next_enemy_pokemon(self) -> bool:
         """
@@ -268,7 +287,27 @@ class CatchPokemonScene(Scene):
         Logger.info("Wild Pokemon party defeated!")
         return False
     
+    def _init_move_buttons(self) -> None:
+        """Initialize move buttons based on player's Pokemon moves"""
+        if not self.player_pokemon or "moves" not in self.player_pokemon:
+            return
+
+        self.move_buttons = []
+        move_btn_w, move_btn_h = 120, 45
+        move_gap_x = 30
+        move_start_x = 150
+        move_start_y = GameSettings.SCREEN_HEIGHT - 150
+
+        moves = self.player_pokemon["moves"]
+        for i, move in enumerate(moves):
+            x = move_start_x + (move_btn_w + move_gap_x) * (i % 2)
+            y = move_start_y - (move_btn_h + 15) * (i // 2)
+            btn = BattleActionButton(move, x, y, move_btn_w, move_btn_h,
+                                    lambda m=move: self._on_move_select(m))
+            self.move_buttons.append(btn)
+
     def _on_fight_click(self) -> None:
+        self._init_move_buttons()  # Initialize move buttons with player's moves
         self.state = WildBattleState.CHOOSE_MOVE
         self.message = "Choose a move:"
     
@@ -334,18 +373,44 @@ class CatchPokemonScene(Scene):
     def _execute_player_attack(self) -> None:
         if not self.player_selected_move or not self.opponent_pokemon:
             return
-        
-        # Calculate damage (simplified: random between 10-20)
-        damage = random.randint(10, 20)
+
+        # Create attack effect animation at opponent position
+        move_data = MOVES_DATABASE.get(self.player_selected_move)
+        if move_data and move_data.get("animation"):
+            # Position animation at opponent pokemon
+            opponent_x = GameSettings.SCREEN_WIDTH - 150 - 100
+            opponent_y = 80 + 100
+            self.attack_animation = AttackAnimation(
+                move_data["animation"],
+                (opponent_x, opponent_y),
+                duration=0.6
+            )
+
+        # Calculate damage with type effectiveness
+        attacker_type = self.player_pokemon.get("type", "None")
+        defender_type = self.opponent_pokemon.get("type", "None")
+        level = self.player_pokemon.get("level", 10)
+
+        damage, effectiveness_msg, _move_type = calculate_damage(
+            self.player_selected_move,
+            attacker_type,
+            defender_type,
+            level
+        )
+
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
-        
+        self.effectiveness_message = effectiveness_msg
+
         self.message = f"{self.opponent_pokemon['name']} took {damage} damage!"
-        Logger.info(f"Player attacked: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
-        
+        if effectiveness_msg:
+            self.message += f" {effectiveness_msg}"
+
+        Logger.info(f"Player attacked with {self.player_selected_move}: {damage} damage. {effectiveness_msg}. Opponent HP: {self.opponent_pokemon['hp']}")
+
         if self._check_battle_end():
             self.state = WildBattleState.SHOW_DAMAGE
             return
-        
+
         # Transition to show damage state first
         self._state_timer = 0.0
         self.state = WildBattleState.SHOW_DAMAGE
@@ -353,16 +418,16 @@ class CatchPokemonScene(Scene):
     def _execute_enemy_attack(self) -> None:
         if not self.opponent_pokemon or not self.player_pokemon:
             return
-        
-        # Enemy selects a random move
-        moves = ["Woodhammer", "Headbutt", "Howl", "Leer"]
+
+        # Enemy selects a random move from their moveset
+        moves = self.opponent_pokemon.get("moves", ["QuickSlash"])
         self.enemy_selected_move = random.choice(moves)
-        
+
         # Show enemy's move selection
         self.message = f"{self.opponent_pokemon['name']} used {self.enemy_selected_move}!"
         self.turn_message = ""  # Clear any previous turn message
         Logger.info(f"Enemy selected move: {self.enemy_selected_move}")
-        
+
         # Stay in ENEMY_TURN state to show move before applying damage
         self._state_timer = 0.0
     
@@ -370,19 +435,45 @@ class CatchPokemonScene(Scene):
         """Apply damage from enemy's selected move"""
         if not self.opponent_pokemon or not self.player_pokemon or not self.enemy_selected_move:
             return
-        
-        # Calculate damage
-        damage = random.randint(8, 15)
+
+        # Create attack effect animation at player position
+        move_data = MOVES_DATABASE.get(self.enemy_selected_move)
+        if move_data and move_data.get("animation"):
+            # Position animation at player pokemon
+            player_x = 200 + 125
+            player_y = GameSettings.SCREEN_HEIGHT - 250 - 100
+            self.attack_animation = AttackAnimation(
+                move_data["animation"],
+                (player_x, player_y),
+                duration=0.6
+            )
+
+        # Calculate damage with type effectiveness
+        attacker_type = self.opponent_pokemon.get("type", "None")
+        defender_type = self.player_pokemon.get("type", "None")
+        level = self.opponent_pokemon.get("level", 10)
+
+        damage, effectiveness_msg, _move_type = calculate_damage(
+            self.enemy_selected_move,
+            attacker_type,
+            defender_type,
+            level
+        )
+
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
-        
+        self.effectiveness_message = effectiveness_msg
+
         self.message = f"{self.player_pokemon['name']} took {damage} damage!"
-        Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. Player HP: {self.player_pokemon['hp']}")
-        
+        if effectiveness_msg:
+            self.message += f" {effectiveness_msg}"
+
+        Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. {effectiveness_msg}. Player HP: {self.player_pokemon['hp']}")
+
         if self._check_battle_end():
             self.state = WildBattleState.SHOW_DAMAGE
             self.enemy_selected_move = None
             return
-        
+
         # Transition to show damage state
         self._state_timer = 0.0
         self.state = WildBattleState.SHOW_DAMAGE
@@ -502,6 +593,12 @@ class CatchPokemonScene(Scene):
     @override
     def update(self, dt: float) -> None:
         self._state_timer += dt
+
+        # Update attack animation
+        if self.attack_animation:
+            self.attack_animation.update(dt)
+            if self.attack_animation.is_finished():
+                self.attack_animation = None
         
         if input_manager.key_pressed(pg.K_SPACE):
             if self.state == WildBattleState.CHALLENGER:
@@ -757,9 +854,13 @@ class CatchPokemonScene(Scene):
         # Draw panels in appropriate states
         if self.opponent_panel and self.state in (WildBattleState.SEND_OPPONENT, WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
             self.opponent_panel.draw(screen)
-        
+
         if self.player_panel and self.state in (WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
             self.player_panel.draw(screen)
+
+        # Draw attack animation (before Pokemon so it appears behind them)
+        if self.attack_animation:
+            self.attack_animation.draw(screen)
         
         
         if (self.state == WildBattleState.SEND_OPPONENT or self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
@@ -806,8 +907,26 @@ class CatchPokemonScene(Scene):
         
         # Display main message (skip during catch animation to avoid overlap)
         if self.state not in (WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
-            msg_text = self._message_font.render(self.message, True, (255, 255, 255))
-            screen.blit(msg_text, (box_x + 10, box_y + 10))
+            # Split message and effectiveness message for better formatting
+            if self.effectiveness_message and self.effectiveness_message in self.message:
+                # Display main damage message
+                main_msg = self.message.replace(self.effectiveness_message, "").strip()
+                msg_text = self._message_font.render(main_msg, True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
+
+                # Display effectiveness message with special color
+                if "super effective" in self.effectiveness_message:
+                    eff_color = (100, 255, 100)  # Green for super effective
+                elif "not very effective" in self.effectiveness_message:
+                    eff_color = (255, 100, 100)  # Red for not very effective
+                else:
+                    eff_color = (255, 255, 255)
+
+                eff_text = self._message_font.render(self.effectiveness_message, True, eff_color)
+                screen.blit(eff_text, (box_x + 10, box_y + 30))
+            else:
+                msg_text = self._message_font.render(self.message, True, (255, 255, 255))
+                screen.blit(msg_text, (box_x + 10, box_y + 10))
         
         # Display turn message (damage dealt)
         if self.turn_message and self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.PLAYER_TURN):

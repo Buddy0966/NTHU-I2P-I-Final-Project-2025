@@ -12,6 +12,7 @@ from src.core.services import sound_manager
 from src.sprites import Sprite
 from typing import override
 
+
 class GameScene(Scene):
     game_manager: GameManager
     online_manager: OnlineManager | None
