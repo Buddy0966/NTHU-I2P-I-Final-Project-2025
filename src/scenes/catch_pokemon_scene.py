@@ -391,7 +391,7 @@ class CatchPokemonScene(Scene):
         defender_type = self.opponent_pokemon.get("type", "None")
         level = self.player_pokemon.get("level", 10)
 
-        damage, effectiveness_msg, _move_type = calculate_damage(
+        damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
             defender_type,
@@ -453,7 +453,7 @@ class CatchPokemonScene(Scene):
         defender_type = self.player_pokemon.get("type", "None")
         level = self.opponent_pokemon.get("level", 10)
 
-        damage, effectiveness_msg, _move_type = calculate_damage(
+        damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
             defender_type,
@@ -908,9 +908,13 @@ class CatchPokemonScene(Scene):
         # Display main message (skip during catch animation to avoid overlap)
         if self.state not in (WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
             # Split message and effectiveness message for better formatting
-            if self.effectiveness_message and self.effectiveness_message in self.message:
-                # Display main damage message
-                main_msg = self.message.replace(self.effectiveness_message, "").strip()
+            if self.effectiveness_message:
+                # Display main damage message (remove effectiveness from message if it's there)
+                if self.effectiveness_message in self.message:
+                    main_msg = self.message.replace(self.effectiveness_message, "").strip()
+                else:
+                    # Message doesn't include effectiveness, extract just damage part
+                    main_msg = self.message
                 msg_text = self._message_font.render(main_msg, True, (255, 255, 255))
                 screen.blit(msg_text, (box_x + 10, box_y + 10))
 
@@ -919,8 +923,12 @@ class CatchPokemonScene(Scene):
                     eff_color = (100, 255, 100)  # Green for super effective
                 elif "not very effective" in self.effectiveness_message:
                     eff_color = (255, 100, 100)  # Red for not very effective
+                elif "Normal damage" in self.effectiveness_message:
+                    eff_color = (200, 200, 150)  # Light yellow/gray for neutral
+                elif "Typeless" in self.effectiveness_message:
+                    eff_color = (180, 180, 180)  # Gray for typeless
                 else:
-                    eff_color = (255, 255, 255)
+                    eff_color = (255, 255, 255)  # White for other messages
 
                 eff_text = self._message_font.render(self.effectiveness_message, True, eff_color)
                 screen.blit(eff_text, (box_x + 10, box_y + 30))

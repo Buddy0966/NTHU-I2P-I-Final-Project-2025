@@ -117,21 +117,23 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 23.818814141774865,
-    "y": 31.162457428549555
+    "x": 24.544783837971583,
+    "y": 31.050359882079004
   },
   "bag": {
     "monsters": [
       {
         "name": "Florion",
-        "hp": 96040,
+        "hp": 95848,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png",
         "count": 1,
-        "type": "None",
+        "type": "Slash",
         "moves": [
-          "QuickSlash"
+          "QuickSlash",
+          "FearSlash",
+          "IronWing"
         ]
       },
       {

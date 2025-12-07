@@ -21,234 +21,196 @@ STRONG_AGAINST = {
     "Slash": "Water"
 }
 
-# Move database with properties
+# Move database with properties (moves have NO type - only power and animation)
 MOVES_DATABASE = {
     "IceShard": {
         "name": "Ice Shard",
-        "type": "Ice",
         "power": 18,
         "animation": "attack/attack1.png"
     },
     "LightPulse": {
         "name": "Light Pulse",
-        "type": "Light",
         "power": 18,
         "animation": "attack/attack2.png"
     },
     "WaterBurst": {
         "name": "Water Burst",
-        "type": "Water",
         "power": 18,
         "animation": "attack/attack3.png"
     },
     "FireBlast": {
         "name": "Fire Blast",
-        "type": "Fire",
         "power": 20,
         "animation": "attack/attack4.png"
     },
     "FlameSlash": {
         "name": "Flame Slash",
-        "type": "Fire",
         "power": 18,
         "animation": "attack/attack5.png"
     },
     "WindSpiral": {
         "name": "Wind Spiral",
-        "type": "Wind",
         "power": 18,
         "animation": "attack/attack6.png"
     },
     "QuickSlash": {
         "name": "Quick Slash",
-        "type": "Slash",
         "power": 15,
         "animation": "attack/attack7.png"
     },
-    # Additional moves (neutral/special attacks)
+    # Additional moves
     "NatureBurst": {
         "name": "Nature Burst",
-        "type": "None",
         "power": 16,
         "animation": None
     },
     "AquaShield": {
         "name": "Aqua Shield",
-        "type": "Water",
         "power": 12,  # Defense buff move
         "animation": "attack/attack3.png"
     },
     "TidalStrike": {
         "name": "Tidal Strike",
-        "type": "Water",
         "power": 22,
         "animation": "attack/attack3.png"
     },
     "HeatDive": {
         "name": "Heat Dive",
-        "type": "Fire",
         "power": 20,
         "animation": "attack/attack4.png"
     },
     "StonePunch": {
         "name": "Stone Punch",
-        "type": "None",
         "power": 17,
         "animation": None
     },
     "EarthCrack": {
         "name": "Earth Crack",
-        "type": "None",
         "power": 18,
         "animation": None
     },
     "SparkClaw": {
         "name": "Spark Claw",
-        "type": "Light",
         "power": 16,
         "animation": "attack/attack2.png"
     },
     "VoltDash": {
         "name": "Volt Dash",
-        "type": "Light",
         "power": 19,
         "animation": "attack/attack2.png"
     },
     "FrostNova": {
         "name": "Frost Nova",
-        "type": "Ice",
         "power": 17,
         "animation": "attack/attack1.png"
     },
     "ColdBite": {
         "name": "Cold Bite",
-        "type": "Ice",
         "power": 16,
         "animation": "attack/attack1.png"
     },
     "DarkSwipe": {
         "name": "Dark Swipe",
-        "type": "None",
         "power": 15,
         "animation": "attack/attack7.png"
     },
     "ShadowBurst": {
         "name": "Shadow Burst",
-        "type": "None",
         "power": 18,
         "animation": None
     },
     "FearSlash": {
         "name": "Fear Slash",
-        "type": "Slash",
         "power": 16,
         "animation": "attack/attack7.png"
     },
     "IronWing": {
         "name": "Iron Wing",
-        "type": "Slash",
         "power": 17,
         "animation": "attack/attack7.png"
     },
     "SteelCharge": {
         "name": "Steel Charge",
-        "type": "None",
         "power": 19,
         "animation": None
     },
     "MindPierce": {
         "name": "Mind Pierce",
-        "type": "None",
         "power": 18,
         "animation": None
     },
     "SpiritWave": {
         "name": "Spirit Wave",
-        "type": "Light",
         "power": 20,
         "animation": "attack/attack2.png"
     },
     "ToxicBite": {
         "name": "Toxic Bite",
-        "type": "None",
         "power": 14,
         "animation": None
     },
     "VenomShot": {
         "name": "Venom Shot",
-        "type": "None",
         "power": 16,
         "animation": None
     },
     "SandBurst": {
         "name": "Sand Burst",
-        "type": "Wind",
         "power": 17,
         "animation": "attack/attack6.png"
     },
     "DustBlade": {
         "name": "Dust Blade",
-        "type": "Wind",
         "power": 16,
         "animation": "attack/attack6.png"
     },
     "SoulSpark": {
         "name": "Soul Spark",
-        "type": "Light",
         "power": 19,
         "animation": "attack/attack2.png"
     },
     "HauntFlame": {
         "name": "Haunt Flame",
-        "type": "Fire",
         "power": 17,
         "animation": "attack/attack4.png"
     },
     "CrystalBeam": {
         "name": "Crystal Beam",
-        "type": "Light",
         "power": 19,
         "animation": "attack/attack2.png"
     },
     "ShatterStrike": {
         "name": "Shatter Strike",
-        "type": "Ice",
         "power": 18,
         "animation": "attack/attack1.png"
     },
     "GaleBlade": {
         "name": "Gale Blade",
-        "type": "Wind",
         "power": 17,
         "animation": "attack/attack6.png"
     },
     "TempestCrash": {
         "name": "Tempest Crash",
-        "type": "Wind",
         "power": 21,
         "animation": "attack/attack6.png"
     },
     "MagmaSmash": {
         "name": "Magma Smash",
-        "type": "Fire",
         "power": 21,
         "animation": "attack/attack4.png"
     },
     "CosmicPulse": {
         "name": "Cosmic Pulse",
-        "type": "Light",
         "power": 23,
         "animation": "attack/attack2.png"
     },
     "StarfallBlaze": {
         "name": "Starfall Blaze",
-        "type": "Fire",
         "power": 24,
         "animation": "attack/attack4.png"
     },
     "DragonRift": {
         "name": "Dragon Rift",
-        "type": "None",
         "power": 25,
         "animation": None
     }
@@ -326,6 +288,12 @@ POKEMON_SPECIES = {
     "Cosmicdrake": {
         "type": "Light",
         "moves": ["CosmicPulse", "StarfallBlaze", "DragonRift"]
+    },
+
+    # User's Pokemon
+    "Florion": {
+        "type": "Slash",
+        "moves": ["QuickSlash", "FearSlash", "IronWing"]
     }
 }
 
@@ -339,8 +307,9 @@ def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tupl
         - damage_multiplier: 1.5 for super effective, 0.67 for not very effective, 1.0 for neutral
         - effectiveness_message: Message to display to the player
     """
+    # None type has no advantages/disadvantages - show neutral message
     if attacker_type == "None" or defender_type == "None":
-        return (1.0, "")
+        return (1.0, "Typeless attack.")
 
     # Check if attacker is strong against defender
     if STRONG_AGAINST.get(attacker_type) == defender_type:
@@ -350,32 +319,33 @@ def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tupl
     if WEAK_TO.get(attacker_type) == defender_type:
         return (0.67, "It's not very effective...")
 
-    return (1.0, "")
+    # Neutral matchup - any type not in "against" relationships
+    return (1.0, "Normal damage.")
 
 
-def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10) -> tuple[int, str, str]:
+def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10) -> tuple[int, str]:
     """
     Calculate damage for a move considering type effectiveness.
+    Type effectiveness is based on the ATTACKER'S Pokemon type, not the move.
 
     Args:
         move_name: Name of the move being used
-        attacker_type: Type of the attacking Pokemon
+        attacker_type: Type of the attacking Pokemon (this determines effectiveness!)
         defender_type: Type of the defending Pokemon
         level: Level of the attacker (default 10)
 
     Returns:
-        tuple[int, str, str]: (damage, effectiveness_message, move_type)
+        tuple[int, str]: (damage, effectiveness_message)
     """
     move_data = MOVES_DATABASE.get(move_name)
     if not move_data:
         # Fallback for unknown moves
-        return (10, "", "None")
+        return (10, "")
 
     base_power = move_data["power"]
-    move_type = move_data["type"]
 
-    # Calculate type effectiveness
-    multiplier, effectiveness_msg = calculate_type_effectiveness(move_type, defender_type)
+    # Calculate type effectiveness based on ATTACKER's Pokemon type vs DEFENDER's Pokemon type
+    multiplier, effectiveness_msg = calculate_type_effectiveness(attacker_type, defender_type)
 
     # Calculate damage with some randomness - reduced scaling
     import random
@@ -386,4 +356,4 @@ def calculate_damage(move_name: str, attacker_type: str, defender_type: str, lev
     # Ensure minimum damage of 3, maximum of 25
     damage = max(3, min(damage, 25))
 
-    return (damage, effectiveness_msg, move_type)
+    return (damage, effectiveness_msg)
