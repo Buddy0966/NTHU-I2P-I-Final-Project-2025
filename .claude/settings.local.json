@@ -9,7 +9,9 @@
       "Bash(dir /s /b *.png)",
       "Bash(git add:*)",
       "Bash(python main.py:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(dir:*)",
+      "Bash(python -c:*)"
     ],
     "deny": [],
     "ask": []

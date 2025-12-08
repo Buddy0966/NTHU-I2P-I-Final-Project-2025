@@ -13,10 +13,9 @@ from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
 from src.utils.definition import Monster
 from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE
-try:
-    from typing import override
-except ImportError:
-    from typing_extensions import override
+
+from typing import override
+
 from enum import Enum
 
 
@@ -136,6 +135,10 @@ class BattleScene(Scene):
     # Attack animation
     attack_animation: AttackAnimation | None
 
+    # Potion buffs
+    attack_boost: float
+    defense_boost: float
+
     def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
         super().__init__()
         self.background = BackgroundSprite("backgrounds/background1.png")
@@ -143,7 +146,7 @@ class BattleScene(Scene):
         self.game_manager = game_manager
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 24)
         self._message_font = pg.font.Font('assets/fonts/Minecraft.ttf', 16)
-        
+
         self.state = BattleState.INTRO
         self.opponent_pokemon = None
         self.player_pokemon = None
@@ -152,7 +155,7 @@ class BattleScene(Scene):
         self.message = ""
         self._state_timer = 0.0
         self._pokemon_scale = 0.0
-        
+
         # Turn system initialization
         self.current_turn = "player"
         self.player_selected_move = None
@@ -161,6 +164,10 @@ class BattleScene(Scene):
         self.item_panel = None
         self.player_selected_item = None
         self.effectiveness_message = ""  # Type effectiveness message
+
+        # Potion buffs
+        self.attack_boost = 1.0  # Multiplier for attack damage
+        self.defense_boost = 1.0  # Multiplier for defense (reduces incoming damage)
         
         # pokeball catching animation
         self.pokeball_sprite = Sprite("ingame_ui/ball.png", (40, 40))
@@ -223,6 +230,10 @@ class BattleScene(Scene):
         self.item_panel = None
         self.player_selected_item = None
         self.effectiveness_message = ""
+
+        # Reset potion buffs
+        self.attack_boost = 1.0
+        self.defense_boost = 1.0
 
         # Reset pokeball catching animation
         self.pokeball_x = 0.0
@@ -367,21 +378,25 @@ class BattleScene(Scene):
         if not self.game_manager.bag or not self.game_manager.bag.items:
             self.message = "No items available!"
             return
-        
-        # Filter out coins - they are not battle items
-        battle_items = [item for item in self.game_manager.bag.items if item['name'].lower() != 'coins' and item['name'].lower() != 'pokeball']
-        
+
+        # Filter to only show potions (health-potion, strength-potion, potion/defense-potion)
+        # Exclude coins and pokeballs
+        battle_items = [item for item in self.game_manager.bag.items
+                       if item['name'].lower() != 'coins'
+                       and item['name'].lower() != 'pokeball'
+                       and ('potion' in item['name'].lower() or 'heal' in item['name'].lower())]
+
         if not battle_items:
-            self.message = "No usable items in battle!"
+            self.message = "No usable potions in battle!"
             return
-        
+
         self.state = BattleState.CHOOSE_ITEM
         self.item_panel = BattleItemPanel(
             battle_items,
             GameSettings.SCREEN_WIDTH // 2 - 150,
             GameSettings.SCREEN_HEIGHT // 2 - 200
         )
-        self.message = "Choose an item:"
+        self.message = "Choose a potion:"
     
     def _show_catch_panel(self) -> None:
         """Show pokeball catching panel after opponent is defeated"""
@@ -449,6 +464,9 @@ class BattleScene(Scene):
             level
         )
 
+        # Apply attack boost from Strength Potion
+        damage = int(damage * self.attack_boost)
+
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
 
@@ -515,6 +533,9 @@ class BattleScene(Scene):
             level
         )
 
+        # Apply defense boost from Defense Potion (reduces incoming damage)
+        damage = int(damage * self.defense_boost)
+
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
 
@@ -550,23 +571,45 @@ class BattleScene(Scene):
         return False
     
     def _execute_item_attack(self, item: dict) -> None:
-        if not self.opponent_pokemon:
+        if not self.player_pokemon:
             return
-        
-        # Calculate damage based on item (using item name as fallback, can be customized)
-        damage = random.randint(5, 25)
-        self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
-        
-        self.message = f"{self.opponent_pokemon['name']} took {damage} damage!"
-        Logger.info(f"Player used item {item['name']}: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
-        
+
+        item_name = item['name'].lower()
+
+        # Health Potion: Heal your pokemon
+        if 'health' in item_name or 'heal' in item_name:
+            heal_amount = int(self.player_pokemon['max_hp'] * 0.5)  # Heal 50% of max HP
+            old_hp = self.player_pokemon['hp']
+            self.player_pokemon['hp'] = min(self.player_pokemon['max_hp'], self.player_pokemon['hp'] + heal_amount)
+            actual_heal = self.player_pokemon['hp'] - old_hp
+
+            self.message = f"{self.player_pokemon['name']} used Health Potion! Restored {actual_heal} HP!"
+            Logger.info(f"Player used Health Potion: healed {actual_heal} HP. Player HP: {self.player_pokemon['hp']}/{self.player_pokemon['max_hp']}")
+
+        # Strength Potion: Increase attack power
+        elif 'strength' in item_name or 'attack' in item_name:
+            self.attack_boost = 1.5  # 50% attack boost
+            self.message = f"{self.player_pokemon['name']} used Strength Potion! Attack power increased!"
+            Logger.info(f"Player used Strength Potion: attack boost now {self.attack_boost}x")
+
+        # Defense Potion (defense-potion.png): Reduce opponent's attack damage
+        elif 'defense' in item_name or 'defence' in item_name:
+            self.defense_boost = 0.7  # Reduce incoming damage by 30%
+            self.message = f"{self.player_pokemon['name']} used Defense Potion! Defense increased!"
+            Logger.info(f"Player used Defense Potion: defense boost now {self.defense_boost}x (reduces incoming damage)")
+
+        else:
+            # Fallback for unknown items
+            self.message = f"Used {item['name']}!"
+            Logger.info(f"Player used unknown item: {item['name']}")
+
         # Reduce item count
         item['count'] = max(0, item['count'] - 1)
-        
-        if self._check_battle_end():
-            self.state = BattleState.SHOW_DAMAGE
-            return
-        
+
+        # Remove item from bag if count reaches 0
+        if item['count'] == 0 and self.game_manager.bag:
+            self.game_manager.bag.items.remove(item)
+
         # Transition to show damage state first
         self._state_timer = 0.0
         self.state = BattleState.SHOW_DAMAGE

@@ -49,15 +49,21 @@
           "npc_type": "merchant",
           "shop_inventory": [
             {
-              "name": "Potion",
+              "name": "Defense Potion",
               "count": 999,
-              "sprite_path": "ingame_ui/potion.png",
+              "sprite_path": "ingame_ui/defense-potion.png",
               "price": 50
             },
             {
-              "name": "Super Potion",
+              "name": "Health Potion",
               "count": 999,
-              "sprite_path": "ingame_ui/potion.png",
+              "sprite_path": "ingame_ui/health-potion.png",
+              "price": 100
+            },
+            {
+              "name": "Strength Potion",
+              "count": 999,
+              "sprite_path": "ingame_ui/strength-potion.png",
               "price": 150
             },
             {
@@ -117,14 +123,14 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 24.544783837971583,
-    "y": 31.050359882079004
+    "x": 23.941407070887426,
+    "y": 26.885711544670404
   },
   "bag": {
     "monsters": [
       {
         "name": "Florion",
-        "hp": 95848,
+        "hp": 99980,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/menusprite3.png",
@@ -246,15 +252,27 @@
         "max_hp": 52,
         "level": 8,
         "sprite_path": "sprites/sprite4.png",
-        "count": 1
+        "count": 2
       }
     ],
     "items": [
       {
-        "name": "Potion",
-        "count": 429,
-        "sprite_path": "ingame_ui/potion.png",
+        "name": "Defense Potion",
+        "count": 9,
+        "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
+      },
+      {
+        "name": "Health Potion",
+        "count": 9,
+        "sprite_path": "ingame_ui/health-potion.png",
+        "price": 100
+      },
+      {
+        "name": "Strength Potion",
+        "count": 10,
+        "sprite_path": "ingame_ui/strength-potion.png",
+        "price": 150
       },
       {
         "name": "Coins",
@@ -264,7 +282,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99963,
+        "count": 99962,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }
