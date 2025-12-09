@@ -123,8 +123,8 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 23.89733809511661,
-    "y": 31.010607214462446
+    "x": 24.243597979746443,
+    "y": 30.832867099092276
   },
   "bag": {
     "monsters": [
@@ -135,7 +135,6 @@
         "level": 100,
         "sprite_path": "menu_sprites/mommy.png",
         "menu_sprite_path": "menu_sprites/mommy.png",
-        "count": 1,
         "type": "Slash",
         "moves": [
           "QuickSlash",
@@ -144,13 +143,40 @@
         ]
       },
       {
+        "name": "Mysticsoul",
+        "hp": 60,
+        "max_hp": 60,
+        "level": 45,
+        "sprite_path": "sprites/sprite9.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
+        "type": "Light",
+        "moves": [
+          "LightPulse",
+          "MindPierce",
+          "SpiritWave"
+        ]
+      },
+      {
+        "name": "Mysticsoul",
+        "hp": 77,
+        "max_hp": 77,
+        "level": 51,
+        "sprite_path": "sprites/sprite9.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
+        "type": "Light",
+        "moves": [
+          "LightPulse",
+          "MindPierce",
+          "SpiritWave"
+        ]
+      },
+      {
         "name": "Steelwing",
         "hp": 43,
         "max_hp": 43,
-        "level": 10,
+        "level": 45,
         "sprite_path": "sprites/sprite8.png",
-        "menu_sprite_path": "menu_sprites/menusprite2.png",
-        "count": 1
+        "menu_sprite_path": "menu_sprites/menusprite2.png"
       },
       {
         "name": "Blazewing",
@@ -158,8 +184,7 @@
         "max_hp": 37,
         "level": 7,
         "sprite_path": "sprites/sprite3.png",
-        "menu_sprite_path": "menu_sprites/menusprite3.png",
-        "count": 1
+        "menu_sprite_path": "menu_sprites/menusprite3.png"
       }
     ],
     "items": [
@@ -183,7 +208,7 @@
       },
       {
         "name": "Coins",
-        "count": 100000,
+        "count": 1744,
         "sprite_path": "ingame_ui/coin.png",
         "price": 1
       },

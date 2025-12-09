@@ -1,6 +1,7 @@
 from __future__ import annotations
 import pygame as pg
 from src.sprites import Sprite
+from src.sprites.animated_battle_sprite import AnimatedBattleSprite
 from src.interface.components.button import Button
 from src.utils.definition import Monster
 from src.utils.pokemon_data import can_evolve, evolve_pokemon
@@ -25,6 +26,7 @@ class EvolutionPanel(UIComponent):
         self.animation_timer = 0.0
         self.flash_count = 0
         self.sprite_visible = True
+        self.sprite_animation_timer = 0.0
 
         # Callbacks
         self.on_complete = on_complete
@@ -36,10 +38,19 @@ class EvolutionPanel(UIComponent):
         except:
             self.sprite = None
 
-        # Load pokemon sprites
+        # Load pokemon sprites as animated battle sprites
         try:
-            self.old_sprite = Sprite(pokemon["sprite_path"], (150, 150))
-        except:
+            sprite_path = pokemon["sprite_path"]
+            # Remove .png extension to get base path for AnimatedBattleSprite
+            base_path = sprite_path.replace(".png", "")
+            self.old_sprite = AnimatedBattleSprite(
+                base_path=base_path,
+                size=(150, 150),
+                frames=4,
+                loop_speed=0.8
+            )
+        except Exception as e:
+            print(f"Warning: Could not load old sprite: {e}")
             self.old_sprite = None
 
         # Load evolution sprite if can evolve
@@ -50,8 +61,15 @@ class EvolutionPanel(UIComponent):
             if evo_data:
                 sprite_id = evo_data["sprite_id"]
                 try:
-                    self.new_sprite = Sprite(f"sprites/sprite{sprite_id}.png", (150, 150))
-                except:
+                    base_path = f"sprites/sprite{sprite_id}"
+                    self.new_sprite = AnimatedBattleSprite(
+                        base_path=base_path,
+                        size=(150, 150),
+                        frames=4,
+                        loop_speed=0.8
+                    )
+                except Exception as e:
+                    print(f"Warning: Could not load evolution sprite: {e}")
                     pass
 
         # Buttons
@@ -82,12 +100,24 @@ class EvolutionPanel(UIComponent):
             self.flash_count = 0
 
     def _on_cancel_click(self) -> None:
-        """Cancel evolution"""
-        if self.on_cancel:
-            self.on_cancel()
+        """Cancel evolution or close panel when complete"""
+        if self.animation_state == "complete":
+            # Evolution is complete, close the panel
+            if self.on_complete:
+                self.on_complete()
+        else:
+            # Evolution not started or in progress, cancel it
+            if self.on_cancel:
+                self.on_cancel()
 
     def update(self, dt: float) -> None:
         """Update animation and buttons"""
+        # Update sprite animations
+        if self.old_sprite:
+            self.old_sprite.update(dt)
+        if self.new_sprite:
+            self.new_sprite.update(dt)
+
         if self.animation_state == "idle" or self.animation_state == "complete":
             # Update buttons only when not animating
             if self.can_evolve_flag and hasattr(self, 'evolve_button'):
@@ -123,19 +153,24 @@ class EvolutionPanel(UIComponent):
                 self.animation_timer = 0.0
                 self.sprite_visible = True
 
-                # Update new sprite
+                # Update sprite to evolved form (keep as AnimatedBattleSprite)
                 if self.new_sprite:
                     try:
-                        self.old_sprite = Sprite(self.pokemon["sprite_path"], (150, 150))
-                    except:
+                        sprite_path = self.pokemon["sprite_path"]
+                        base_path = sprite_path.replace(".png", "")
+                        self.old_sprite = AnimatedBattleSprite(
+                            base_path=base_path,
+                            size=(150, 150),
+                            frames=4,
+                            loop_speed=0.8
+                        )
+                    except Exception as e:
+                        print(f"Warning: Could not load evolved sprite: {e}")
                         pass
 
         elif self.animation_state == "complete":
             self.animation_timer += dt
-            # Auto-close after 2 seconds
-            if self.animation_timer >= 2.0:
-                if self.on_complete:
-                    self.on_complete()
+            # Don't auto-close - let player close manually with button
 
     def draw(self, screen: pg.Surface) -> None:
         """Draw the evolution panel"""
@@ -172,12 +207,12 @@ class EvolutionPanel(UIComponent):
         if self.animation_state in ("idle", "complete"):
             if self.can_evolve_flag and hasattr(self, 'evolve_button') and self.animation_state == "idle":
                 self.evolve_button.draw(screen)
-                evolve_text = self._small_font.render("EVOLVE", True, (255, 255, 255))
+                evolve_text = self._small_font.render("EVOLVE", True, (0, 0, 0))
                 evolve_rect = evolve_text.get_rect(center=self.evolve_button.hitbox.center)
                 screen.blit(evolve_text, evolve_rect)
 
             self.cancel_button.draw(screen)
-            cancel_text = self._small_font.render("CLOSE" if self.animation_state == "complete" else "CANCEL", True, (255, 255, 255))
+            cancel_text = self._small_font.render("CLOSE" if self.animation_state == "complete" else "CANCEL", True, (0, 0, 0))
             cancel_rect = cancel_text.get_rect(center=self.cancel_button.hitbox.center)
             screen.blit(cancel_text, cancel_rect)
 
@@ -188,7 +223,8 @@ class EvolutionPanel(UIComponent):
             if self.old_sprite and self.sprite_visible:
                 sprite_x = self.rect.x + 80
                 sprite_y = self.rect.y + 120
-                screen.blit(self.old_sprite.image, (sprite_x, sprite_y))
+                current_frame = self.old_sprite.get_current_frame()
+                screen.blit(current_frame, (sprite_x, sprite_y))
 
             # Draw current pokemon info
             name_text = self._font.render(self.pokemon["name"], True, (255, 255, 255))
@@ -208,7 +244,8 @@ class EvolutionPanel(UIComponent):
             if self.new_sprite:
                 sprite_x = self.rect.x + self.rect.width - 230
                 sprite_y = self.rect.y + 120
-                screen.blit(self.new_sprite.image, (sprite_x, sprite_y))
+                current_frame = self.new_sprite.get_current_frame()
+                screen.blit(current_frame, (sprite_x, sprite_y))
 
             # Draw evolution info
             evo_name_text = self._font.render(self.evolution_name, True, (255, 255, 100))
@@ -226,7 +263,8 @@ class EvolutionPanel(UIComponent):
             if self.old_sprite:
                 sprite_x = self.rect.centerx - 75
                 sprite_y = self.rect.y + 100
-                screen.blit(self.old_sprite.image, (sprite_x, sprite_y))
+                current_frame = self.old_sprite.get_current_frame()
+                screen.blit(current_frame, (sprite_x, sprite_y))
 
             name_text = self._font.render(self.pokemon["name"], True, (255, 255, 255))
             name_rect = name_text.get_rect(center=(self.rect.centerx, self.rect.y + 270))
@@ -250,7 +288,8 @@ class EvolutionPanel(UIComponent):
         if self.old_sprite and self.sprite_visible:
             sprite_x = self.rect.centerx - 75
             sprite_y = self.rect.centery - 75
-            screen.blit(self.old_sprite.image, (sprite_x, sprite_y))
+            current_frame = self.old_sprite.get_current_frame()
+            screen.blit(current_frame, (sprite_x, sprite_y))
 
         # Draw flashing effect
         if not self.sprite_visible:
@@ -276,13 +315,15 @@ class EvolutionPanel(UIComponent):
         if progress < 0.5 and self.old_sprite:
             # Fade out old sprite
             sprite_alpha = int(255 * (1.0 - progress * 2))
-            temp_surface = self.old_sprite.image.copy()
+            current_frame = self.old_sprite.get_current_frame()
+            temp_surface = current_frame.copy()
             temp_surface.set_alpha(sprite_alpha)
             screen.blit(temp_surface, (self.rect.centerx - 75, self.rect.centery - 75))
         elif progress >= 0.5 and self.new_sprite:
             # Fade in new sprite
             sprite_alpha = int(255 * ((progress - 0.5) * 2))
-            temp_surface = self.new_sprite.image.copy()
+            current_frame = self.new_sprite.get_current_frame()
+            temp_surface = current_frame.copy()
             temp_surface.set_alpha(sprite_alpha)
             screen.blit(temp_surface, (self.rect.centerx - 75, self.rect.centery - 75))
 
@@ -292,7 +333,8 @@ class EvolutionPanel(UIComponent):
         if self.old_sprite:  # old_sprite is now updated to new sprite
             sprite_x = self.rect.centerx - 75
             sprite_y = self.rect.centery - 100
-            screen.blit(self.old_sprite.image, (sprite_x, sprite_y))
+            current_frame = self.old_sprite.get_current_frame()
+            screen.blit(current_frame, (sprite_x, sprite_y))
 
         # Draw congratulations message
         msg_text = self._title_font.render("Congratulations!", True, (255, 255, 100))

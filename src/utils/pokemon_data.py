@@ -439,6 +439,67 @@ def evolve_pokemon(pokemon: dict) -> dict:
     return pokemon
 
 
+def calculate_levelup_cost(current_level: int) -> int:
+    """
+    Calculate the coin cost to level up a Pokemon.
+    Cost increases exponentially with level.
+
+    Args:
+        current_level: Current level of the Pokemon
+
+    Returns:
+        int: Coin cost to level up
+    """
+    # Base cost increases with level: 50 * level^1.5
+    # This creates a curve where higher levels cost significantly more
+    base_cost = 50
+    cost = int(base_cost * (current_level ** 1.5))
+
+    # Ensure minimum cost of 50
+    return max(50, cost)
+
+
+def levelup_pokemon(pokemon: dict, bag) -> tuple[bool, str]:
+    """
+    Level up a pokemon by spending coins.
+
+    Args:
+        pokemon: Pokemon data dict to level up
+        bag: Player's bag object containing money
+
+    Returns:
+        tuple[bool, str]: (success, message)
+    """
+    current_level = pokemon.get("level", 1)
+    cost = calculate_levelup_cost(current_level)
+
+    # Check if player has enough coins
+    coins_item = None
+    for item in bag.items:
+        if item.get("name") == "Coins":
+            coins_item = item
+            break
+
+    if not coins_item or coins_item.get("count", 0) < cost:
+        return (False, f"Not enough coins! Need {cost} coins.")
+
+    # Deduct coins
+    coins_item["count"] -= cost
+
+    # Level up the pokemon
+    pokemon["level"] = current_level + 1
+
+    # Increase max HP slightly (5% per level)
+    old_max_hp = pokemon.get("max_hp", 100)
+    new_max_hp = int(old_max_hp * 1.05)
+    pokemon["max_hp"] = new_max_hp
+
+    # Heal by the increased amount
+    pokemon["hp"] = min(pokemon.get("hp", 0) + (new_max_hp - old_max_hp), new_max_hp)
+
+    return (True, f"{pokemon['name']} leveled up to {pokemon['level']}! Cost: {cost} coins")
+
+
 def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10) -> tuple[int, str]:
     """
     Calculate damage for a move considering type effectiveness.

@@ -66,7 +66,7 @@ class BagPanel(UIComponent):
         # Update pokemon sprites in case monsters list changed
         self._update_pokemon_sprites()
 
-        # Handle pokemon clicks for evolution
+        # Handle pokemon clicks for evolution and level-up
         if input_manager.mouse_pressed(1):  # Left click (button 1)
             mouse_pos = input_manager.mouse_pos
             pokemon_x = self.rect.x + 20
@@ -77,8 +77,15 @@ class BagPanel(UIComponent):
                 card_rect = pg.Rect(pokemon_x, y_pos, 300, 85)
 
                 if card_rect.collidepoint(mouse_pos) and self.rect.collidepoint(mouse_pos):
-                    # Open evolution panel for this pokemon
-                    self._show_evolution_panel(i)
+                    # Check if level-up button was clicked (next to HP bar)
+                    levelup_button_rect = pg.Rect(pokemon_x + 210, y_pos + 48, 80, 28)
+
+                    if levelup_button_rect.collidepoint(mouse_pos):
+                        # Level up this pokemon
+                        self._levelup_pokemon(i)
+                    else:
+                        # Open evolution panel for this pokemon
+                        self._show_evolution_panel(i)
                     break
 
         # Handle scroll input
@@ -170,6 +177,47 @@ class BagPanel(UIComponent):
         self.evolution_panel = None
         self.selected_pokemon_index = None
 
+    def _levelup_pokemon(self, pokemon_index: int) -> None:
+        """Level up a single pokemon by spending coins"""
+        from src.utils.pokemon_data import calculate_levelup_cost
+        from src.utils import Logger
+
+        if pokemon_index < 0 or pokemon_index >= len(self.monsters):
+            return
+
+        pokemon = self.monsters[pokemon_index]
+        current_level = pokemon.get("level", 1)
+        levelup_cost = calculate_levelup_cost(current_level)
+
+        # Find coins item
+        coins_item = None
+        for item in self.items:
+            if item.get("name") == "Coins":
+                coins_item = item
+                break
+
+        # Check if player has enough coins
+        if not coins_item or coins_item.get("count", 0) < levelup_cost:
+            Logger.warning(f"Not enough coins! Need {levelup_cost} coins, have {coins_item.get('count', 0) if coins_item else 0}")
+            return
+
+        # Deduct coins
+        coins_item["count"] -= levelup_cost
+
+        # Level up the pokemon
+        pokemon["level"] = current_level + 1
+
+        # Increase max HP slightly (5% per level)
+        old_max_hp = pokemon.get("max_hp", 100)
+        new_max_hp = int(old_max_hp * 1.05)
+        pokemon["max_hp"] = new_max_hp
+
+        # Heal by the increased amount
+        pokemon["hp"] = min(pokemon.get("hp", 0) + (new_max_hp - old_max_hp), new_max_hp)
+
+        # Log success
+        Logger.info(f"{pokemon['name']} leveled up to level {pokemon['level']}! Cost: {levelup_cost} coins")
+
     def draw(self, screen: pg.Surface) -> None:
         # Draw base panel with gradient-like effect
         screen.blit(self.sprite.image, self.rect)
@@ -229,20 +277,16 @@ class BagPanel(UIComponent):
             name_text = self._item_font.render(monster["name"], True, name_color)
             screen.blit(name_text, (pokemon_x + 85, y_pos + 10))
 
-            # Draw pokemon level and count on same line as name
-            level_count_str = f"Lv.{monster.get('level', 1)}"
-            # Add count if it exists and is greater than 1
-            count = monster.get('count', 1)
-            
-            level_count_str += f" x{count}"
-            level_text = self._pokemon_font.render(level_count_str, True, (100, 80, 60))
+            # Draw pokemon level
+            level_str = f"Lv.{monster.get('level', 1)}"
+            level_text = self._pokemon_font.render(level_str, True, (100, 80, 60))
             screen.blit(level_text, (pokemon_x + 85, y_pos + 30))
 
-            # Draw HP bar with better styling (wider for larger panel)
+            # Draw HP bar with better styling (made narrower to fit level-up button)
             hp_ratio = monster.get("hp", monster.get("max_hp", 100)) / monster.get("max_hp", 100)
             hp_bar_x = pokemon_x + 85
             hp_bar_y = y_pos + 50
-            hp_bar_width = 200
+            hp_bar_width = 120  # Reduced from 200 to make room for button
             hp_bar_height = 12
 
             # HP bar background
@@ -260,7 +304,28 @@ class BagPanel(UIComponent):
             # Draw HP text below the bar
             hp_text = self._pokemon_font.render(f"{monster.get('hp', monster.get('max_hp', 100))}/{monster.get('max_hp', 100)}", True, (80, 60, 40))
             screen.blit(hp_text, (pokemon_x + 85, y_pos + 66))
-        
+
+            # Draw level-up button (right side of card, next to HP bar)
+            from src.utils.pokemon_data import calculate_levelup_cost
+            current_level = monster.get("level", 1)
+            levelup_cost = calculate_levelup_cost(current_level)
+
+            # Button positioned next to HP bar
+            button_x = pokemon_x + 210  # Right after HP bar (85 + 120 + 5 margin)
+            button_y = y_pos + 48  # Aligned with HP bar
+            button_width = 80
+            button_height = 28
+            button_rect = pg.Rect(button_x, button_y, button_width, button_height)
+
+            # Draw button with gold/coin color
+            pg.draw.rect(screen, (220, 180, 50), button_rect, border_radius=4)  # Gold background
+            pg.draw.rect(screen, (180, 140, 30), button_rect, 2, border_radius=4)  # Dark gold border
+
+            # Draw button text with cost
+            button_text = self._pokemon_font.render(f"+Lv ${levelup_cost}", True, (40, 30, 10))
+            text_rect = button_text.get_rect(center=button_rect.center)
+            screen.blit(button_text, text_rect)
+
         screen.set_clip(old_clip)
         
         # Draw pokemon scrollbar with enhanced styling
