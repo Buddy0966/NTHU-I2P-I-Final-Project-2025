@@ -323,6 +323,122 @@ def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tupl
     return (1.0, "Normal damage.")
 
 
+# Mapping from battle sprite_id to menu sprite_id
+# This maps sprites/spriteN.png -> menu_sprites/menuspriteM.png
+SPRITE_TO_MENU_SPRITE = {
+    1: 1,   # sprite1 -> menusprite1
+    2: 2,   # sprite2 -> menusprite2
+    3: 3,   # sprite3 -> menusprite3
+    4: 4,   # sprite4 -> menusprite4
+    5: 5,   # sprite5 -> menusprite5
+    6: 6,   # sprite6 -> menusprite6
+    7: 1,   # sprite7 -> menusprite1 (reuse menu sprites)
+    8: 2,   # sprite8 -> menusprite2
+    9: 3,   # sprite9 -> menusprite3
+    10: 4,  # sprite10 -> menusprite4
+    11: 5,  # sprite11 -> menusprite5
+    12: 6,  # sprite12 -> menusprite6
+    13: 1,  # sprite13 -> menusprite1
+    14: 2,  # sprite14 -> menusprite2
+    15: 3,  # sprite15 -> menusprite3
+    16: 4,  # sprite16 -> menusprite4
+}
+
+# Evolution chains mapping
+EVOLUTION_CHAINS = {
+    # Chain 1: sprite1 -> sprite2 -> sprite3
+    "Leafeon": {"evolves_to": "Aquafin", "level": 16, "sprite_id": 2},
+    "Aquafin": {"evolves_to": "Blazewing", "level": 32, "sprite_id": 3},
+
+    # Chain 2: sprite7 -> sprite8 -> sprite9
+    "Shadowclaw": {"evolves_to": "Steelwing", "level": 20, "sprite_id": 8},
+    "Steelwing": {"evolves_to": "Mysticsoul", "level": 36, "sprite_id": 9},
+
+    # Chain 3: sprite12 -> sprite13 -> sprite14
+    "Ghostflame": {"evolves_to": "Crystalhorn", "level": 25, "sprite_id": 13},
+    "Crystalhorn": {"evolves_to": "Stormchaser", "level": 40, "sprite_id": 14},
+
+    # Chain 4: sprite15 -> sprite16
+    "Lavaguard": {"evolves_to": "Cosmicdrake", "level": 45, "sprite_id": 16},
+}
+
+# Stat multipliers for evolution (all stats increased)
+EVOLUTION_STAT_BOOST = {
+    "hp_multiplier": 1.4,      # 40% HP increase
+    "level_boost": 0,          # No level increase, just stats
+    "moves_gained": 1          # Learn 1 new move on evolution
+}
+
+
+def can_evolve(pokemon: dict) -> tuple[bool, str | None]:
+    """
+    Check if a pokemon can evolve.
+
+    Args:
+        pokemon: Pokemon data dict with name and level
+
+    Returns:
+        tuple[bool, str | None]: (can_evolve, evolution_name)
+    """
+    pokemon_name = pokemon.get("name")
+    pokemon_level = pokemon.get("level", 1)
+
+    if pokemon_name not in EVOLUTION_CHAINS:
+        return (False, None)
+
+    evolution_data = EVOLUTION_CHAINS[pokemon_name]
+    required_level = evolution_data["level"]
+
+    if pokemon_level >= required_level:
+        return (True, evolution_data["evolves_to"])
+
+    return (False, None)
+
+
+def evolve_pokemon(pokemon: dict) -> dict:
+    """
+    Evolve a pokemon to its next form.
+    Updates name, sprite, stats, and potentially learns new moves.
+
+    Args:
+        pokemon: Pokemon data dict to evolve
+
+    Returns:
+        dict: Evolved pokemon data
+    """
+    if pokemon["name"] not in EVOLUTION_CHAINS:
+        return pokemon
+
+    evolution_data = EVOLUTION_CHAINS[pokemon["name"]]
+    new_name = evolution_data["evolves_to"]
+    new_sprite_id = evolution_data["sprite_id"]
+
+    # Update name and sprite
+    pokemon["name"] = new_name
+    pokemon["sprite_path"] = f"sprites/sprite{new_sprite_id}.png"
+
+    # Update menu_sprite_path for bag display
+    if new_sprite_id in SPRITE_TO_MENU_SPRITE:
+        menu_sprite_id = SPRITE_TO_MENU_SPRITE[new_sprite_id]
+        pokemon["menu_sprite_path"] = f"menu_sprites/menusprite{menu_sprite_id}.png"
+
+    # Boost stats
+    old_max_hp = pokemon.get("max_hp", 100)
+    new_max_hp = int(old_max_hp * EVOLUTION_STAT_BOOST["hp_multiplier"])
+    pokemon["max_hp"] = new_max_hp
+
+    # Heal to full HP on evolution
+    pokemon["hp"] = new_max_hp
+
+    # Update type and moves from species data
+    if new_name in POKEMON_SPECIES:
+        species_data = POKEMON_SPECIES[new_name]
+        pokemon["type"] = species_data["type"]
+        pokemon["moves"] = species_data["moves"].copy()
+
+    return pokemon
+
+
 def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10) -> tuple[int, str]:
     """
     Calculate damage for a move considering type effectiveness.

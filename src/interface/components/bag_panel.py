@@ -17,6 +17,10 @@ class BagPanel(UIComponent):
 
         self.title_surf = self._font.render("BAG", True, (0, 0, 0))
 
+        # Evolution panel (shown when user clicks on a pokemon)
+        self.evolution_panel = None
+        self.selected_pokemon_index = None
+
         margin = 12
         btn_w, btn_h = 50, 50
         self.exit_button = Button(
@@ -51,13 +55,33 @@ class BagPanel(UIComponent):
         self.item_viewport_height = self.rect.height - 100
 
     def update(self, dt: float) -> None:
+        from src.core.services import input_manager
+
+        # If evolution panel is shown, only update that
+        if self.evolution_panel:
+            self.evolution_panel.update(dt)
+            return
+
         self.exit_button.update(dt)
         # Update pokemon sprites in case monsters list changed
         self._update_pokemon_sprites()
-        
+
+        # Handle pokemon clicks for evolution
+        if input_manager.mouse_pressed(1):  # Left click (button 1)
+            mouse_pos = input_manager.mouse_pos
+            pokemon_x = self.rect.x + 20
+            pokemon_y = self.rect.y + 70
+
+            for i, monster in enumerate(self.monsters):
+                y_pos = pokemon_y + i * self.pokemon_line_height - self.pokemon_scroll_offset
+                card_rect = pg.Rect(pokemon_x, y_pos, 300, 85)
+
+                if card_rect.collidepoint(mouse_pos) and self.rect.collidepoint(mouse_pos):
+                    # Open evolution panel for this pokemon
+                    self._show_evolution_panel(i)
+                    break
+
         # Handle scroll input
-        from src.core.services import input_manager
-        
         # Check if mouse is over this panel
         mouse_pos = input_manager.mouse_pos
         if self.rect.collidepoint(mouse_pos):
@@ -74,7 +98,6 @@ class BagPanel(UIComponent):
                 self.item_scroll_offset = max(0, min(max_item_offset, self.item_scroll_offset - scroll_amount))
         
         # Also support arrow keys for scrolling
-        import pygame as pg
         scroll_amount = 0
         if input_manager.key_down(pg.K_UP):
             scroll_amount = self.scroll_speed
@@ -95,9 +118,57 @@ class BagPanel(UIComponent):
         for monster in self.monsters:
             if monster["name"] not in self._pokemon_sprites:
                 try:
-                    self._pokemon_sprites[monster["name"]] = Sprite(monster["sprite_path"], (60, 60))
+                    # Use menu_sprite_path if available, otherwise fall back to sprite_path
+                    sprite_path = monster.get("menu_sprite_path", monster.get("sprite_path"))
+                    self._pokemon_sprites[monster["name"]] = Sprite(sprite_path, (60, 60))
                 except:
                     self._pokemon_sprites[monster["name"]] = None
+
+    def _show_evolution_panel(self, pokemon_index: int) -> None:
+        """Show evolution panel for selected pokemon"""
+        if pokemon_index < 0 or pokemon_index >= len(self.monsters):
+            return
+
+        self.selected_pokemon_index = pokemon_index
+        pokemon = self.monsters[pokemon_index]
+
+        # Import here to avoid circular imports
+        from src.interface.components.evolution_panel import EvolutionPanel
+        from src.utils import GameSettings
+
+        # Center the evolution panel
+        panel_width = 600
+        panel_height = 400
+        panel_x = (GameSettings.SCREEN_WIDTH - panel_width) // 2
+        panel_y = (GameSettings.SCREEN_HEIGHT - panel_height) // 2
+
+        self.evolution_panel = EvolutionPanel(
+            pokemon,
+            panel_x,
+            panel_y,
+            panel_width,
+            panel_height,
+            on_complete=self._on_evolution_complete,
+            on_cancel=self._on_evolution_cancel
+        )
+
+    def _on_evolution_complete(self) -> None:
+        """Called when evolution is complete"""
+        # Refresh pokemon sprites after evolution
+        if self.selected_pokemon_index is not None and self.selected_pokemon_index < len(self.monsters):
+            evolved_pokemon = self.monsters[self.selected_pokemon_index]
+            # Remove old sprite from cache so it reloads
+            if evolved_pokemon["name"] in self._pokemon_sprites:
+                del self._pokemon_sprites[evolved_pokemon["name"]]
+
+        self.evolution_panel = None
+        self.selected_pokemon_index = None
+        self._update_pokemon_sprites()
+
+    def _on_evolution_cancel(self) -> None:
+        """Called when evolution is cancelled"""
+        self.evolution_panel = None
+        self.selected_pokemon_index = None
 
     def draw(self, screen: pg.Surface) -> None:
         # Draw base panel with gradient-like effect
@@ -268,8 +339,12 @@ class BagPanel(UIComponent):
             # Draw scrollbar thumb with gradient-like effect
             pg.draw.rect(screen, (140, 110, 80), (scrollbar_x, thumb_y, scrollbar_width, thumb_height), border_radius=5)
             pg.draw.rect(screen, (100, 80, 60), (scrollbar_x, thumb_y, scrollbar_width, thumb_height), 2, border_radius=5)
-        
+
         self.exit_button.draw(screen)
+
+        # Draw evolution panel on top if shown
+        if self.evolution_panel:
+            self.evolution_panel.draw(screen)
 
     def set_exit_callback(self, callback) -> None:
         self.exit_button.on_click = callback

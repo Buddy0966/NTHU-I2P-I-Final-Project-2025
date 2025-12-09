@@ -123,17 +123,18 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 23.941407070887426,
-    "y": 26.885711544670404
+    "x": 23.89733809511661,
+    "y": 31.010607214462446
   },
   "bag": {
     "monsters": [
       {
-        "name": "Florion",
-        "hp": 99980,
+        "name": "Mommy",
+        "hp": 100000,
         "max_hp": 100000,
         "level": 100,
-        "sprite_path": "menu_sprites/menusprite3.png",
+        "sprite_path": "menu_sprites/mommy.png",
+        "menu_sprite_path": "menu_sprites/mommy.png",
         "count": 1,
         "type": "Slash",
         "moves": [
@@ -143,116 +144,22 @@
         ]
       },
       {
-        "name": "Pikachu",
-        "hp": 85,
-        "max_hp": 100,
-        "level": 25,
-        "sprite_path": "menu_sprites/menusprite1.png",
-        "count": 1
-      },
-      {
-        "name": "Charizard",
-        "hp": 150,
-        "max_hp": 200,
-        "level": 36,
-        "sprite_path": "menu_sprites/menusprite2.png",
-        "count": 1
-      },
-      {
-        "name": "Blastoise",
-        "hp": 120,
-        "max_hp": 180,
-        "level": 32,
-        "sprite_path": "menu_sprites/menusprite3.png",
-        "count": 1
-      },
-      {
-        "name": "Venusaur",
-        "hp": 90,
-        "max_hp": 160,
-        "level": 30,
-        "sprite_path": "menu_sprites/menusprite4.png",
-        "count": 1
-      },
-      {
-        "name": "Gengar",
-        "hp": 110,
-        "max_hp": 140,
-        "level": 28,
-        "sprite_path": "menu_sprites/menusprite5.png",
-        "count": 1
-      },
-      {
-        "name": "Dragonite",
-        "hp": 180,
-        "max_hp": 220,
-        "level": 40,
-        "sprite_path": "menu_sprites/menusprite6.png",
-        "count": 1
-      },
-      {
-        "name": "Leogreen",
-        "hp": 45,
-        "max_hp": 45,
+        "name": "Steelwing",
+        "hp": 43,
+        "max_hp": 43,
         "level": 10,
-        "sprite_path": "menu_sprites/menusprite2.png",
-        "count": 12
-      },
-      {
-        "name": "Charmander",
-        "hp": 39,
-        "max_hp": 39,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite3.png",
-        "count": 11
-      },
-      {
-        "name": "Bulbasaur",
-        "hp": 40,
-        "max_hp": 40,
-        "level": 8,
-        "sprite_path": "menu_sprites/menusprite1.png",
-        "count": 15
-      },
-      {
-        "name": "HornyMilf",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 10,
-        "sprite_path": "menu_sprites/hornymenusprites1.png",
-        "count": 16
-      },
-      {
-        "name": "Thunderpaw",
-        "hp": 38,
-        "max_hp": 38,
-        "level": 9,
-        "sprite_path": "sprites/sprite5.png",
+        "sprite_path": "sprites/sprite8.png",
+        "menu_sprite_path": "menu_sprites/menusprite2.png",
         "count": 1
       },
       {
-        "name": "Leafeon",
-        "hp": 36,
-        "max_hp": 36,
+        "name": "Blazewing",
+        "hp": 37,
+        "max_hp": 37,
         "level": 7,
-        "sprite_path": "sprites/sprite1.png",
+        "sprite_path": "sprites/sprite3.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
         "count": 1
-      },
-      {
-        "name": "Shadowclaw",
-        "hp": 45,
-        "max_hp": 45,
-        "level": 9,
-        "sprite_path": "sprites/sprite7.png",
-        "count": 1
-      },
-      {
-        "name": "Rockfist",
-        "hp": 52,
-        "max_hp": 52,
-        "level": 8,
-        "sprite_path": "sprites/sprite4.png",
-        "count": 2
       }
     ],
     "items": [
@@ -270,7 +177,7 @@
       },
       {
         "name": "Strength Potion",
-        "count": 10,
+        "count": 9,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
@@ -282,7 +189,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99962,
+        "count": 99960,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }
