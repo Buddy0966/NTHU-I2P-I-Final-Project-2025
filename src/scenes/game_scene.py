@@ -7,10 +7,11 @@ from src.core import GameManager, OnlineManager
 from src.utils import Logger, PositionCamera, GameSettings, Position
 from src.interface.components import Button, SettingsPanelGame, BagPanel
 from src.interface.components.shop_panel import ShopPanel
+from src.interface.components.chat_overlay import ChatOverlay
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
-from src.sprites import Sprite
-from typing import override
+from src.sprites import Sprite, Animation
+from typing import override, Dict
 
 
 class GameScene(Scene):
@@ -29,6 +30,7 @@ class GameScene(Scene):
     pending_teleport_destination: str | None
     show_npc_dialogue: bool
     current_npc_dialogue: str | None
+    chat_overlay: ChatOverlay | None
 
     def __init__(self):
         super().__init__()
@@ -77,6 +79,18 @@ class GameScene(Scene):
         # NPC dialogue bubble state
         self.show_npc_dialogue = False
         self.current_npc_dialogue = None
+
+        # Online player animations storage
+        self.online_player_animations: Dict[int, Animation] = {}
+
+        # Chat overlay (only if online)
+        if self.online_manager:
+            self.chat_overlay = ChatOverlay(
+                send_callback=self.online_manager.send_chat,
+                get_messages=self.online_manager.get_recent_chat
+            )
+        else:
+            self.chat_overlay = None
 
     def _toggle_settings(self) -> None:
         self.show_settings = not self.show_settings
@@ -159,7 +173,18 @@ class GameScene(Scene):
     def update(self, dt: float):
         self.setting_button.update(dt)
         self.backpack_button.update(dt)
-        
+
+        # Chat overlay handling (priority over other UI)
+        if self.chat_overlay:
+            if self.chat_overlay.is_open:
+                self.chat_overlay.update(dt)
+                return
+            # Open chat with T key (only when other UI is closed)
+            if not self.show_settings and not self.show_bag and not self.show_shop:
+                if input_manager.key_pressed(pg.K_t):
+                    self.chat_overlay.open()
+                    return
+
         if self.show_settings and self.settings_panel:
             self.settings_panel.update(dt)
             return
@@ -256,10 +281,19 @@ class GameScene(Scene):
         self.game_manager.bag.update(dt)
 
         if self.game_manager.player is not None and self.online_manager is not None:
+            player = self.game_manager.player
+            # Convert Direction enum to string for network transmission
+            direction_str = player.direction.name  # e.g., Direction.UP -> "UP"
+            # Determine if player is moving based on animation state
+            # Check if the animation is actively playing (accumulator > 0 means it's been updated)
+            is_moving = player.animation.accumulator > 0
+
             _ = self.online_manager.update(
-                self.game_manager.player.position.x,
-                self.game_manager.player.position.y,
-                self.game_manager.current_map.path_name
+                player.position.x,
+                player.position.y,
+                self.game_manager.current_map.path_name,
+                direction_str,
+                is_moving
             )
         
     @override
@@ -282,12 +316,45 @@ class GameScene(Scene):
         
         if self.online_manager and self.game_manager.player:
             list_online = self.online_manager.get_list_players()
-            for player in list_online:
-                if player["map"] == self.game_manager.current_map.path_name:
-                    cam = self.game_manager.player.camera
-                    pos = cam.transform_position_as_position(Position(player["x"], player["y"]))
-                    self.sprite_online.update_pos(pos)
-                    self.sprite_online.draw(screen)
+            cam = self.game_manager.player.camera
+
+            # Clean up animations for disconnected players
+            current_pids = set(p["id"] for p in list_online)
+            for pid in list(self.online_player_animations.keys()):
+                if pid not in current_pids:
+                    del self.online_player_animations[pid]
+
+            for player_data in list_online:
+                if player_data["map"] == self.game_manager.current_map.path_name:
+                    player_id = player_data["id"]
+
+                    # Create or get animation for this online player
+                    if player_id not in self.online_player_animations:
+                        self.online_player_animations[player_id] = Animation(
+                            "character/ow1.png",  # Use same sprite as local player
+                            ["down", "left", "right", "up"], 4,
+                            (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
+                        )
+
+                    anim = self.online_player_animations[player_id]
+
+                    # Update position
+                    pos = Position(player_data["x"], player_data["y"])
+                    anim.update_pos(pos)
+
+                    # Update animation based on direction and movement
+                    direction = player_data.get("direction", "DOWN").lower()
+                    is_moving = player_data.get("is_moving", False)
+
+                    # Switch to appropriate animation state
+                    anim.switch(direction)
+
+                    # Update animation (this advances frames if moving)
+                    if is_moving:
+                        anim.update(0.016)  # Approximate frame time
+
+                    # Draw the animated sprite
+                    anim.draw(screen, cam)
         
         if self.show_settings and self.settings_panel:
             overlay = pg.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
@@ -317,6 +384,10 @@ class GameScene(Scene):
         # Draw NPC dialogue bubble
         if self.show_npc_dialogue and self.current_npc_dialogue:
             self._draw_npc_dialogue(screen)
+
+        # Draw chat overlay (always draw so messages are visible even when closed)
+        if self.chat_overlay:
+            self.chat_overlay.draw(screen)
 
     def _is_player_on_teleporter(self) -> bool:
         """Check if player is currently on or near a teleporter tile (within 1 tile left/right)"""
