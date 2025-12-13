@@ -8,6 +8,7 @@ from src.utils import Logger, PositionCamera, GameSettings, Position
 from src.interface.components import Button, SettingsPanelGame, BagPanel
 from src.interface.components.shop_panel import ShopPanel
 from src.interface.components.chat_overlay import ChatOverlay
+from src.interface.components.minimap import Minimap
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
 from src.sprites import Sprite, Animation
@@ -31,6 +32,7 @@ class GameScene(Scene):
     show_npc_dialogue: bool
     current_npc_dialogue: str | None
     chat_overlay: ChatOverlay | None
+    minimap: Minimap
 
     def __init__(self):
         super().__init__()
@@ -91,6 +93,17 @@ class GameScene(Scene):
             )
         else:
             self.chat_overlay = None
+
+        # Minimap - positioned at top-left corner
+        self.minimap = Minimap(
+            size=(200, 200),
+            position=(20, 20),
+            scale_factor=0.1,
+            border_width=3,
+            border_color=(255, 255, 255),
+            background_color=(0, 0, 0, 180),
+            show_entities=True
+        )
 
     def _toggle_settings(self) -> None:
         self.show_settings = not self.show_settings
@@ -173,6 +186,7 @@ class GameScene(Scene):
     def update(self, dt: float):
         self.setting_button.update(dt)
         self.backpack_button.update(dt)
+        self.minimap.update(dt)
 
         # Chat overlay handling (priority over other UI)
         if self.chat_overlay:
@@ -311,9 +325,20 @@ class GameScene(Scene):
             npc.draw(screen, camera)
 
         self.game_manager.bag.draw(screen)
+
+        # Draw minimap (only when no modal panels are open)
+        if not self.show_settings and not self.show_bag and not self.show_shop:
+            self.minimap.draw(
+                screen,
+                self.game_manager.current_map,
+                self.game_manager.player,
+                self.game_manager.current_enemy_trainers,
+                self.game_manager.current_npcs
+            )
+
         self.setting_button.draw(screen)
         self.backpack_button.draw(screen)
-        
+
         if self.online_manager and self.game_manager.player:
             list_online = self.online_manager.get_list_players()
             cam = self.game_manager.player.camera
