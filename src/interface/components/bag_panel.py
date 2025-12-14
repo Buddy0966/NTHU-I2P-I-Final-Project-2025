@@ -122,13 +122,35 @@ class BagPanel(UIComponent):
     
     def _update_pokemon_sprites(self) -> None:
         """Update pokemon sprites based on current monsters list"""
+        import pygame as pg
         for monster in self.monsters:
             if monster["name"] not in self._pokemon_sprites:
                 try:
-                    # Use menu_sprite_path if available, otherwise fall back to sprite_path
-                    sprite_path = monster.get("menu_sprite_path", monster.get("sprite_path"))
-                    self._pokemon_sprites[monster["name"]] = Sprite(sprite_path, (60, 60))
-                except:
+                    # Use sprite_path (battle sprites) instead of menu_sprite_path
+                    sprite_path = monster.get("sprite_path")
+                    if not sprite_path:
+                        self._pokemon_sprites[monster["name"]] = None
+                        continue
+
+                    # Load the sprite to check if it's a dual-view sprite
+                    temp_sprite = Sprite(sprite_path)
+                    sprite_img = temp_sprite.image
+
+                    # Check if this is a dual-view sprite (width is roughly 2x height)
+                    width, height = sprite_img.get_size()
+                    if width > height * 1.5:  # Dual-view sprite (front + back)
+                        # Extract only the left half (front view)
+                        half_width = width // 2
+                        front_view = sprite_img.subsurface(pg.Rect(0, 0, half_width, height))
+                        # Scale the front view to 60x60
+                        scaled_front = pg.transform.smoothscale(front_view, (60, 60))
+                        # Create a surface to store it
+                        self._pokemon_sprites[monster["name"]] = type('obj', (object,), {'image': scaled_front})()
+                    else:
+                        # Single view sprite, scale it normally
+                        self._pokemon_sprites[monster["name"]] = Sprite(sprite_path, (60, 60))
+                except Exception as e:
+                    print(f"Error loading sprite for {monster['name']}: {e}")
                     self._pokemon_sprites[monster["name"]] = None
 
     def _show_evolution_panel(self, pokemon_index: int) -> None:
@@ -281,6 +303,15 @@ class BagPanel(UIComponent):
             level_str = f"Lv.{monster.get('level', 1)}"
             level_text = self._pokemon_font.render(level_str, True, (100, 80, 60))
             screen.blit(level_text, (pokemon_x + 85, y_pos + 30))
+
+            # Draw attack and defense stats next to level
+            attack_str = f"ATK:{monster.get('attack', 10)}"
+            attack_text = self._pokemon_font.render(attack_str, True, (180, 60, 60))
+            screen.blit(attack_text, (pokemon_x + 145, y_pos + 30))
+
+            defense_str = f"DEF:{monster.get('defense', 10)}"
+            defense_text = self._pokemon_font.render(defense_str, True, (60, 100, 180))
+            screen.blit(defense_text, (pokemon_x + 215, y_pos + 30))
 
             # Draw HP bar with better styling (made narrower to fit level-up button)
             hp_ratio = monster.get("hp", monster.get("max_hp", 100)) / monster.get("max_hp", 100)

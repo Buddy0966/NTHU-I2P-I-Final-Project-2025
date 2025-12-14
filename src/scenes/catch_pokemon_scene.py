@@ -92,6 +92,8 @@ class CatchPokemonScene(Scene):
             "hp": 45,
             "max_hp": 45,
             "level": 10,
+            "attack": 12,
+            "defense": 11,
             "sprite_path": "menu_sprites/menusprite2.png"
         },
         {
@@ -99,6 +101,8 @@ class CatchPokemonScene(Scene):
             "hp": 40,
             "max_hp": 40,
             "level": 8,
+            "attack": 10,
+            "defense": 10,
             "sprite_path": "menu_sprites/menusprite1.png"
         },
         {
@@ -106,6 +110,8 @@ class CatchPokemonScene(Scene):
             "hp": 39,
             "max_hp": 39,
             "level": 8,
+            "attack": 11,
+            "defense": 9,
             "sprite_path": "menu_sprites/menusprite3.png"
         },
     ]
@@ -271,6 +277,17 @@ class CatchPokemonScene(Scene):
                 )
                 self.player_pokemon["type"] = player_species_data["type"]
                 self.player_pokemon["moves"] = player_species_data["moves"].copy()
+
+            # Ensure player pokemon has attack and defense stats
+            if "attack" not in self.player_pokemon:
+                # Calculate default attack based on level
+                player_level = self.player_pokemon.get("level", 1)
+                self.player_pokemon["attack"] = int(10 + player_level * 0.5)
+
+            if "defense" not in self.player_pokemon:
+                # Calculate default defense based on level
+                player_level = self.player_pokemon.get("level", 1)
+                self.player_pokemon["defense"] = int(10 + player_level * 0.5)
     
     def _get_next_enemy_pokemon(self) -> bool:
         """
@@ -390,12 +407,16 @@ class CatchPokemonScene(Scene):
         attacker_type = self.player_pokemon.get("type", "None")
         defender_type = self.opponent_pokemon.get("type", "None")
         level = self.player_pokemon.get("level", 10)
+        attack = self.player_pokemon.get("attack", 10)
+        defense = self.opponent_pokemon.get("defense", 10)
 
         damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
             defender_type,
-            level
+            level,
+            attack,
+            defense
         )
 
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
@@ -452,12 +473,16 @@ class CatchPokemonScene(Scene):
         attacker_type = self.opponent_pokemon.get("type", "None")
         defender_type = self.player_pokemon.get("type", "None")
         level = self.opponent_pokemon.get("level", 10)
+        attack = self.opponent_pokemon.get("attack", 10)
+        defense = self.player_pokemon.get("defense", 10)
 
         damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
             defender_type,
-            level
+            level,
+            attack,
+            defense
         )
 
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)

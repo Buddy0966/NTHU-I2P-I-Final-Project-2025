@@ -12,7 +12,9 @@
       "Bash(python3:*)",
       "Bash(dir:*)",
       "Bash(python -c:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(timeout /t 5)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

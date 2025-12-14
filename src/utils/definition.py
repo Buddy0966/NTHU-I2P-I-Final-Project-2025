@@ -75,6 +75,8 @@ class Monster(TypedDict):
     hp: int
     max_hp: int
     level: int
+    attack: int  # Attack stat - affects damage dealt
+    defense: int  # Defense stat - reduces damage taken
     sprite_path: str
     type: str  # Pokemon element type: Fire, Water, Ice, Wind, Light, Slash, or None
     moves: list[str]  # List of move names this Pokemon can use

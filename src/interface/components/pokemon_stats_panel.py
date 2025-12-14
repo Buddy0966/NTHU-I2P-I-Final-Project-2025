@@ -10,7 +10,7 @@ class PokemonStatsPanel:
     _small_font: pg.font.Font
     _bg_sprite: Sprite
     
-    def __init__(self, monster: Monster, x: int, y: int, width: int = 160, height: int = 80):
+    def __init__(self, monster: Monster, x: int, y: int, width: int = 160, height: int = 100):
         self.monster = monster
         self.rect = pg.Rect(x, y, width, height)
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 14)
@@ -72,9 +72,15 @@ class PokemonStatsPanel:
         hp_ratio = self.monster["hp"] / self.monster["max_hp"]
         hp_color = (0, 255, 0) if hp_ratio > 0.3 else (255, 165, 0) if hp_ratio > 0.1 else (255, 0, 0)
         hp_bar_w = int((self.rect.width - 70) * hp_ratio)
-        
+
         pg.draw.rect(screen, hp_color, (self.rect.x + 60, self.rect.y + 40, hp_bar_w, 10))
         pg.draw.rect(screen, (0, 0, 0), (self.rect.x + 60, self.rect.y + 40, self.rect.width - 70, 10), 1)
-        
-        hp_text = self._small_font.render(f"{self.monster['hp']}/{self.monster['max_hp']}", True, (0, 0, 0))
+
+        hp_text = self._small_font.render(f"HP: {self.monster['hp']}/{self.monster['max_hp']}", True, (0, 0, 0))
         screen.blit(hp_text, (self.rect.x + 60, self.rect.y + 52))
+
+        # Display attack and defense stats
+        attack = self.monster.get("attack", 10)
+        defense = self.monster.get("defense", 10)
+        stats_text = self._small_font.render(f"ATK:{attack} DEF:{defense}", True, (0, 0, 0))
+        screen.blit(stats_text, (self.rect.x + 60, self.rect.y + 70))

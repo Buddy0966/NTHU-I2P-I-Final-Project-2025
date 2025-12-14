@@ -123,24 +123,26 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 9.977108514290055,
-    "y": 24.95707402640469
+    "x": 23.196375900532416,
+    "y": 31.373768686069983
   },
   "bag": {
     "monsters": [
       {
-        "name": "Mommy",
-        "hp": 100000,
+        "name": "pikachu",
+        "hp": 99983,
         "max_hp": 100000,
         "level": 100,
-        "sprite_path": "menu_sprites/mommy.png",
-        "menu_sprite_path": "menu_sprites/mommy.png",
+        "sprite_path": "menu_sprites/pikachu.png",
+        "menu_sprite_path": "menu_sprites/pikachu.png",
         "type": "Slash",
         "moves": [
           "QuickSlash",
           "FearSlash",
           "IronWing"
-        ]
+        ],
+        "attack": 60,
+        "defense": 60
       },
       {
         "name": "Mysticsoul",
@@ -177,14 +179,6 @@
         "level": 45,
         "sprite_path": "sprites/sprite8.png",
         "menu_sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Blazewing",
-        "hp": 37,
-        "max_hp": 37,
-        "level": 7,
-        "sprite_path": "sprites/sprite3.png",
-        "menu_sprite_path": "menu_sprites/menusprite3.png"
       }
     ],
     "items": [

@@ -365,6 +365,8 @@ EVOLUTION_CHAINS = {
 # Stat multipliers for evolution (all stats increased)
 EVOLUTION_STAT_BOOST = {
     "hp_multiplier": 1.4,      # 40% HP increase
+    "attack_multiplier": 1.3,  # 30% attack increase
+    "defense_multiplier": 1.3, # 30% defense increase
     "level_boost": 0,          # No level increase, just stats
     "moves_gained": 1          # Learn 1 new move on evolution
 }
@@ -426,6 +428,16 @@ def evolve_pokemon(pokemon: dict) -> dict:
     old_max_hp = pokemon.get("max_hp", 100)
     new_max_hp = int(old_max_hp * EVOLUTION_STAT_BOOST["hp_multiplier"])
     pokemon["max_hp"] = new_max_hp
+
+    # Boost attack stat
+    old_attack = pokemon.get("attack", 10)
+    new_attack = int(old_attack * EVOLUTION_STAT_BOOST["attack_multiplier"])
+    pokemon["attack"] = new_attack
+
+    # Boost defense stat
+    old_defense = pokemon.get("defense", 10)
+    new_defense = int(old_defense * EVOLUTION_STAT_BOOST["defense_multiplier"])
+    pokemon["defense"] = new_defense
 
     # Heal to full HP on evolution
     pokemon["hp"] = new_max_hp
@@ -494,15 +506,25 @@ def levelup_pokemon(pokemon: dict, bag) -> tuple[bool, str]:
     new_max_hp = int(old_max_hp * 1.05)
     pokemon["max_hp"] = new_max_hp
 
+    # Increase attack stat (3% per level)
+    old_attack = pokemon.get("attack", 10)
+    new_attack = int(old_attack * 1.03)
+    pokemon["attack"] = new_attack
+
+    # Increase defense stat (3% per level)
+    old_defense = pokemon.get("defense", 10)
+    new_defense = int(old_defense * 1.03)
+    pokemon["defense"] = new_defense
+
     # Heal by the increased amount
     pokemon["hp"] = min(pokemon.get("hp", 0) + (new_max_hp - old_max_hp), new_max_hp)
 
     return (True, f"{pokemon['name']} leveled up to {pokemon['level']}! Cost: {cost} coins")
 
 
-def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10) -> tuple[int, str]:
+def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10, attack: int = 10, defense: int = 10) -> tuple[int, str]:
     """
-    Calculate damage for a move considering type effectiveness.
+    Calculate damage for a move considering type effectiveness, attack stat, and defense stat.
     Type effectiveness is based on the ATTACKER'S Pokemon type, not the move.
 
     Args:
@@ -510,6 +532,8 @@ def calculate_damage(move_name: str, attacker_type: str, defender_type: str, lev
         attacker_type: Type of the attacking Pokemon (this determines effectiveness!)
         defender_type: Type of the defending Pokemon
         level: Level of the attacker (default 10)
+        attack: Attack stat of the attacker (default 10)
+        defense: Defense stat of the defender (default 10)
 
     Returns:
         tuple[int, str]: (damage, effectiveness_message)
@@ -527,10 +551,12 @@ def calculate_damage(move_name: str, attacker_type: str, defender_type: str, lev
     # Calculate damage with some randomness - reduced scaling
     import random
     variance = random.uniform(0.85, 1.0)
-    # Reduce overall damage by dividing base power by 2 and reducing level scaling
-    damage = int((base_power / 2) * multiplier * variance * (0.5 + level / 20))
+    # Include attack and defense stats in damage calculation
+    # Formula: (base_power / 2) * (attack / defense) * type_effectiveness * variance * level_scaling
+    attack_defense_ratio = attack / defense  # Higher attack vs lower defense = more damage
+    damage = int((base_power / 2) * attack_defense_ratio * multiplier * variance * (0.5 + level / 20))
 
-    # Ensure minimum damage of 3, maximum of 25
-    damage = max(3, min(damage, 25))
+    # Ensure minimum damage of 3, maximum of 30
+    damage = max(3, min(damage, 30))
 
     return (damage, effectiveness_msg)

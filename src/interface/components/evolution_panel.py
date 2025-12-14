@@ -252,12 +252,25 @@ class EvolutionPanel(UIComponent):
             evo_name_rect = evo_name_text.get_rect(center=(self.rect.x + self.rect.width - 155, self.rect.y + 290))
             screen.blit(evo_name_text, evo_name_rect)
 
-            # Show stat increase
+            # Show stat increases
             old_hp = self.pokemon.get("max_hp", 100)
             new_hp = int(old_hp * 1.4)
-            stat_text = self._small_font.render(f"HP: {old_hp} -> {new_hp}", True, (100, 255, 100))
-            stat_rect = stat_text.get_rect(center=(self.rect.x + self.rect.width - 155, self.rect.y + 310))
-            screen.blit(stat_text, stat_rect)
+            old_atk = self.pokemon.get("attack", 10)
+            new_atk = int(old_atk * 1.3)
+            old_def = self.pokemon.get("defense", 10)
+            new_def = int(old_def * 1.3)
+
+            hp_text = self._small_font.render(f"HP: {old_hp} -> {new_hp}", True, (100, 255, 100))
+            hp_rect = hp_text.get_rect(center=(self.rect.x + self.rect.width - 155, self.rect.y + 305))
+            screen.blit(hp_text, hp_rect)
+
+            atk_text = self._small_font.render(f"ATK: {old_atk} -> {new_atk}", True, (255, 200, 100))
+            atk_rect = atk_text.get_rect(center=(self.rect.x + self.rect.width - 155, self.rect.y + 320))
+            screen.blit(atk_text, atk_rect)
+
+            def_text = self._small_font.render(f"DEF: {old_def} -> {new_def}", True, (100, 200, 255))
+            def_rect = def_text.get_rect(center=(self.rect.x + self.rect.width - 155, self.rect.y + 335))
+            screen.blit(def_text, def_rect)
         else:
             # Cannot evolve
             if self.old_sprite:
@@ -347,6 +360,18 @@ class EvolutionPanel(UIComponent):
         screen.blit(name_text, name_rect)
 
         # Draw new stats
-        stat_text = self._small_font.render(f"HP: {self.pokemon.get('max_hp')} (+{int(self.pokemon.get('max_hp') / 1.4 * 0.4)})", True, (100, 255, 100))
-        stat_rect = stat_text.get_rect(center=(self.rect.centerx, self.rect.y + self.rect.height - 95))
-        screen.blit(stat_text, stat_rect)
+        hp_increase = int(self.pokemon.get('max_hp') / 1.4 * 0.4)
+        atk_increase = int(self.pokemon.get('attack', 10) / 1.3 * 0.3)
+        def_increase = int(self.pokemon.get('defense', 10) / 1.3 * 0.3)
+
+        hp_stat_text = self._small_font.render(f"HP: {self.pokemon.get('max_hp')} (+{hp_increase})", True, (100, 255, 100))
+        hp_stat_rect = hp_stat_text.get_rect(center=(self.rect.centerx, self.rect.y + self.rect.height - 105))
+        screen.blit(hp_stat_text, hp_stat_rect)
+
+        atk_stat_text = self._small_font.render(f"ATK: {self.pokemon.get('attack', 10)} (+{atk_increase})", True, (255, 200, 100))
+        atk_stat_rect = atk_stat_text.get_rect(center=(self.rect.centerx, self.rect.y + self.rect.height - 85))
+        screen.blit(atk_stat_text, atk_stat_rect)
+
+        def_stat_text = self._small_font.render(f"DEF: {self.pokemon.get('defense', 10)} (+{def_increase})", True, (100, 200, 255))
+        def_stat_rect = def_stat_text.get_rect(center=(self.rect.centerx, self.rect.y + self.rect.height - 65))
+        screen.blit(def_stat_text, def_stat_rect)

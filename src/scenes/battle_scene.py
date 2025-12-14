@@ -296,6 +296,10 @@ class BattleScene(Scene):
         hp_variance = random.uniform(0.8, 1.2)
         max_hp = int(selected["base_hp"] * hp_variance)
 
+        # Calculate attack and defense stats based on level (base 10, scales with level)
+        attack = int(10 + level * 0.5)
+        defense = int(10 + level * 0.5)
+
         # Build sprite paths
         sprite_base_path = f"sprites/sprite{selected['sprite_id']}"  # For animated sprite
         panel_sprite_path = f"sprites/sprite{selected['sprite_id']}.png"  # For panel (static image)
@@ -308,6 +312,8 @@ class BattleScene(Scene):
             "hp": max_hp,
             "max_hp": max_hp,
             "level": level,
+            "attack": attack,
+            "defense": defense,
             "sprite_path": panel_sprite_path,  # Panel uses the static .png file
             "type": species_data["type"],
             "moves": species_data["moves"].copy()
@@ -335,6 +341,17 @@ class BattleScene(Scene):
                 )
                 self.player_pokemon["type"] = player_species_data["type"]
                 self.player_pokemon["moves"] = player_species_data["moves"].copy()
+
+            # Ensure player pokemon has attack and defense stats
+            if "attack" not in self.player_pokemon:
+                # Calculate default attack based on level
+                player_level = self.player_pokemon.get("level", 1)
+                self.player_pokemon["attack"] = int(10 + player_level * 0.5)
+
+            if "defense" not in self.player_pokemon:
+                # Calculate default defense based on level
+                player_level = self.player_pokemon.get("level", 1)
+                self.player_pokemon["defense"] = int(10 + player_level * 0.5)
 
             # Create animated sprite for player (if they have a sprite_path with animated version)
             player_sprite_path = self.player_pokemon.get("sprite_path", "")
@@ -456,12 +473,16 @@ class BattleScene(Scene):
         attacker_type = self.player_pokemon.get("type", "None")
         defender_type = self.opponent_pokemon.get("type", "None")
         level = self.player_pokemon.get("level", 10)
+        attack = self.player_pokemon.get("attack", 10)
+        defense = self.opponent_pokemon.get("defense", 10)
 
         damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
             defender_type,
-            level
+            level,
+            attack,
+            defense
         )
 
         # Apply attack boost from Strength Potion
@@ -525,12 +546,16 @@ class BattleScene(Scene):
         attacker_type = self.opponent_pokemon.get("type", "None")
         defender_type = self.player_pokemon.get("type", "None")
         level = self.opponent_pokemon.get("level", 10)
+        attack = self.opponent_pokemon.get("attack", 10)
+        defense = self.player_pokemon.get("defense", 10)
 
         damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
             defender_type,
-            level
+            level,
+            attack,
+            defense
         )
 
         # Apply defense boost from Defense Potion (reduces incoming damage)
