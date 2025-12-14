@@ -2,6 +2,7 @@ from __future__ import annotations
 import pygame as pg
 from src.scenes.scene import Scene
 from src.sprites import BackgroundSprite, Sprite
+from src.sprites.animated_battle_sprite import AnimatedBattleSprite
 from src.sprites.attack_animation import AttackAnimation
 from src.utils import GameSettings, Logger
 from src.core.services import input_manager, scene_manager
@@ -84,36 +85,33 @@ class CatchPokemonScene(Scene):
     # Attack animation
     attack_animation: AttackAnimation | None
     effectiveness_message: str  # Type effectiveness message
+
+    # Animated sprites
+    opponent_sprite: AnimatedBattleSprite | None
+    player_sprite: AnimatedBattleSprite | None
+
+    # Potion buffs
+    attack_boost: float
+    defense_boost: float
     
-    # Wild pokemon data pool
+    # Wild pokemon data pool with rarity system
     WILD_POKEMON_POOL = [
-        {
-            "name": "Leogreen",
-            "hp": 45,
-            "max_hp": 45,
-            "level": 10,
-            "attack": 12,
-            "defense": 11,
-            "sprite_path": "menu_sprites/menusprite2.png"
-        },
-        {
-            "name": "Bulbasaur",
-            "hp": 40,
-            "max_hp": 40,
-            "level": 8,
-            "attack": 10,
-            "defense": 10,
-            "sprite_path": "menu_sprites/menusprite1.png"
-        },
-        {
-            "name": "Charmander",
-            "hp": 39,
-            "max_hp": 39,
-            "level": 8,
-            "attack": 11,
-            "defense": 9,
-            "sprite_path": "menu_sprites/menusprite3.png"
-        },
+        {"name": "Leafeon", "base_hp": 40, "level_range": (5, 10), "sprite_id": 1, "rarity": "common"},
+        {"name": "Aquafin", "base_hp": 50, "level_range": (6, 12), "sprite_id": 2, "rarity": "common"},
+        {"name": "Blazewing", "base_hp": 45, "level_range": (5, 11), "sprite_id": 3, "rarity": "common"},
+        {"name": "Rockfist", "base_hp": 55, "level_range": (7, 13), "sprite_id": 4, "rarity": "common"},
+        {"name": "Thunderpaw", "base_hp": 42, "level_range": (6, 11), "sprite_id": 5, "rarity": "common"},
+        {"name": "Frostbite", "base_hp": 48, "level_range": (7, 12), "sprite_id": 6, "rarity": "uncommon"},
+        {"name": "Shadowclaw", "base_hp": 43, "level_range": (8, 14), "sprite_id": 7, "rarity": "uncommon"},
+        {"name": "Steelwing", "base_hp": 52, "level_range": (9, 15), "sprite_id": 8, "rarity": "uncommon"},
+        {"name": "Mysticsoul", "base_hp": 46, "level_range": (7, 13), "sprite_id": 9, "rarity": "uncommon"},
+        {"name": "Venomfang", "base_hp": 44, "level_range": (8, 12), "sprite_id": 10, "rarity": "uncommon"},
+        {"name": "Sandstorm", "base_hp": 49, "level_range": (9, 14), "sprite_id": 11, "rarity": "rare"},
+        {"name": "Ghostflame", "base_hp": 41, "level_range": (10, 16), "sprite_id": 12, "rarity": "rare"},
+        {"name": "Crystalhorn", "base_hp": 60, "level_range": (11, 17), "sprite_id": 13, "rarity": "rare"},
+        {"name": "Stormchaser", "base_hp": 53, "level_range": (10, 15), "sprite_id": 14, "rarity": "rare"},
+        {"name": "Lavaguard", "base_hp": 58, "level_range": (12, 18), "sprite_id": 15, "rarity": "rare"},
+        {"name": "Cosmicdrake", "base_hp": 65, "level_range": (14, 20), "sprite_id": 16, "rarity": "legendary"},
     ]
     
     def __init__(self, game_manager: GameManager):
@@ -165,7 +163,15 @@ class CatchPokemonScene(Scene):
         # Attack animation and effectiveness
         self.attack_animation = None
         self.effectiveness_message = ""
-        
+
+        # Animated sprites (initialized in _init_battle)
+        self.opponent_sprite = None
+        self.player_sprite = None
+
+        # Potion buffs
+        self.attack_boost = 1.0  # Multiplier for attack damage
+        self.defense_boost = 1.0  # Multiplier for defense (reduces incoming damage)
+
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
         
@@ -227,6 +233,10 @@ class CatchPokemonScene(Scene):
         self.attack_animation = None
         self.effectiveness_message = ""
 
+        # Reset potion buffs
+        self.attack_boost = 1.0
+        self.defense_boost = 1.0
+
         # Initialize battle
         self._init_battle()
         self._next_state()
@@ -241,25 +251,62 @@ class CatchPokemonScene(Scene):
         party_size = random.randint(1, 3)
         self.enemy_party = []
 
-        for _ in range(party_size):
-            # Randomly select a pokemon from the pool
-            pokemon_data = random.choice(self.WILD_POKEMON_POOL)
-            # Create a copy with randomized HP slightly
-            enemy_pokemon = pokemon_data.copy()
-            enemy_pokemon['hp'] = random.randint(
-                int(enemy_pokemon['max_hp'] * 0.8),
-                enemy_pokemon['max_hp']
-            )
+        # Weighted random selection based on rarity
+        rarity_weights = {"common": 50, "uncommon": 30, "rare": 15, "legendary": 5}
 
-            # Add type and moves from species database
-            species_data = POKEMON_SPECIES.get(enemy_pokemon["name"], {"type": "None", "moves": ["QuickSlash"]})
-            enemy_pokemon["type"] = species_data["type"]
-            enemy_pokemon["moves"] = species_data["moves"].copy()
+        for _ in range(party_size):
+            # Weighted random selection
+            weighted_pool = []
+            for opponent in self.WILD_POKEMON_POOL:
+                weight = rarity_weights.get(opponent["rarity"], 10)
+                weighted_pool.extend([opponent] * weight)
+
+            # Select random opponent
+            selected = random.choice(weighted_pool)
+
+            # Generate random level within range
+            level = random.randint(selected["level_range"][0], selected["level_range"][1])
+
+            # Calculate HP with some variance (±20%)
+            hp_variance = random.uniform(0.8, 1.2)
+            max_hp = int(selected["base_hp"] * hp_variance)
+
+            # Calculate attack and defense stats based on level (base 10, scales with level)
+            attack = int(10 + level * 0.5)
+            defense = int(10 + level * 0.5)
+
+            # Build sprite paths
+            sprite_base_path = f"sprites/sprite{selected['sprite_id']}"  # For animated sprite
+            panel_sprite_path = f"sprites/sprite{selected['sprite_id']}.png"  # For panel (static image)
+
+            # Get Pokemon species data for type and moves
+            species_data = POKEMON_SPECIES.get(selected["name"], {"type": "None", "moves": ["QuickSlash"]})
+
+            enemy_pokemon = {
+                "name": selected["name"],
+                "hp": max_hp,
+                "max_hp": max_hp,
+                "level": level,
+                "attack": attack,
+                "defense": defense,
+                "sprite_path": panel_sprite_path,  # Panel uses the static .png file
+                "sprite_base_path": sprite_base_path,  # For animated sprite
+                "type": species_data["type"],
+                "moves": species_data["moves"].copy()
+            }
 
             self.enemy_party.append(enemy_pokemon)
 
         self.enemy_party_index = 0
         self.opponent_pokemon = self.enemy_party[self.enemy_party_index]
+
+        # Create animated sprite for opponent
+        self.opponent_sprite = AnimatedBattleSprite(
+            base_path=self.opponent_pokemon["sprite_base_path"],
+            size=(200, 200),
+            frames=4,
+            loop_speed=0.8
+        )
 
         Logger.info(f"Wild Pokemon Battle initiated! Enemy party size: {len(self.enemy_party)}")
         for i, pokemon in enumerate(self.enemy_party):
@@ -288,6 +335,20 @@ class CatchPokemonScene(Scene):
                 # Calculate default defense based on level
                 player_level = self.player_pokemon.get("level", 1)
                 self.player_pokemon["defense"] = int(10 + player_level * 0.5)
+
+            # Create animated sprite for player (if they have a sprite_path with animated version)
+            player_sprite_path = self.player_pokemon.get("sprite_path", "")
+            # Try to use animated version if available, otherwise fallback to static
+            if "sprite" in player_sprite_path and not "menu_sprites" in player_sprite_path:
+                self.player_sprite = AnimatedBattleSprite(
+                    base_path=player_sprite_path.replace(".png", ""),
+                    size=(250, 250),
+                    frames=4,
+                    loop_speed=0.8
+                )
+            else:
+                # Player has old static sprite, keep it for now
+                self.player_sprite = None
     
     def _get_next_enemy_pokemon(self) -> bool:
         """
@@ -297,9 +358,19 @@ class CatchPokemonScene(Scene):
         self.enemy_party_index += 1
         if self.enemy_party_index < len(self.enemy_party):
             self.opponent_pokemon = self.enemy_party[self.enemy_party_index]
+
+            # Create new animated sprite for the next opponent
+            if "sprite_base_path" in self.opponent_pokemon:
+                self.opponent_sprite = AnimatedBattleSprite(
+                    base_path=self.opponent_pokemon["sprite_base_path"],
+                    size=(200, 200),
+                    frames=4,
+                    loop_speed=0.8
+                )
+
             Logger.info(f"Enemy sent out {self.opponent_pokemon['name']}!")
             return True
-        
+
         # Enemy party is defeated
         Logger.info("Wild Pokemon party defeated!")
         return False
@@ -332,21 +403,25 @@ class CatchPokemonScene(Scene):
         if not self.game_manager.bag or not self.game_manager.bag.items:
             self.message = "No items available!"
             return
-        
-        # Filter out coins - they are not battle items
-        battle_items = [item for item in self.game_manager.bag.items if item['name'].lower() != 'coins' and item['name'].lower() != 'pokeball']
-        
+
+        # Filter to only show potions (health-potion, strength-potion, potion/defense-potion)
+        # Exclude coins and pokeballs
+        battle_items = [item for item in self.game_manager.bag.items
+                       if item['name'].lower() != 'coins'
+                       and item['name'].lower() != 'pokeball'
+                       and ('potion' in item['name'].lower() or 'heal' in item['name'].lower())]
+
         if not battle_items:
-            self.message = "No usable items in battle!"
+            self.message = "No usable potions in battle!"
             return
-        
+
         self.state = WildBattleState.CHOOSE_ITEM
         self.item_panel = BattleItemPanel(
             battle_items,
             GameSettings.SCREEN_WIDTH // 2 - 150,
             GameSettings.SCREEN_HEIGHT // 2 - 200
         )
-        self.message = "Choose an item:"
+        self.message = "Choose a potion:"
     
     def _on_switch_click(self) -> None:
         """Switch pokemon - for future implementation"""
@@ -391,6 +466,10 @@ class CatchPokemonScene(Scene):
         if not self.player_selected_move or not self.opponent_pokemon:
             return
 
+        # Trigger player attack animation
+        if self.player_sprite:
+            self.player_sprite.switch_animation("attack")
+
         # Create attack effect animation at opponent position
         move_data = MOVES_DATABASE.get(self.player_selected_move)
         if move_data and move_data.get("animation"):
@@ -418,6 +497,9 @@ class CatchPokemonScene(Scene):
             attack,
             defense
         )
+
+        # Apply attack boost from Strength Potion
+        damage = int(damage * self.attack_boost)
 
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -457,6 +539,10 @@ class CatchPokemonScene(Scene):
         if not self.opponent_pokemon or not self.player_pokemon or not self.enemy_selected_move:
             return
 
+        # Trigger opponent attack animation
+        if self.opponent_sprite:
+            self.opponent_sprite.switch_animation("attack")
+
         # Create attack effect animation at player position
         move_data = MOVES_DATABASE.get(self.enemy_selected_move)
         if move_data and move_data.get("animation"):
@@ -484,6 +570,9 @@ class CatchPokemonScene(Scene):
             attack,
             defense
         )
+
+        # Apply defense boost from Defense Potion (reduces incoming damage)
+        damage = int(damage * self.defense_boost)
 
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -520,23 +609,45 @@ class CatchPokemonScene(Scene):
         return False
     
     def _execute_item_attack(self, item: dict) -> None:
-        if not self.opponent_pokemon:
+        if not self.player_pokemon:
             return
-        
-        # Calculate damage based on item
-        damage = random.randint(5, 25)
-        self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
-        
-        self.message = f"{self.opponent_pokemon['name']} took {damage} damage!"
-        Logger.info(f"Player used item {item['name']}: {damage} damage. Opponent HP: {self.opponent_pokemon['hp']}")
-        
+
+        item_name = item['name'].lower()
+
+        # Health Potion: Heal your pokemon
+        if 'health' in item_name or 'heal' in item_name:
+            heal_amount = int(self.player_pokemon['max_hp'] * 0.5)  # Heal 50% of max HP
+            old_hp = self.player_pokemon['hp']
+            self.player_pokemon['hp'] = min(self.player_pokemon['max_hp'], self.player_pokemon['hp'] + heal_amount)
+            actual_heal = self.player_pokemon['hp'] - old_hp
+
+            self.message = f"{self.player_pokemon['name']} used Health Potion! Restored {actual_heal} HP!"
+            Logger.info(f"Player used Health Potion: healed {actual_heal} HP. Player HP: {self.player_pokemon['hp']}/{self.player_pokemon['max_hp']}")
+
+        # Strength Potion: Increase attack power
+        elif 'strength' in item_name or 'attack' in item_name:
+            self.attack_boost = 1.5  # 50% attack boost
+            self.message = f"{self.player_pokemon['name']} used Strength Potion! Attack power increased!"
+            Logger.info(f"Player used Strength Potion: attack boost now {self.attack_boost}x")
+
+        # Defense Potion (defense-potion.png): Reduce opponent's attack damage
+        elif 'defense' in item_name or 'defence' in item_name:
+            self.defense_boost = 0.7  # Reduce incoming damage by 30%
+            self.message = f"{self.player_pokemon['name']} used Defense Potion! Defense increased!"
+            Logger.info(f"Player used Defense Potion: defense boost now {self.defense_boost}x (reduces incoming damage)")
+
+        else:
+            # Fallback for unknown items
+            self.message = f"Used {item['name']}!"
+            Logger.info(f"Player used unknown item: {item['name']}")
+
         # Reduce item count
         item['count'] = max(0, item['count'] - 1)
-        
-        if self._check_battle_end():
-            self.state = WildBattleState.SHOW_DAMAGE
-            return
-        
+
+        # Remove item from bag if count reaches 0
+        if item['count'] == 0 and self.game_manager.bag:
+            self.game_manager.bag.items.remove(item)
+
         # Transition to show damage state first
         self._state_timer = 0.0
         self.state = WildBattleState.SHOW_DAMAGE
@@ -560,43 +671,43 @@ class CatchPokemonScene(Scene):
         Logger.info(f"pokeball catch animation started for {self.opponent_pokemon['name']}")
         
     def _catch_opponent_pokemon(self) -> None:
-        """Complete the catch - add opponent pokemon to player's bag or increment count"""
+        """Complete the catch - add opponent pokemon to player's bag as a new entry"""
         if not self.opponent_pokemon or not self.game_manager.bag:
             self.state = WildBattleState.BATTLE_END
             self.message = "Catch failed!"
             Logger.error("Catch failed: missing opponent_pokemon or bag")
             return
-        
-        # Check if pokemon already exists in bag
-        existing_pokemon = None
-        for monster in self.game_manager.bag.monsters:
-            if monster['name'] == self.opponent_pokemon['name']:
-                existing_pokemon = monster
-                break
-        
-        if existing_pokemon:
-            # Increment count if pokemon already exists
-            if 'count' not in existing_pokemon:
-                existing_pokemon['count'] = 1
-            existing_pokemon['count'] += 1
-            Logger.info(f"Caught another {self.opponent_pokemon['name']}! Count: {existing_pokemon['count']}")
-        else:
-            # Add new pokemon to player's bag
-            caught_pokemon = {
-                "name": self.opponent_pokemon['name'],
-                "hp": self.opponent_pokemon['max_hp'],
-                "max_hp": self.opponent_pokemon['max_hp'],
-                "level": self.opponent_pokemon['level'],
-                "sprite_path": self.opponent_pokemon['sprite_path'],
-                "count": 1
-            }
-            self.game_manager.bag.monsters.append(caught_pokemon)
-            Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag.")
-        
+
+        # Always add as a new pokemon entry (no count system)
+        # Extract sprite_id from sprite_path to get menu_sprite_path
+        from src.utils.pokemon_data import SPRITE_TO_MENU_SPRITE
+        import re
+
+        sprite_path = self.opponent_pokemon['sprite_path']
+        menu_sprite_path = sprite_path  # Default fallback
+
+        # Extract sprite ID from path like "sprites/sprite7.png"
+        match = re.search(r'sprite(\d+)\.png', sprite_path)
+        if match:
+            sprite_id = int(match.group(1))
+            if sprite_id in SPRITE_TO_MENU_SPRITE:
+                menu_sprite_id = SPRITE_TO_MENU_SPRITE[sprite_id]
+                menu_sprite_path = f"menu_sprites/menusprite{menu_sprite_id}.png"
+
+        caught_pokemon = {
+            "name": self.opponent_pokemon['name'],
+            "hp": self.opponent_pokemon['max_hp'],  # Full HP
+            "max_hp": self.opponent_pokemon['max_hp'],
+            "level": self.opponent_pokemon['level'],
+            "sprite_path": sprite_path,  # Battle sprite
+            "menu_sprite_path": menu_sprite_path,  # Bag display sprite
+        }
+        self.game_manager.bag.monsters.append(caught_pokemon)
+        Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag with menu_sprite: {menu_sprite_path}")
+
         Logger.info(f"Current monsters in bag: {len(self.game_manager.bag._monsters_data)}")
         for monster in self.game_manager.bag._monsters_data:
-            count = monster.get('count', 1)
-            Logger.info(f"  - {monster['name']} (x{count})")
+            Logger.info(f"  - {monster['name']} (Level {monster.get('level', 1)})")
         
         
     def _next_state(self) -> None:
@@ -619,6 +730,12 @@ class CatchPokemonScene(Scene):
     def update(self, dt: float) -> None:
         self._state_timer += dt
 
+        # Update animated sprites
+        if self.opponent_sprite:
+            self.opponent_sprite.update(dt)
+        if self.player_sprite:
+            self.player_sprite.update(dt)
+
         # Update attack animation
         if self.attack_animation:
             self.attack_animation.update(dt)
@@ -637,6 +754,12 @@ class CatchPokemonScene(Scene):
                 self._pokemon_scale = 0.0
             elif self.state == WildBattleState.SHOW_DAMAGE:
                 # After showing damage, transition to next state
+                # Switch sprites back to idle animation
+                if self.opponent_sprite:
+                    self.opponent_sprite.switch_animation("idle")
+                if self.player_sprite:
+                    self.player_sprite.switch_animation("idle")
+
                 if self._check_battle_end():
                     # Battle ended or next pokemon
                     if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
@@ -888,41 +1011,60 @@ class CatchPokemonScene(Scene):
             self.attack_animation.draw(screen)
         
         
+        # Draw Opponent Pokemon
         if (self.state == WildBattleState.SEND_OPPONENT or self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.SHOW_DAMAGE)) and self.opponent_pokemon:
-            sprite = Sprite(self.opponent_pokemon["sprite_path"], (200, 200))
-            if self.state == WildBattleState.SEND_OPPONENT:
-                scale = min(self._pokemon_scale, 1.0)
-            else:
-                scale = 1.0
-            size = int(200 * scale)
-            scaled_sprite = pg.transform.scale(sprite.image, (size, size))
-            x = GameSettings.SCREEN_WIDTH - size - 150
-            y = 80
-
-            # 绘制逻辑：
-            # - CATCH_FLASHING: 根据pokemon_visible决定是否显示（闪烁效果）
-            # - CATCH_FALLING, CATCH_SHAKE, CATCH_SUCCESS: 完全隐藏
-            # - 其他状态: 正常显示
+            # Determine drawing logic
             should_draw = True
             if self.state == WildBattleState.CATCH_FLASHING:
                 should_draw = self.pokemon_visible
             elif self.state in (WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS):
                 should_draw = False
 
-            if should_draw:
-                screen.blit(scaled_sprite, (x, y))
+            if should_draw and self.opponent_sprite:
+                # Use animated sprite
+                if self.state == WildBattleState.SEND_OPPONENT:
+                    scale = min(self._pokemon_scale, 1.0)
+                else:
+                    scale = 1.0
+
+                # Get current frame and scale it
+                frame = self.opponent_sprite.get_current_frame()
+                size = int(200 * scale)
+                scaled_frame = pg.transform.smoothscale(frame, (size, size))
+
+                x = GameSettings.SCREEN_WIDTH - size - 150
+                y = 80
+                screen.blit(scaled_frame, (x, y))
         
-        if (self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE)) and self.player_pokemon:
-            sprite = Sprite(self.player_pokemon["sprite_path"], (250, 250))
-            if self.state == WildBattleState.SEND_PLAYER:
-                scale = min(self._pokemon_scale, 1.0)
+        # Draw Player Pokemon
+        if (self.state == WildBattleState.SEND_PLAYER or self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.SHOW_DAMAGE, WildBattleState.CATCH_FALLING, WildBattleState.CATCH_SHAKE, WildBattleState.CATCH_SUCCESS)) and self.player_pokemon:
+            if self.player_sprite:
+                # Use animated sprite
+                if self.state == WildBattleState.SEND_PLAYER:
+                    scale = min(self._pokemon_scale, 1.0)
+                else:
+                    scale = 1.0
+
+                # Get current frame and scale it
+                frame = self.player_sprite.get_current_frame()
+                size = int(250 * scale)
+                scaled_frame = pg.transform.smoothscale(frame, (size, size))
+
+                x = 200
+                y = GameSettings.SCREEN_HEIGHT - size - 200
+                screen.blit(scaled_frame, (x, y))
             else:
-                scale = 1.0
-            size = int(250 * scale)
-            scaled_sprite = pg.transform.scale(sprite.image, (size, size))
-            x = 200
-            y = GameSettings.SCREEN_HEIGHT - size - 200
-            screen.blit(scaled_sprite, (x, y))
+                # Fallback to static sprite for old pokemon
+                sprite = Sprite(self.player_pokemon["sprite_path"], (250, 250))
+                if self.state == WildBattleState.SEND_PLAYER:
+                    scale = min(self._pokemon_scale, 1.0)
+                else:
+                    scale = 1.0
+                size = int(250 * scale)
+                scaled_sprite = pg.transform.scale(sprite.image, (size, size))
+                x = 200
+                y = GameSettings.SCREEN_HEIGHT - size - 200
+                screen.blit(scaled_sprite, (x, y))
         
         box_h, box_w = 120, GameSettings.SCREEN_WIDTH - 40
         box_x, box_y = 20, GameSettings.SCREEN_HEIGHT - box_h - 20

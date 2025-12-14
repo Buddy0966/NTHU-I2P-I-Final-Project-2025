@@ -65,9 +65,36 @@ class PokemonStatsPanel:
         
         name_text = self._font.render(self.monster["name"], True, (0, 0, 0))
         screen.blit(name_text, (self.rect.x + 60, self.rect.y + 5))
-        
+
+        # Draw type badge next to level
+        pokemon_type = self.monster.get("type", "None")
         level_text = self._small_font.render(f"Lv.{self.monster['level']}", True, (0, 0, 0))
         screen.blit(level_text, (self.rect.x + 60, self.rect.y + 22))
+
+        # Type colors
+        type_colors = {
+            "Fire": (255, 100, 50),
+            "Water": (80, 144, 255),
+            "Ice": (150, 230, 255),
+            "Wind": (160, 255, 160),
+            "Light": (255, 255, 100),
+            "Slash": (200, 200, 200),
+            "None": (150, 150, 150)
+        }
+        type_color = type_colors.get(pokemon_type, (150, 150, 150))
+
+        # Draw type badge (small rounded rect with type name)
+        type_badge_x = self.rect.x + 105
+        type_badge_y = self.rect.y + 22
+        type_badge_width = 50
+        type_badge_height = 14
+
+        pg.draw.rect(screen, type_color, (type_badge_x, type_badge_y, type_badge_width, type_badge_height), border_radius=3)
+        pg.draw.rect(screen, (0, 0, 0), (type_badge_x, type_badge_y, type_badge_width, type_badge_height), 1, border_radius=3)
+
+        type_text = self._small_font.render(pokemon_type, True, (0, 0, 0))
+        type_text_rect = type_text.get_rect(center=(type_badge_x + type_badge_width // 2, type_badge_y + type_badge_height // 2))
+        screen.blit(type_text, type_text_rect)
         
         hp_ratio = self.monster["hp"] / self.monster["max_hp"]
         hp_color = (0, 255, 0) if hp_ratio > 0.3 else (255, 165, 0) if hp_ratio > 0.1 else (255, 0, 0)

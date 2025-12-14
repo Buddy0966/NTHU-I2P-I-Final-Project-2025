@@ -123,14 +123,14 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 23.196375900532416,
-    "y": 31.373768686069983
+    "x": 25.0,
+    "y": 29.855405337783903
   },
   "bag": {
     "monsters": [
       {
         "name": "pikachu",
-        "hp": 99983,
+        "hp": 99971,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/pikachu.png",
@@ -179,6 +179,22 @@
         "level": 45,
         "sprite_path": "sprites/sprite8.png",
         "menu_sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Rockfist",
+        "hp": 61,
+        "max_hp": 61,
+        "level": 11,
+        "sprite_path": "sprites/sprite4.png",
+        "menu_sprite_path": "menu_sprites/menusprite4.png"
+      },
+      {
+        "name": "Shadowclaw",
+        "hp": 50,
+        "max_hp": 50,
+        "level": 13,
+        "sprite_path": "sprites/sprite7.png",
+        "menu_sprite_path": "menu_sprites/menusprite1.png"
       }
     ],
     "items": [
@@ -196,7 +212,7 @@
       },
       {
         "name": "Strength Potion",
-        "count": 9,
+        "count": 8,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
@@ -208,7 +224,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99960,
+        "count": 99958,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }
