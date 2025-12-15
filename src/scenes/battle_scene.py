@@ -11,6 +11,7 @@ from src.core.services import input_manager, scene_manager
 from src.core import GameManager
 from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
+from src.interface.components.battle_switch_panel import BattleSwitchPanel
 from src.utils.definition import Monster
 from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE
 
@@ -37,6 +38,7 @@ class BattleState(Enum):
     CATCH_FALLING = 14  # Pokeball falling after catch
     CATCH_SHAKE = 15    # Pokeball shaking on ground
     CATCH_SUCCESS = 16  # Catch successful
+    CHOOSE_SWITCH = 17  # Choose Pokemon to switch
 
 
 class BattleScene(Scene):
@@ -112,7 +114,7 @@ class BattleScene(Scene):
     turn_message: str
     item_panel: BattleItemPanel | None
     player_selected_item: dict | None
-    
+
     # pokeball catching animation
     pokeball_sprite: Sprite | None
     pokeball_x: float
@@ -138,6 +140,9 @@ class BattleScene(Scene):
     # Potion buffs
     attack_boost: float
     defense_boost: float
+
+    # Switch panel
+    switch_panel: BattleSwitchPanel | None
 
     def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
         super().__init__()
@@ -191,12 +196,15 @@ class BattleScene(Scene):
         # Attack animation
         self.attack_animation = None
 
+        # Switch panel
+        self.switch_panel = None
+
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
-        
+
         self.fight_btn = BattleActionButton("Fight", 0, 0, btn_w, btn_h, self._on_fight_click)
         self.item_btn = BattleActionButton("Item", 0, 0, btn_w, btn_h, self._on_item_click)
-        self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h)
+        self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h, self._on_switch_click)
         self.run_btn = BattleActionButton("Run", 0, 0, btn_w, btn_h, self._on_run_click)
         
         # Move buttons (for attack selection) - will be populated dynamically
@@ -234,6 +242,9 @@ class BattleScene(Scene):
         # Reset potion buffs
         self.attack_boost = 1.0
         self.defense_boost = 1.0
+
+        # Reset switch panel
+        self.switch_panel = None
 
         # Reset pokeball catching animation
         self.pokeball_x = 0.0
@@ -414,7 +425,33 @@ class BattleScene(Scene):
             GameSettings.SCREEN_HEIGHT // 2 - 200
         )
         self.message = "Choose a potion:"
-    
+
+    def _on_switch_click(self) -> None:
+        """Handle switch button click - show Pokemon selection panel"""
+        if not self.game_manager.bag or len(self.game_manager.bag.monsters) <= 1:
+            self.message = "No other Pokemon to switch to!"
+            return
+
+        # Get current Pokemon index (player pokemon is at index 0)
+        current_pokemon_index = 0
+
+        # Filter out fainted Pokemon (HP <= 0) - this is done in BattleSwitchPanel
+        available_pokemon = [p for i, p in enumerate(self.game_manager.bag.monsters)
+                           if i != current_pokemon_index and p.get("hp", 0) > 0]
+
+        if not available_pokemon:
+            self.message = "No healthy Pokemon to switch to!"
+            return
+
+        self.state = BattleState.CHOOSE_SWITCH
+        self.switch_panel = BattleSwitchPanel(
+            self.game_manager.bag.monsters,
+            current_pokemon_index,
+            GameSettings.SCREEN_WIDTH // 2 - 200,
+            GameSettings.SCREEN_HEIGHT // 2 - 225
+        )
+        self.message = "Choose a Pokemon to switch:"
+
     def _show_catch_panel(self) -> None:
         """Show pokeball catching panel after opponent is defeated"""
         if not self.game_manager.bag or not self.game_manager.bag.items:
@@ -595,6 +632,63 @@ class BattleScene(Scene):
         
         return False
     
+    def _execute_switch(self, new_pokemon_index: int) -> None:
+        """Switch to a different Pokemon"""
+        if not self.game_manager.bag or new_pokemon_index >= len(self.game_manager.bag.monsters):
+            return
+
+        # Get the new Pokemon
+        new_pokemon = self.game_manager.bag.monsters[new_pokemon_index]
+
+        # Make sure new Pokemon has required stats
+        if "type" not in new_pokemon or "moves" not in new_pokemon:
+            species_data = POKEMON_SPECIES.get(
+                new_pokemon["name"],
+                {"type": "None", "moves": ["QuickSlash"]}
+            )
+            new_pokemon["type"] = species_data["type"]
+            new_pokemon["moves"] = species_data["moves"].copy()
+
+        if "attack" not in new_pokemon:
+            player_level = new_pokemon.get("level", 1)
+            new_pokemon["attack"] = int(10 + player_level * 0.5)
+
+        if "defense" not in new_pokemon:
+            player_level = new_pokemon.get("level", 1)
+            new_pokemon["defense"] = int(10 + player_level * 0.5)
+
+        # Swap Pokemon in the bag (move selected Pokemon to index 0)
+        self.game_manager.bag.monsters[0], self.game_manager.bag.monsters[new_pokemon_index] = \
+            self.game_manager.bag.monsters[new_pokemon_index], self.game_manager.bag.monsters[0]
+
+        # Update player Pokemon reference
+        self.player_pokemon = self.game_manager.bag.monsters[0]
+
+        # Create animated sprite for new player Pokemon
+        player_sprite_path = self.player_pokemon.get("sprite_path", "")
+        if "sprite" in player_sprite_path and not "menu_sprites" in player_sprite_path:
+            self.player_sprite = AnimatedBattleSprite(
+                base_path=player_sprite_path.replace(".png", ""),
+                size=(250, 250),
+                frames=4,
+                loop_speed=0.8
+            )
+        else:
+            self.player_sprite = None
+
+        # Update player panel with new Pokemon
+        if self.player_panel:
+            self.player_panel.update_pokemon(self.player_pokemon)
+
+        # Show switch message
+        self.message = f"Go, {self.player_pokemon['name']}!"
+        Logger.info(f"Switched to {self.player_pokemon['name']}")
+
+        # Close switch panel and transition to show damage state (enemy gets free turn after switch)
+        self.switch_panel = None
+        self._state_timer = 0.0
+        self.state = BattleState.SHOW_DAMAGE
+
     def _execute_item_attack(self, item: dict) -> None:
         if not self.player_pokemon:
             return
@@ -824,7 +918,21 @@ class BattleScene(Scene):
                     self.state = BattleState.PLAYER_TURN
                     self.item_panel = None
                     self.message = "What will " + self.player_pokemon['name'] + " do?"
-        
+
+        # Switch panel handling
+        if self.state == BattleState.CHOOSE_SWITCH:
+            if self.switch_panel:
+                self.switch_panel.update(dt)
+                selected_index = self.switch_panel.get_selected_pokemon_index()
+                if selected_index is not None:
+                    self._execute_switch(selected_index)
+
+                # Close switch panel with ESC key
+                if input_manager.key_pressed(pg.K_ESCAPE):
+                    self.state = BattleState.PLAYER_TURN
+                    self.switch_panel = None
+                    self.message = "What will " + self.player_pokemon['name'] + " do?"
+
         # Catching panel handling
         if self.state == BattleState.CATCHING:
             if self.catch_panel:
@@ -1060,7 +1168,21 @@ class BattleScene(Scene):
                     self.state = BattleState.PLAYER_TURN
                     self.item_panel = None
                     self.message = "What will " + self.player_pokemon['name'] + " do?"
-        
+
+        # Switch panel handling
+        if self.state == BattleState.CHOOSE_SWITCH:
+            if self.switch_panel:
+                self.switch_panel.update(dt)
+                selected_index = self.switch_panel.get_selected_pokemon_index()
+                if selected_index is not None:
+                    self._execute_switch(selected_index)
+
+                # Close switch panel with ESC key
+                if input_manager.key_pressed(pg.K_ESCAPE):
+                    self.state = BattleState.PLAYER_TURN
+                    self.switch_panel = None
+                    self.message = "What will " + self.player_pokemon['name'] + " do?"
+
         # Catching panel handling
         if self.state == BattleState.CATCHING:
             if self.catch_panel:
@@ -1384,10 +1506,17 @@ class BattleScene(Scene):
         if self.state == BattleState.CHOOSE_ITEM:
             if self.item_panel:
                 self.item_panel.draw(screen)
-            
+
             hint_text = self._message_font.render("Press ESC to cancel", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
-        
+
+        if self.state == BattleState.CHOOSE_SWITCH:
+            if self.switch_panel:
+                self.switch_panel.draw(screen)
+
+            hint_text = self._message_font.render("Press ESC to cancel", True, (255, 255, 0))
+            screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
+
         if self.state == BattleState.CATCHING:
             if self.catch_panel:
                 self.catch_panel.draw(screen)

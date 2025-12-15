@@ -75,6 +75,8 @@ class Map:
         for layer in self.tmxdata.visible_layers:
             if isinstance(layer, pytmx.TiledTileLayer):
                 self._render_tile_layer(target, layer)
+            elif isinstance(layer, pytmx.TiledObjectGroup):
+                self._render_object_layer(target, layer)
             # elif isinstance(layer, pytmx.TiledImageLayer) and layer.image:
             #     target.blit(layer.image, (layer.x or 0, layer.y or 0))
  
@@ -88,7 +90,27 @@ class Map:
 
             image = pg.transform.scale(image, (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE))
             target.blit(image, (x * GameSettings.TILE_SIZE, y * GameSettings.TILE_SIZE))
-    
+
+    def _render_object_layer(self, target: pg.Surface, layer: pytmx.TiledObjectGroup) -> None:
+        """Render objects from an object layer (houses, trees, decorations, etc.)"""
+        for obj in layer:
+            # Only render objects that have a gid (tile-based objects)
+            if not hasattr(obj, 'gid') or obj.gid is None:
+                continue
+
+            image = self.tmxdata.get_tile_image_by_gid(obj.gid)
+            if image is None:
+                continue
+
+            # Scale the image to match the object's width and height
+            scaled_image = pg.transform.scale(image, (int(obj.width), int(obj.height)))
+
+            # Tiled uses bottom-left corner for object position, so adjust y coordinate
+            pos_x = obj.x
+            pos_y = obj.y - obj.height
+
+            target.blit(scaled_image, (pos_x, pos_y))
+
     def _create_collision_map(self) -> list[pg.Rect]:
         rects = []
         for layer in self.tmxdata.visible_layers:

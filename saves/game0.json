@@ -123,26 +123,26 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 25.0,
-    "y": 29.855405337783903
+    "x": 24.082107647738344,
+    "y": 30.94799999999999
   },
   "bag": {
     "monsters": [
       {
-        "name": "pikachu",
-        "hp": 99971,
-        "max_hp": 100000,
-        "level": 100,
-        "sprite_path": "menu_sprites/pikachu.png",
-        "menu_sprite_path": "menu_sprites/pikachu.png",
-        "type": "Slash",
+        "name": "Rockfist",
+        "hp": 49,
+        "max_hp": 61,
+        "level": 11,
+        "sprite_path": "sprites/sprite4.png",
+        "menu_sprite_path": "menu_sprites/menusprite4.png",
+        "type": "None",
         "moves": [
-          "QuickSlash",
-          "FearSlash",
-          "IronWing"
+          "StonePunch",
+          "EarthCrack",
+          "QuickSlash"
         ],
-        "attack": 60,
-        "defense": 60
+        "attack": 15,
+        "defense": 15
       },
       {
         "name": "Mysticsoul",
@@ -159,8 +159,24 @@
         ]
       },
       {
+        "name": "Steelwing",
+        "hp": 32,
+        "max_hp": 43,
+        "level": 45,
+        "sprite_path": "sprites/sprite8.png",
+        "menu_sprite_path": "menu_sprites/menusprite2.png",
+        "type": "Wind",
+        "moves": [
+          "WindSpiral",
+          "IronWing",
+          "SteelCharge"
+        ],
+        "attack": 32,
+        "defense": 32
+      },
+      {
         "name": "Mysticsoul",
-        "hp": 77,
+        "hp": 67,
         "max_hp": 77,
         "level": 51,
         "sprite_path": "sprites/sprite9.png",
@@ -170,23 +186,25 @@
           "LightPulse",
           "MindPierce",
           "SpiritWave"
-        ]
+        ],
+        "attack": 35,
+        "defense": 35
       },
       {
-        "name": "Steelwing",
-        "hp": 43,
-        "max_hp": 43,
-        "level": 45,
-        "sprite_path": "sprites/sprite8.png",
-        "menu_sprite_path": "menu_sprites/menusprite2.png"
-      },
-      {
-        "name": "Rockfist",
-        "hp": 61,
-        "max_hp": 61,
-        "level": 11,
-        "sprite_path": "sprites/sprite4.png",
-        "menu_sprite_path": "menu_sprites/menusprite4.png"
+        "name": "pikachu",
+        "hp": 99944,
+        "max_hp": 100000,
+        "level": 100,
+        "sprite_path": "menu_sprites/pikachu.png",
+        "menu_sprite_path": "menu_sprites/pikachu.png",
+        "type": "Slash",
+        "moves": [
+          "QuickSlash",
+          "FearSlash",
+          "IronWing"
+        ],
+        "attack": 60,
+        "defense": 60
       },
       {
         "name": "Shadowclaw",
@@ -195,6 +213,30 @@
         "level": 13,
         "sprite_path": "sprites/sprite7.png",
         "menu_sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Leafeon",
+        "hp": 39,
+        "max_hp": 39,
+        "level": 6,
+        "sprite_path": "sprites/sprite1.png",
+        "menu_sprite_path": "menu_sprites/menusprite1.png"
+      },
+      {
+        "name": "Aquafin",
+        "hp": 47,
+        "max_hp": 47,
+        "level": 7,
+        "sprite_path": "sprites/sprite2.png",
+        "menu_sprite_path": "menu_sprites/menusprite2.png"
+      },
+      {
+        "name": "Aquafin",
+        "hp": 50,
+        "max_hp": 50,
+        "level": 7,
+        "sprite_path": "sprites/sprite2.png",
+        "menu_sprite_path": "menu_sprites/menusprite2.png"
       }
     ],
     "items": [
@@ -212,7 +254,7 @@
       },
       {
         "name": "Strength Potion",
-        "count": 8,
+        "count": 7,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
@@ -224,7 +266,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99958,
+        "count": 99955,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }
