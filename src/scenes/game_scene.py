@@ -226,7 +226,7 @@ class GameScene(Scene):
             # Check if player just stepped on a teleporter
             if self.game_manager.player and getattr(self.game_manager, "teleport_cooldown", 0.0) <= 0.0:
                 tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
-                if tp and tp.destination == "maps/world.tmx":  # Only show prompt for world map teleporter
+                if tp and tp.destination == "new_map.tmx":  # Only show prompt for new map teleporter
                     self.show_teleport_prompt = True
                     self.pending_teleport_destination = tp.destination
 
@@ -421,7 +421,7 @@ class GameScene(Scene):
 
         # Check if directly on teleporter
         tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
-        if tp and tp.destination == "maps/world.tmx":
+        if tp and tp.destination == "new_map.tmx":
             return True
 
         # Check adjacent tiles (left and right)
@@ -429,7 +429,7 @@ class GameScene(Scene):
         for offset_x in [-GameSettings.TILE_SIZE, GameSettings.TILE_SIZE]:
             adjacent_pos = Position(player_pos.x + offset_x, player_pos.y)
             tp_adjacent = self.game_manager.current_map.check_teleport(adjacent_pos)
-            if tp_adjacent and tp_adjacent.destination == "maps/world.tmx":
+            if tp_adjacent and tp_adjacent.destination == "new_map.tmx":
                 return True
 
         return False

@@ -11,7 +11,7 @@
         {
           "x": 35,
           "y": 18,
-          "destination": "maps/world.tmx"
+          "destination": "new_map.tmx"
         }
       ],
       "player": {
@@ -105,7 +105,7 @@
       "npcs": []
     },
     {
-      "path": "maps/world.tmx",
+      "path": "new_map.tmx",
       "teleport": [
         {
           "x": 27,
@@ -123,26 +123,26 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 24.082107647738344,
-    "y": 30.94799999999999
+    "x": 23.929961328032476,
+    "y": 30.344773439350455
   },
   "bag": {
     "monsters": [
       {
-        "name": "Rockfist",
-        "hp": 49,
-        "max_hp": 61,
-        "level": 11,
-        "sprite_path": "sprites/sprite4.png",
-        "menu_sprite_path": "menu_sprites/menusprite4.png",
-        "type": "None",
+        "name": "pikachu",
+        "hp": 99941,
+        "max_hp": 100000,
+        "level": 100,
+        "sprite_path": "menu_sprites/pikachu.png",
+        "menu_sprite_path": "menu_sprites/pikachu.png",
+        "type": "Slash",
         "moves": [
-          "StonePunch",
-          "EarthCrack",
-          "QuickSlash"
+          "QuickSlash",
+          "FearSlash",
+          "IronWing"
         ],
-        "attack": 15,
-        "defense": 15
+        "attack": 60,
+        "defense": 60
       },
       {
         "name": "Mysticsoul",
@@ -191,20 +191,20 @@
         "defense": 35
       },
       {
-        "name": "pikachu",
-        "hp": 99944,
-        "max_hp": 100000,
-        "level": 100,
-        "sprite_path": "menu_sprites/pikachu.png",
-        "menu_sprite_path": "menu_sprites/pikachu.png",
-        "type": "Slash",
+        "name": "Rockfist",
+        "hp": 49,
+        "max_hp": 61,
+        "level": 11,
+        "sprite_path": "sprites/sprite4.png",
+        "menu_sprite_path": "menu_sprites/menusprite4.png",
+        "type": "None",
         "moves": [
-          "QuickSlash",
-          "FearSlash",
-          "IronWing"
+          "StonePunch",
+          "EarthCrack",
+          "QuickSlash"
         ],
-        "attack": 60,
-        "defense": 60
+        "attack": 15,
+        "defense": 15
       },
       {
         "name": "Shadowclaw",
