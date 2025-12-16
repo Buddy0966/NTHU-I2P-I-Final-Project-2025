@@ -226,7 +226,7 @@ class GameScene(Scene):
             # Check if player just stepped on a teleporter
             if self.game_manager.player and getattr(self.game_manager, "teleport_cooldown", 0.0) <= 0.0:
                 tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
-                if tp and tp.destination == "new_map.tmx":  # Only show prompt for new map teleporter
+                if tp and tp.destination in ["new_map.tmx", "gym_new.tmx"]:  # Show prompt for new map and gym_new teleporters
                     self.show_teleport_prompt = True
                     self.pending_teleport_destination = tp.destination
 
@@ -421,7 +421,7 @@ class GameScene(Scene):
 
         # Check if directly on teleporter
         tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
-        if tp and tp.destination == "new_map.tmx":
+        if tp and tp.destination in ["new_map.tmx", "gym_new.tmx"]:
             return True
 
         # Check adjacent tiles (left and right)
@@ -429,7 +429,7 @@ class GameScene(Scene):
         for offset_x in [-GameSettings.TILE_SIZE, GameSettings.TILE_SIZE]:
             adjacent_pos = Position(player_pos.x + offset_x, player_pos.y)
             tp_adjacent = self.game_manager.current_map.check_teleport(adjacent_pos)
-            if tp_adjacent and tp_adjacent.destination == "new_map.tmx":
+            if tp_adjacent and tp_adjacent.destination in ["new_map.tmx", "gym_new.tmx"]:
                 return True
 
         return False
@@ -450,9 +450,12 @@ class GameScene(Scene):
         banner = pg.transform.scale(banner, (banner_width, banner_height))
         screen.blit(banner, (banner_x, banner_y))
 
-        # Draw text
+        # Draw text - different text based on destination
         font = pg.font.Font(None, 32)
-        text1 = font.render("Enter a New World?", True, (0, 0, 0))
+        if self.pending_teleport_destination == "gym_new.tmx":
+            text1 = font.render("boss fight?", True, (0, 0, 0))
+        else:
+            text1 = font.render("Enter a New World?", True, (0, 0, 0))
         text3 = font.render("ENTER to confirm", True, (0, 0, 0))
 
         # Center text

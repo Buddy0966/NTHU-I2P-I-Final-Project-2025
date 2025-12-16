@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 34.86423549801218,
-        "y": 12.02103362133363
+        "x": 30.0,
+        "y": 18.0
       },
       "enemy_trainers": [
         {
@@ -79,6 +79,37 @@
       ]
     },
     {
+      "path": "new_map.tmx",
+      "teleport": [
+        {
+          "x": 27,
+          "y": 40,
+          "destination": "map.tmx"
+        },
+        {
+          "x": 51,
+          "y": 14,
+          "destination": "gym_new.tmx"
+        },
+        {
+          "x": 52,
+          "y": 14,
+          "destination": "gym_new.tmx"
+        },
+        {
+          "x": 53,
+          "y": 14,
+          "destination": "gym_new.tmx"
+        }
+      ],
+      "player": {
+        "x": 42.0,
+        "y": 15.0
+      },
+      "enemy_trainers": [],
+      "npcs": []
+    },
+    {
       "path": "gym.tmx",
       "teleport": [
         {
@@ -98,24 +129,35 @@
         }
       ],
       "player": {
-        "x": 12.0,
-        "y": 14.004
+        "x": 12.196,
+        "y": 14.987999999999992
       },
       "enemy_trainers": [],
       "npcs": []
     },
     {
-      "path": "new_map.tmx",
+      "path": "gym_new.tmx",
       "teleport": [
         {
-          "x": 27,
-          "y": 40,
-          "destination": "map.tmx"
+          "x": 11,
+          "y": 4,
+          "destination": "new_map.tmx"
+        },
+        {
+          "x": 12,
+          "y": 4,
+          "destination": "new_map.tmx"
+        },
+        {
+          "x": 13,
+          "y": 4,
+          "destination": "new_map.tmx"
         }
+
       ],
       "player": {
-        "x": 27.0,
-        "y": 38.0
+        "x": 12.0,
+        "y": 11.0
       },
       "enemy_trainers": [],
       "npcs": []
@@ -123,8 +165,8 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 23.929961328032476,
-    "y": 30.344773439350455
+    "x": 30.0,
+    "y": 18.0
   },
   "bag": {
     "monsters": [

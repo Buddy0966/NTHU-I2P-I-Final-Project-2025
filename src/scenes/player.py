@@ -97,8 +97,8 @@ class Player(Entity):
             tp = self.game_manager.current_map.check_teleport(self.position)
             if tp:
                 dest = tp.destination
-                # Don't auto-teleport to new map - require prompt confirmation
-                if dest != "new_map.tmx":
+                # Don't auto-teleport to new map or gym_new - require prompt confirmation
+                if dest not in ["new_map.tmx", "gym_new.tmx"]:
                     self.game_manager.switch_map(dest)
                 
         super().update(dt)
