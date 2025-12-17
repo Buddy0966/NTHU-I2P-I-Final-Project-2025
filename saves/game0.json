@@ -153,7 +153,6 @@
           "y": 4,
           "destination": "new_map.tmx"
         }
-
       ],
       "player": {
         "x": 12.0,
@@ -165,8 +164,8 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 30.0,
-    "y": 18.0
+    "x": 49.96143217538,
+    "y": 21.321653388042442
   },
   "bag": {
     "monsters": [

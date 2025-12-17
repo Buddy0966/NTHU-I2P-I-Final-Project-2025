@@ -9,6 +9,9 @@ from src.interface.components import Button, SettingsPanelGame, BagPanel
 from src.interface.components.shop_panel import ShopPanel
 from src.interface.components.chat_overlay import ChatOverlay
 from src.interface.components.minimap import Minimap
+from src.interface.components.navigation_panel import NavigationPanel
+from src.interface.components.arrow_path import ArrowPath
+from src.utils.pathfinding import Pathfinder
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
 from src.sprites import Sprite, Animation
@@ -24,9 +27,12 @@ class GameScene(Scene):
     settings_panel: SettingsPanelGame | None
     bag_panel: BagPanel | None
     shop_panel: ShopPanel | None
+    navigation_panel: NavigationPanel | None
+    arrow_path: ArrowPath | None
     show_settings: bool
     show_bag: bool
     show_shop: bool
+    show_navigation: bool
     show_teleport_prompt: bool
     pending_teleport_destination: str | None
     show_npc_dialogue: bool
@@ -66,13 +72,23 @@ class GameScene(Scene):
             bx - btn_w - margin, by, btn_w, btn_h,
             self._toggle_bag
         )
-        
+
+        # Navigation button
+        self.navigation_button = Button(
+            "UI/button_setting.png", "UI/button_setting_hover.png",  # Temporary, can change later
+            bx - 2 * (btn_w + margin), by, btn_w, btn_h,
+            self._toggle_navigation
+        )
+
         self.show_settings = False
         self.show_bag = False
         self.show_shop = False
+        self.show_navigation = False
         self.settings_panel = None
         self.bag_panel = None
         self.shop_panel = None
+        self.navigation_panel = None
+        self.arrow_path = None
 
         # Teleport prompt state
         self.show_teleport_prompt = False
@@ -145,6 +161,47 @@ class GameScene(Scene):
         if not self.show_shop:
             self.shop_panel = None
 
+    def _toggle_navigation(self) -> None:
+        self.show_navigation = not self.show_navigation
+        if self.show_navigation:
+            panel_w, panel_h = 400, 300
+            panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
+            panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
+            self.navigation_panel = NavigationPanel(
+                panel_x, panel_y, panel_w, panel_h,
+                on_exit=self._toggle_navigation,
+                on_navigate=self._start_navigation
+            )
+        else:
+            self.navigation_panel = None
+
+    def _start_navigation(self, destination: Position) -> None:
+        """Start navigation to a destination"""
+        player_pos = self.game_manager.player.position
+        current_map = self.game_manager.current_map
+
+        # Find path using BFS
+        path = Pathfinder.find_path(
+            player_pos,
+            destination,
+            current_map._collision_map,
+            current_map.tmxdata.width,
+            current_map.tmxdata.height
+        )
+
+        if path:
+            # Simplify path for better visualization
+            simplified_path = Pathfinder.simplify_path(path)
+            self.arrow_path = ArrowPath(simplified_path)
+            Logger.info(f"Navigation started: {len(path)} points, simplified to {len(simplified_path)}")
+        else:
+            Logger.warning("No path found to destination")
+            self.arrow_path = None
+
+        # Close navigation panel after selecting destination
+        self.show_navigation = False
+        self.navigation_panel = None
+
     def _handle_mute(self, is_muted: bool) -> None:
         if is_muted:
             sound_manager.pause_all()
@@ -186,7 +243,16 @@ class GameScene(Scene):
     def update(self, dt: float):
         self.setting_button.update(dt)
         self.backpack_button.update(dt)
+        self.navigation_button.update(dt)
         self.minimap.update(dt)
+
+        # Update arrow path animation and consumption
+        if self.arrow_path and self.game_manager.player:
+            self.arrow_path.update(dt, self.game_manager.player.position)
+
+            # Clear arrow path if it's been completely consumed
+            if self.arrow_path.is_complete():
+                self.arrow_path = None
 
         # Chat overlay handling (priority over other UI)
         if self.chat_overlay:
@@ -194,7 +260,7 @@ class GameScene(Scene):
                 self.chat_overlay.update(dt)
                 return
             # Open chat with T key (only when other UI is closed)
-            if not self.show_settings and not self.show_bag and not self.show_shop:
+            if not self.show_settings and not self.show_bag and not self.show_shop and not self.show_navigation:
                 if input_manager.key_pressed(pg.K_t):
                     self.chat_overlay.open()
                     return
@@ -202,13 +268,17 @@ class GameScene(Scene):
         if self.show_settings and self.settings_panel:
             self.settings_panel.update(dt)
             return
-        
+
         if self.show_bag and self.bag_panel:
             self.bag_panel.update(dt)
             return
 
         if self.show_shop and self.shop_panel:
             self.shop_panel.update(dt)
+            return
+
+        if self.show_navigation and self.navigation_panel:
+            self.navigation_panel.update(dt)
             return
 
         # Handle teleport prompt
@@ -324,10 +394,14 @@ class GameScene(Scene):
         for npc in self.game_manager.current_npcs:
             npc.draw(screen, camera)
 
+        # Draw navigation arrow path
+        if self.arrow_path and self.game_manager.player:
+            self.arrow_path.draw(screen, camera)
+
         self.game_manager.bag.draw(screen)
 
         # Draw minimap (only when no modal panels are open)
-        if not self.show_settings and not self.show_bag and not self.show_shop:
+        if not self.show_settings and not self.show_bag and not self.show_shop and not self.show_navigation:
             self.minimap.draw(
                 screen,
                 self.game_manager.current_map,
@@ -338,6 +412,7 @@ class GameScene(Scene):
 
         self.setting_button.draw(screen)
         self.backpack_button.draw(screen)
+        self.navigation_button.draw(screen)
 
         if self.online_manager and self.game_manager.player:
             list_online = self.online_manager.get_list_players()
@@ -401,6 +476,13 @@ class GameScene(Scene):
             overlay.fill((0, 0, 0))
             screen.blit(overlay, (0, 0))
             self.shop_panel.draw(screen)
+
+        if self.show_navigation and self.navigation_panel:
+            overlay = pg.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
+            overlay.set_alpha(128)
+            overlay.fill((0, 0, 0))
+            screen.blit(overlay, (0, 0))
+            self.navigation_panel.draw(screen)
 
         # Draw teleport prompt
         if self.show_teleport_prompt:

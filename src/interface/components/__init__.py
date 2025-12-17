@@ -10,3 +10,5 @@ from .battle_action_button import BattleActionButton
 from .battle_item_panel import BattleItemPanel
 from .evolution_panel import EvolutionPanel
 from .chat_overlay import ChatOverlay
+from .navigation_panel import NavigationPanel
+from .arrow_path import ArrowPath
