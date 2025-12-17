@@ -289,6 +289,10 @@ POKEMON_SPECIES = {
         "type": "Light",
         "moves": ["CosmicPulse", "StarfallBlaze", "DragonRift"]
     },
+    "Mewtwo": {
+        "type": "Light",
+        "moves": ["MindPierce", "SpiritWave", "CosmicPulse", "LightPulse"]
+    },
 
     # User's Pokemon
     "Florion": {

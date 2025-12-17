@@ -9,6 +9,7 @@ from src.scenes.setting_scene import SettingScene
 from src.scenes.battle_scene import BattleScene
 from src.scenes.catch_pokemon_scene import CatchPokemonScene
 from src.scenes.battle_transition_scene import BattleTransitionScene
+from src.scenes.boss_fight_scene import BossFightScene
 from src.core.managers.game_manager import GameManager
 
 class Engine:
@@ -37,6 +38,7 @@ class Engine:
         scene_manager.register_scene("battle", BattleScene(game_manager))
         scene_manager.register_scene("catch_pokemon", CatchPokemonScene(game_manager))
         scene_manager.register_scene("battle_transition", BattleTransitionScene())
+        scene_manager.register_scene("boss_fight", BossFightScene(game_manager))
         
         scene_manager.change_scene("menu")
 

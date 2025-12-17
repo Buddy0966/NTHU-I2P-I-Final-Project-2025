@@ -15,7 +15,7 @@
         }
       ],
       "player": {
-        "x": 30.0,
+        "x": 34.63995714395035,
         "y": 18.0
       },
       "enemy_trainers": [
@@ -103,8 +103,8 @@
         }
       ],
       "player": {
-        "x": 42.0,
-        "y": 15.0
+        "x": 53.3013380951166,
+        "y": 14.0
       },
       "enemy_trainers": [],
       "npcs": []
@@ -155,35 +155,45 @@
         }
       ],
       "player": {
-        "x": 12.0,
-        "y": 11.0
+        "x": 12.195293505963448,
+        "y": 8.218698843747331
       },
       "enemy_trainers": [],
-      "npcs": []
+      "npcs": [
+        {
+          "x": 12.0,
+          "y": 7.0,
+          "name": "Mewtwo Guardian",
+          "npc_type": "merchant",
+          "shop_inventory": [],
+          "dialogue": "I guard the legendary Mewtwo. Press E if you dare to challenge!",
+          "facing": "DOWN"
+        }
+      ]
     }
   ],
-  "current_map": "map.tmx",
+  "current_map": "gym_new.tmx",
   "player": {
-    "x": 49.96143217538,
-    "y": 21.321653388042442
+    "x": 12.195293505963448,
+    "y": 8.218698843747331
   },
   "bag": {
     "monsters": [
       {
-        "name": "pikachu",
-        "hp": 99941,
-        "max_hp": 100000,
-        "level": 100,
-        "sprite_path": "menu_sprites/pikachu.png",
-        "menu_sprite_path": "menu_sprites/pikachu.png",
-        "type": "Slash",
+        "name": "Mysticsoul",
+        "hp": 0,
+        "max_hp": 77,
+        "level": 51,
+        "sprite_path": "sprites/sprite9.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
+        "type": "Light",
         "moves": [
-          "QuickSlash",
-          "FearSlash",
-          "IronWing"
+          "LightPulse",
+          "MindPierce",
+          "SpiritWave"
         ],
-        "attack": 60,
-        "defense": 60
+        "attack": 35,
+        "defense": 35
       },
       {
         "name": "Mysticsoul",
@@ -216,20 +226,20 @@
         "defense": 32
       },
       {
-        "name": "Mysticsoul",
-        "hp": 67,
-        "max_hp": 77,
-        "level": 51,
-        "sprite_path": "sprites/sprite9.png",
-        "menu_sprite_path": "menu_sprites/menusprite3.png",
-        "type": "Light",
+        "name": "pikachu",
+        "hp": 99694,
+        "max_hp": 100000,
+        "level": 100,
+        "sprite_path": "menu_sprites/pikachu.png",
+        "menu_sprite_path": "menu_sprites/pikachu.png",
+        "type": "Slash",
         "moves": [
-          "LightPulse",
-          "MindPierce",
-          "SpiritWave"
+          "QuickSlash",
+          "FearSlash",
+          "IronWing"
         ],
-        "attack": 35,
-        "defense": 35
+        "attack": 60,
+        "defense": 60
       },
       {
         "name": "Rockfist",
@@ -283,7 +293,7 @@
     "items": [
       {
         "name": "Defense Potion",
-        "count": 9,
+        "count": 8,
         "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
       },
@@ -295,7 +305,7 @@
       },
       {
         "name": "Strength Potion",
-        "count": 7,
+        "count": 6,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },

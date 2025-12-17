@@ -324,27 +324,35 @@ class GameScene(Scene):
                 npc_near = True
                 self.show_npc_dialogue = True
                 self.current_npc_dialogue = npc.dialogue
-                # Shop trigger - press E to interact
-                if input_manager.key_pressed(pg.K_e):
-                    self.show_shop = True
-                    # Hide dialogue bubble when opening shop
-                    self.show_npc_dialogue = False
-                    self.current_npc_dialogue = None
-                    panel_w, panel_h = 800, 600
-                    panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
-                    panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
-                    self.shop_panel = ShopPanel(
-                        npc.shop_inventory,
-                        self.game_manager.bag,
-                        npc.name,
-                        panel_x,
-                        panel_y,
-                        panel_w,
-                        panel_h,
-                        on_exit=self._toggle_shop
-                    )
-                    Logger.info(f"Opened shop: {npc.name}")
-                    return
+                # Check if this is the boss fight NPC
+                if npc.name == "Mewtwo Guardian":
+                    # Boss fight trigger - press E to start boss battle
+                    if input_manager.key_pressed(pg.K_e):
+                        self.game_manager.save("saves/game0.json")
+                        scene_manager.change_scene("boss_fight")
+                        return
+                else:
+                    # Shop trigger - press E to interact
+                    if input_manager.key_pressed(pg.K_e):
+                        self.show_shop = True
+                        # Hide dialogue bubble when opening shop
+                        self.show_npc_dialogue = False
+                        self.current_npc_dialogue = None
+                        panel_w, panel_h = 800, 600
+                        panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
+                        panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
+                        self.shop_panel = ShopPanel(
+                            npc.shop_inventory,
+                            self.game_manager.bag,
+                            npc.name,
+                            panel_x,
+                            panel_y,
+                            panel_w,
+                            panel_h,
+                            on_exit=self._toggle_shop
+                        )
+                        Logger.info(f"Opened shop: {npc.name}")
+                        return
 
         # Hide dialogue bubble if not near any NPC
         if not npc_near:
