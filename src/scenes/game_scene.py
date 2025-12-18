@@ -37,6 +37,7 @@ class GameScene(Scene):
     pending_teleport_destination: str | None
     show_npc_dialogue: bool
     current_npc_dialogue: str | None
+    show_bush_prompt: bool
     chat_overlay: ChatOverlay | None
     minimap: Minimap
 
@@ -89,6 +90,7 @@ class GameScene(Scene):
         self.shop_panel = None
         self.navigation_panel = None
         self.arrow_path = None
+        self.current_map_name = None  # Track current map to detect changes
 
         # Teleport prompt state
         self.show_teleport_prompt = False
@@ -97,6 +99,9 @@ class GameScene(Scene):
         # NPC dialogue bubble state
         self.show_npc_dialogue = False
         self.current_npc_dialogue = None
+
+        # Bush prompt state
+        self.show_bush_prompt = False
 
         # Online player animations storage
         self.online_player_animations: Dict[int, Animation] = {}
@@ -167,10 +172,15 @@ class GameScene(Scene):
             panel_w, panel_h = 400, 300
             panel_x = (GameSettings.SCREEN_WIDTH - panel_w) // 2
             panel_y = (GameSettings.SCREEN_HEIGHT - panel_h) // 2
+
+            # Get current map name
+            current_map_name = self.game_manager.current_map.path_name
+
             self.navigation_panel = NavigationPanel(
                 panel_x, panel_y, panel_w, panel_h,
                 on_exit=self._toggle_navigation,
-                on_navigate=self._start_navigation
+                on_navigate=self._start_navigation,
+                current_map_name=current_map_name
             )
         else:
             self.navigation_panel = None
@@ -180,11 +190,33 @@ class GameScene(Scene):
         player_pos = self.game_manager.player.position
         current_map = self.game_manager.current_map
 
-        # Find path using BFS
+        # Find path using BFS (include collision map, bush map, NPCs, and enemy trainers)
+        all_obstacles = current_map._collision_map + current_map._bush_map
+
+        # Add NPCs as obstacles
+        for npc in self.game_manager.current_npcs:
+            npc_rect = pg.Rect(
+                npc.position.x,
+                npc.position.y,
+                GameSettings.TILE_SIZE,
+                GameSettings.TILE_SIZE
+            )
+            all_obstacles.append(npc_rect)
+
+        # Add enemy trainers as obstacles
+        for enemy in self.game_manager.current_enemy_trainers:
+            enemy_rect = pg.Rect(
+                enemy.position.x,
+                enemy.position.y,
+                GameSettings.TILE_SIZE,
+                GameSettings.TILE_SIZE
+            )
+            all_obstacles.append(enemy_rect)
+
         path = Pathfinder.find_path(
             player_pos,
             destination,
-            current_map._collision_map,
+            all_obstacles,
             current_map.tmxdata.width,
             current_map.tmxdata.height
         )
@@ -302,6 +334,14 @@ class GameScene(Scene):
 
         # Check if there is assigned next scene
         self.game_manager.try_switch_map()
+
+        # Check if map has changed and clear navigation if so
+        if self.game_manager.current_map and self.game_manager.current_map.path_name != self.current_map_name:
+            self.current_map_name = self.game_manager.current_map.path_name
+            # Clear navigation arrow path when map changes
+            if self.arrow_path:
+                self.arrow_path = None
+
         # Update game manager timers (e.g., teleport cooldown)
         self.game_manager.update(dt)
 
@@ -358,17 +398,25 @@ class GameScene(Scene):
         if not npc_near:
             self.show_npc_dialogue = False
             self.current_npc_dialogue = None
-        
-        # Check bush collision - trigger wild pokemon battle
+
+        # Check bush collision - show prompt instead of immediate trigger
         if self.game_manager.player and self.game_manager.current_map:
             player_rect = self.game_manager.player.animation.rect
             # Only check bush if cooldown has expired
             if self.game_manager.bush_cooldown <= 0.0 and self.game_manager.current_map.check_bush(player_rect):
-                # Encountered wild pokemon in bush
-                Logger.info("Wild pokemon encountered in bush!")
-                self.game_manager.save("saves/game0.json")
-                scene_manager.change_scene("catch_pokemon")
-                return
+                # Player is on a bush - show prompt
+                self.show_bush_prompt = True
+                # Check if player presses E to trigger encounter
+                if input_manager.key_pressed(pg.K_e):
+                    Logger.info("Wild pokemon encountered in bush!")
+                    self.game_manager.save("saves/game0.json")
+                    scene_manager.change_scene("catch_pokemon")
+                    return
+            else:
+                # Not on bush - hide prompt
+                self.show_bush_prompt = False
+        else:
+            self.show_bush_prompt = False
         
         self.game_manager.bag.update(dt)
 
@@ -500,6 +548,10 @@ class GameScene(Scene):
         if self.show_npc_dialogue and self.current_npc_dialogue:
             self._draw_npc_dialogue(screen)
 
+        # Draw bush prompt
+        if self.show_bush_prompt:
+            self._draw_bush_prompt(screen)
+
         # Draw chat overlay (always draw so messages are visible even when closed)
         if self.chat_overlay:
             self.chat_overlay.draw(screen)
@@ -575,6 +627,34 @@ class GameScene(Scene):
         font = pg.font.Font(None, 32)
         text1 = font.render(self.current_npc_dialogue or "Welcome to my shop!", True, (0, 0, 0))
         text2 = font.render("Press E to interact", True, (0, 0, 0))
+
+        # Center text
+        text1_rect = text1.get_rect(center=(banner_x + banner_width // 2, banner_y + 30))
+        text2_rect = text2.get_rect(center=(banner_x + banner_width // 2, banner_y + 70))
+
+        screen.blit(text1, text1_rect)
+        screen.blit(text2, text2_rect)
+
+    def _draw_bush_prompt(self, screen: pg.Surface):
+        """Draw the bush interaction prompt"""
+        # Load UI banner/frame
+        from src.utils import load_img
+        banner = load_img("UI/raw/UI_Flat_InputField01a.png")
+
+        # Size and position
+        banner_width = 400
+        banner_height = 100
+        banner_x = (GameSettings.SCREEN_WIDTH - banner_width) // 2
+        banner_y = GameSettings.SCREEN_HEIGHT // 2 - 300
+
+        # Scale banner
+        banner = pg.transform.scale(banner, (banner_width, banner_height))
+        screen.blit(banner, (banner_x, banner_y))
+
+        # Draw text
+        font = pg.font.Font(None, 32)
+        text1 = font.render("Wild Pokemon nearby!", True, (0, 0, 0))
+        text2 = font.render("Press E to search", True, (0, 0, 0))
 
         # Center text
         text1_rect = text1.get_rect(center=(banner_x + banner_width // 2, banner_y + 30))

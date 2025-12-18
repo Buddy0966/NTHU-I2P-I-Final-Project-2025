@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 34.63995714395035,
-        "y": 18.0
+        "x": 39.016249783362014,
+        "y": 15.982647619533486
       },
       "enemy_trainers": [
         {
@@ -82,8 +82,18 @@
       "path": "new_map.tmx",
       "teleport": [
         {
-          "x": 27,
-          "y": 40,
+          "x": 35,
+          "y": 17,
+          "destination": "map.tmx"
+        },
+        {
+          "x": 36,
+          "y": 17,
+          "destination": "map.tmx"
+        },
+        {
+          "x": 37,
+          "y": 17,
           "destination": "map.tmx"
         },
         {
@@ -103,8 +113,8 @@
         }
       ],
       "player": {
-        "x": 53.3013380951166,
-        "y": 14.0
+        "x": 36.30300433275896,
+        "y": 17.982262335608354
       },
       "enemy_trainers": [],
       "npcs": []
@@ -155,8 +165,8 @@
         }
       ],
       "player": {
-        "x": 12.195293505963448,
-        "y": 8.218698843747331
+        "x": 11.746704760933,
+        "y": 4.606702309954449
       },
       "enemy_trainers": [],
       "npcs": [
@@ -172,28 +182,28 @@
       ]
     }
   ],
-  "current_map": "gym_new.tmx",
+  "current_map": "map.tmx",
   "player": {
-    "x": 12.195293505963448,
-    "y": 8.218698843747331
+    "x": 55.39419335983739,
+    "y": 21.866885568524268
   },
   "bag": {
     "monsters": [
       {
-        "name": "Mysticsoul",
-        "hp": 0,
-        "max_hp": 77,
-        "level": 51,
-        "sprite_path": "sprites/sprite9.png",
-        "menu_sprite_path": "menu_sprites/menusprite3.png",
-        "type": "Light",
+        "name": "pikachu",
+        "hp": 99491,
+        "max_hp": 100000,
+        "level": 100,
+        "sprite_path": "menu_sprites/pikachu.png",
+        "menu_sprite_path": "menu_sprites/pikachu.png",
+        "type": "Slash",
         "moves": [
-          "LightPulse",
-          "MindPierce",
-          "SpiritWave"
+          "QuickSlash",
+          "FearSlash",
+          "IronWing"
         ],
-        "attack": 35,
-        "defense": 35
+        "attack": 60,
+        "defense": 60
       },
       {
         "name": "Mysticsoul",
@@ -226,20 +236,20 @@
         "defense": 32
       },
       {
-        "name": "pikachu",
-        "hp": 99694,
-        "max_hp": 100000,
-        "level": 100,
-        "sprite_path": "menu_sprites/pikachu.png",
-        "menu_sprite_path": "menu_sprites/pikachu.png",
-        "type": "Slash",
+        "name": "Mysticsoul",
+        "hp": 0,
+        "max_hp": 77,
+        "level": 51,
+        "sprite_path": "sprites/sprite9.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
+        "type": "Light",
         "moves": [
-          "QuickSlash",
-          "FearSlash",
-          "IronWing"
+          "LightPulse",
+          "MindPierce",
+          "SpiritWave"
         ],
-        "attack": 60,
-        "defense": 60
+        "attack": 35,
+        "defense": 35
       },
       {
         "name": "Rockfist",

@@ -142,9 +142,14 @@ class ShopPanel(UIComponent):
         # screen.blit(shadow_surf, (self.rect.x + 18, self.rect.y + 18))
         screen.blit(self.title_surf, (self.rect.x + 16, self.rect.y + 16))
 
-        # Draw money display
+        # Draw money display (using coins from inventory)
+        coin_count = 0
+        for item in self.player_bag.items:
+            if item["name"] == "Coins":
+                coin_count = item["count"]
+                break
         money_text = self._money_font.render(
-            f"Money: ${self.player_bag.money}", True, (253, 251, 249)
+            f"Money: ${coin_count}", True, (253, 251, 249)
         )
         screen.blit(money_text, (self.rect.x + 16, self.rect.y + 50))
 
@@ -375,7 +380,8 @@ class ShopPanel(UIComponent):
         """Handle buying an item from NPC"""
         price = item["price"]
 
-        if self.player_bag.remove_money(price):
+        # Check if player has enough coins
+        if self.player_bag.remove_item("Coins", price):
             self.player_bag.add_item(
                 item["name"], 1, item["sprite_path"], item["price"]
             )
@@ -397,7 +403,8 @@ class ShopPanel(UIComponent):
         sell_price = item.get("price", 0) // 2
 
         if self.player_bag.remove_item(item["name"], 1):
-            self.player_bag.add_money(sell_price)
+            # Add coins to inventory
+            self.player_bag.add_item("Coins", sell_price, "ingame_ui/coin.png", 1)
             self.message = f"Sold {item['name']} for ${sell_price}!"
             self.message_color = (0, 180, 0)
             self.message_timer = 2.0

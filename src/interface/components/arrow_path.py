@@ -20,9 +20,9 @@ class ArrowPath:
         self.consumed_up_to_index = 0  # Track how much of the path has been consumed
         self.arrow_sprite = None
 
-        # Try to load arrow sprite
+        # Try to load arrow sprite (300% bigger = 96x96 pixels)
         try:
-            self.arrow_sprite = Sprite("ingame_ui/arrow.png", (32, 32))
+            self.arrow_sprite = Sprite("ingame_ui/arrow.png", (96, 96))
         except Exception as e:
             print(f"Warning: Could not load arrow sprite: {e}")
 
@@ -167,9 +167,9 @@ class ArrowPath:
             # Transform to screen coordinates
             screen_pos = camera.transform_position(pos)  # Returns a tuple (x, y)
 
-            # Pulsing scale effect
+            # Pulsing scale effect (base size is now 96 instead of 32)
             pulse = 0.85 + 0.15 * math.sin(self.animation_time + i * 0.5)
-            arrow_size = int(32 * pulse)
+            arrow_size = int(96 * pulse)
 
             # Rotate arrow to point in direction of movement
             rotated_sprite = pg.transform.rotate(self.arrow_sprite.image, -angle)
@@ -224,7 +224,8 @@ class ArrowPath:
                 pos_y = p1.y + segment_t * dy
 
                 # Calculate angle (in degrees, 0 = right, increases counter-clockwise)
-                angle = math.degrees(math.atan2(-dy, dx))
+                # In Pygame, Y increases downward, so we use dy directly (not -dy)
+                angle = math.degrees(math.atan2(dy, dx))
 
                 return Position(pos_x, pos_y), angle
 
@@ -233,7 +234,7 @@ class ArrowPath:
         # Fallback to last point
         p1 = self.path[-2]
         p2 = self.path[-1]
-        angle = math.degrees(math.atan2(-(p2.y - p1.y), p2.x - p1.x))
+        angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
         return self.path[-1], angle
 
     def clear(self) -> None:

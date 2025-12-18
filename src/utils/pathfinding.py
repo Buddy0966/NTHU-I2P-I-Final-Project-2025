@@ -97,7 +97,7 @@ class Pathfinder:
     def simplify_path(path: list[Position], threshold: float = 2.0) -> list[Position]:
         """
         Simplify path by keeping only turning points (rectangular paths only).
-        This creates strictly horizontal and vertical line segments.
+        This creates strictly horizontal and vertical line segments with no gaps.
 
         Args:
             path: Original path
@@ -113,13 +113,16 @@ class Pathfinder:
 
         i = 0
         while i < len(path) - 1:
-            current = path[i]
+            current = simplified[-1]  # Use the last simplified point
 
             # Find the longest straight line (horizontal or vertical) from current position
             j = i + 1
 
             # Determine initial direction (horizontal or vertical)
-            if abs(path[j].x - current.x) > abs(path[j].y - current.y):
+            dx = path[j].x - current.x
+            dy = path[j].y - current.y
+
+            if abs(dx) > abs(dy):
                 # Moving horizontally
                 direction = "horizontal"
             else:
@@ -142,14 +145,20 @@ class Pathfinder:
                     else:
                         break
 
-            # Add the last valid point in this direction
-            if last_valid != i:
+            # Add the turning point (ensures no gap)
+            # The turning point is where we stop going in one direction
+            if last_valid < len(path) - 1:
+                # There's a turn coming, add the last point in this direction
                 simplified.append(path[last_valid])
-                i = last_valid
             else:
-                # Couldn't extend, move to next point
-                simplified.append(path[j])
-                i = j
+                # This is the final segment, add the destination
+                simplified.append(path[-1])
+
+            i = last_valid
+
+        # Ensure the final destination is included
+        if simplified[-1] != path[-1]:
+            simplified.append(path[-1])
 
         return simplified
 

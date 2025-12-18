@@ -8,7 +8,7 @@ from .component import UIComponent
 class NavigationPanel(UIComponent):
     """Panel for selecting navigation destinations and displaying routes"""
 
-    def __init__(self, x: int, y: int, width: int = 400, height: int = 300, on_exit=None, on_navigate=None):
+    def __init__(self, x: int, y: int, width: int = 400, height: int = 300, on_exit=None, on_navigate=None, current_map_name: str = "map.tmx"):
         self.sprite = Sprite("UI/raw/UI_Flat_Frame03a.png", (width, height))
         self.rect = pg.Rect(x, y, width, height)
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 40)
@@ -27,11 +27,8 @@ class NavigationPanel(UIComponent):
             on_exit
         )
 
-        # Navigation destinations (name, tile position x, y)
-        self.destinations = [
-            {"name": "Stone Gate", "pos": Position(35 * GameSettings.TILE_SIZE, 18 * GameSettings.TILE_SIZE)},
-            {"name": "Shop", "pos": Position(48 * GameSettings.TILE_SIZE, 14 * GameSettings.TILE_SIZE)},
-        ]
+        # Navigation destinations - different for each map
+        self.destinations = self._get_destinations_for_map(current_map_name)
 
         # Create navigation buttons
         self.nav_buttons = []
@@ -57,6 +54,37 @@ class NavigationPanel(UIComponent):
                 "destination": dest,
                 "rect": pg.Rect(btn_x, btn_y, btn_w, btn_h)
             })
+
+    def _get_destinations_for_map(self, map_name: str) -> list[dict]:
+        """
+        Get navigation destinations for a specific map.
+
+        Args:
+            map_name: Name of the current map (e.g., "map.tmx", "new_map.tmx")
+
+        Returns:
+            List of destination dictionaries with name and position
+        """
+        if map_name == "new_map.tmx":
+            # Destinations for new_map
+            # Boss House gate is at (53, 14)
+            return [
+                {"name": "Stone Gate (Exit)", "pos": Position(36 * GameSettings.TILE_SIZE, 18 * GameSettings.TILE_SIZE)},
+                {"name": "Boss House", "pos": Position(53 * GameSettings.TILE_SIZE, 14 * GameSettings.TILE_SIZE)},
+            ]
+        elif map_name == "map.tmx":
+            # Destinations for main map
+            # Note: Shop position is set to one tile below the NPC (48, 15 instead of 48, 14)
+            # so the path doesn't try to go ON TOP of the NPC
+            return [
+                {"name": "Stone Gate (North)", "pos": Position(35 * GameSettings.TILE_SIZE, 18 * GameSettings.TILE_SIZE)},
+                {"name": "Shop", "pos": Position(48 * GameSettings.TILE_SIZE, 15 * GameSettings.TILE_SIZE)},
+            ]
+        else:
+            # Default destinations for other maps
+            return [
+                {"name": "Map Center", "pos": Position(30 * GameSettings.TILE_SIZE, 20 * GameSettings.TILE_SIZE)},
+            ]
 
     def _on_destination_selected(self, destination: dict) -> None:
         """Called when a destination button is clicked"""
