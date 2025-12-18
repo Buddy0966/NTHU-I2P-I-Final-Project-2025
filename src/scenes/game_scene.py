@@ -11,6 +11,7 @@ from src.interface.components.chat_overlay import ChatOverlay
 from src.interface.components.minimap import Minimap
 from src.interface.components.navigation_panel import NavigationPanel
 from src.interface.components.arrow_path import ArrowPath
+from src.interface.components.reward_notification import RewardNotification
 from src.utils.pathfinding import Pathfinder
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
@@ -38,6 +39,9 @@ class GameScene(Scene):
     show_npc_dialogue: bool
     current_npc_dialogue: str | None
     show_bush_prompt: bool
+    show_chest_prompt: bool
+    current_chest_dialogue: str | None
+    reward_notification: RewardNotification | None
     chat_overlay: ChatOverlay | None
     minimap: Minimap
 
@@ -102,6 +106,11 @@ class GameScene(Scene):
 
         # Bush prompt state
         self.show_bush_prompt = False
+
+        # Chest prompt state
+        self.show_chest_prompt = False
+        self.current_chest_dialogue = None
+        self.reward_notification = None
 
         # Online player animations storage
         self.online_player_animations: Dict[int, Animation] = {}
@@ -286,6 +295,19 @@ class GameScene(Scene):
             if self.arrow_path.is_complete():
                 self.arrow_path = None
 
+        # Reward notification handling (highest priority)
+        if self.reward_notification:
+            # Check for input to close
+            if input_manager.key_pressed(pg.K_SPACE) or input_manager.key_pressed(pg.K_ESCAPE) or input_manager.key_pressed(pg.K_e):
+                self.reward_notification.close()
+                self.reward_notification = None
+                return
+
+            still_visible = self.reward_notification.update(dt)
+            if not still_visible:
+                self.reward_notification = None
+            return
+
         # Chat overlay handling (priority over other UI)
         if self.chat_overlay:
             if self.chat_overlay.is_open:
@@ -399,6 +421,35 @@ class GameScene(Scene):
             self.show_npc_dialogue = False
             self.current_npc_dialogue = None
 
+        # Chest interaction
+        chest_near = False
+        for chest in self.game_manager.current_chests:
+            chest.update(dt)
+            # Show dialogue when near chest
+            if chest.is_near_player:
+                chest_near = True
+                if chest.opened:
+                    self.show_chest_prompt = True
+                    self.current_chest_dialogue = "This chest is empty."
+                else:
+                    self.show_chest_prompt = True
+                    self.current_chest_dialogue = "Press E to open the chest!"
+                    # Check if player presses E to open chest
+                    if input_manager.key_pressed(pg.K_e):
+                        if chest.open_chest():
+                            Logger.info(f"Opened chest: {chest.name}")
+                            # Show reward notification
+                            self.reward_notification = RewardNotification(chest.rewards)
+                            self.show_chest_prompt = False
+                            self.current_chest_dialogue = None
+                            self.game_manager.save("saves/game0.json")
+                        return
+
+        # Hide chest dialogue if not near any chest
+        if not chest_near:
+            self.show_chest_prompt = False
+            self.current_chest_dialogue = None
+
         # Check bush collision - show prompt instead of immediate trigger
         if self.game_manager.player and self.game_manager.current_map:
             player_rect = self.game_manager.player.animation.rect
@@ -449,6 +500,8 @@ class GameScene(Scene):
             enemy.draw(screen, camera)
         for npc in self.game_manager.current_npcs:
             npc.draw(screen, camera)
+        for chest in self.game_manager.current_chests:
+            chest.draw(screen, camera)
 
         # Draw navigation arrow path
         if self.arrow_path and self.game_manager.player:
@@ -551,6 +604,14 @@ class GameScene(Scene):
         # Draw bush prompt
         if self.show_bush_prompt:
             self._draw_bush_prompt(screen)
+
+        # Draw chest prompt
+        if self.show_chest_prompt and self.current_chest_dialogue:
+            self._draw_chest_prompt(screen)
+
+        # Draw reward notification (highest priority, on top of everything)
+        if self.reward_notification:
+            self.reward_notification.draw(screen)
 
         # Draw chat overlay (always draw so messages are visible even when closed)
         if self.chat_overlay:
@@ -662,3 +723,28 @@ class GameScene(Scene):
 
         screen.blit(text1, text1_rect)
         screen.blit(text2, text2_rect)
+
+    def _draw_chest_prompt(self, screen: pg.Surface):
+        """Draw the chest interaction prompt"""
+        # Load UI banner/frame
+        from src.utils import load_img
+        banner = load_img("UI/raw/UI_Flat_InputField01a.png")
+
+        # Size and position
+        banner_width = 400
+        banner_height = 100
+        banner_x = (GameSettings.SCREEN_WIDTH - banner_width) // 2
+        banner_y = GameSettings.SCREEN_HEIGHT // 2 - 300
+
+        # Scale banner
+        banner = pg.transform.scale(banner, (banner_width, banner_height))
+        screen.blit(banner, (banner_x, banner_y))
+
+        # Draw text
+        font = pg.font.Font(None, 32)
+        text1 = font.render(self.current_chest_dialogue or "Treasure Chest", True, (0, 0, 0))
+
+        # Center text
+        text1_rect = text1.get_rect(center=(banner_x + banner_width // 2, banner_y + 50))
+
+        screen.blit(text1, text1_rect)

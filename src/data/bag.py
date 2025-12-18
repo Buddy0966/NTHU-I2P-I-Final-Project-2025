@@ -41,6 +41,10 @@ class Bag:
             return True
         return False
 
+    def add_monster(self, monster: Monster) -> None:
+        """Add a monster/Pokemon to the bag."""
+        self._monsters_data.append(monster)
+
     def add_item(self, item_name: str, count: int = 1, sprite_path: str = "", price: int = 0) -> None:
         # Check if item already exists
         for item in self._items_data:

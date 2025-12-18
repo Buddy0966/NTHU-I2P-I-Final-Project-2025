@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from src.scenes.player import Player
     from src.entities.enemy_trainer import EnemyTrainer
     from src.entities.merchant_npc import NPC
+    from src.entities.chest import Chest
     from src.data.bag import Bag
 
 class GameManager:
@@ -16,6 +17,7 @@ class GameManager:
     player: Player | None
     enemy_trainers: dict[str, list[EnemyTrainer]]
     npcs: dict[str, list["NPC"]]
+    chests: dict[str, list["Chest"]]
     bag: "Bag"
     
     # Map properties
@@ -30,6 +32,7 @@ class GameManager:
                  player: Player | None,
                  enemy_trainers: dict[str, list[EnemyTrainer]],
                  npcs: dict[str, list["NPC"]] | None = None,
+                 chests: dict[str, list["Chest"]] | None = None,
                  bag: Bag | None = None):
 
         from src.data.bag import Bag
@@ -39,6 +42,7 @@ class GameManager:
         self.player = player
         self.enemy_trainers = enemy_trainers
         self.npcs = npcs if npcs is not None else {}
+        self.chests = chests if chests is not None else {}
         self.bag = bag if bag is not None else Bag([], [])
 
         # Track player spawn/last-position per map (in pixels)
@@ -83,6 +87,10 @@ class GameManager:
         return self.npcs.get(self.current_map_key, [])
 
     @property
+    def current_chests(self) -> list["Chest"]:
+        return self.chests.get(self.current_map_key, [])
+
+    @property
     def current_teleporter(self) -> list[Teleport]:
         return self.maps[self.current_map_key].teleporters
     
@@ -118,6 +126,9 @@ class GameManager:
         for npc in self.npcs.get(self.current_map_key, []):
             if rect.colliderect(npc.animation.rect):
                 return True
+        for chest in self.chests.get(self.current_map_key, []):
+            if rect.colliderect(chest.sprite.rect):
+                return True
 
         return False
         
@@ -145,6 +156,7 @@ class GameManager:
             block = m.to_dict()
             block["enemy_trainers"] = [t.to_dict() for t in self.enemy_trainers.get(key, [])]
             block["npcs"] = [n.to_dict() for n in self.npcs.get(key, [])]
+            block["chests"] = [c.to_dict() for c in self.chests.get(key, [])]
             # Persist the last-known player position for this map (in tiles)
             spawn = self.player_spawns.get(key) or m.spawn
             block["player"] = {
@@ -165,6 +177,7 @@ class GameManager:
         from src.scenes.player import Player
         from src.entities.enemy_trainer import EnemyTrainer
         from src.entities.merchant_npc import NPC
+        from src.entities.chest import Chest
         from src.data.bag import Bag
 
         Logger.info("Loading maps")
@@ -173,6 +186,7 @@ class GameManager:
         player_spawns: dict[str, Position] = {}
         trainers: dict[str, list[EnemyTrainer]] = {}
         npcs: dict[str, list[NPC]] = {}
+        chests: dict[str, list[Chest]] = {}
 
         for entry in maps_data:
             path = entry["path"]
@@ -189,6 +203,7 @@ class GameManager:
             None, # Player
             trainers,
             npcs,
+            chests,
             bag=None
         )
         gm.current_map_key = current_map
@@ -204,6 +219,11 @@ class GameManager:
         for m in data["map"]:
             raw_data = m.get("npcs", [])
             gm.npcs[m["path"]] = [NPC.from_dict(n, gm) for n in raw_data]
+
+        Logger.info("Loading Chests")
+        for m in data["map"]:
+            raw_data = m.get("chests", [])
+            gm.chests[m["path"]] = [Chest.from_dict(c, gm) for c in raw_data]
 
         Logger.info("Loading Player")
         if data.get("player"):
