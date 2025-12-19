@@ -18,7 +18,10 @@
       "Bash(cat:*)",
       "Bash(taskkill:*)",
       "Bash(python -m py_compile:*)",
-      "Bash(del \"d:\\\\NTHU-I2P-I-Final-Project-2025-main\\\\saves\\\\game0.json\")"
+      "Bash(del \"d:\\\\NTHU-I2P-I-Final-Project-2025-main\\\\saves\\\\game0.json\")",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
