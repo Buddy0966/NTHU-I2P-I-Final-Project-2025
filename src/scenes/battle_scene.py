@@ -793,32 +793,16 @@ class BattleScene(Scene):
             Logger.error("Catch failed: missing opponent_pokemon or bag")
             return
 
-        # Always add as a new pokemon entry (no count system)
-        # Extract sprite_id from sprite_path to get menu_sprite_path
-        from src.utils.pokemon_data import SPRITE_TO_MENU_SPRITE
-        import re
-
-        sprite_path = self.opponent_pokemon['sprite_path']
-        menu_sprite_path = sprite_path  # Default fallback
-
-        # Extract sprite ID from path like "sprites/sprite7.png"
-        match = re.search(r'sprite(\d+)\.png', sprite_path)
-        if match:
-            sprite_id = int(match.group(1))
-            if sprite_id in SPRITE_TO_MENU_SPRITE:
-                menu_sprite_id = SPRITE_TO_MENU_SPRITE[sprite_id]
-                menu_sprite_path = f"menu_sprites/menusprite{menu_sprite_id}.png"
-
+        # Add caught pokemon as a new entry
         caught_pokemon = {
             "name": self.opponent_pokemon['name'],
             "hp": self.opponent_pokemon['max_hp'],  # Full HP
             "max_hp": self.opponent_pokemon['max_hp'],
             "level": self.opponent_pokemon['level'],
-            "sprite_path": sprite_path,  # Battle sprite
-            "menu_sprite_path": menu_sprite_path,  # Bag display sprite
+            "sprite_path": self.opponent_pokemon['sprite_path'],  # Battle sprite
         }
         self.game_manager.bag.monsters.append(caught_pokemon)
-        Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag with menu_sprite: {menu_sprite_path}")
+        Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag")
 
         Logger.info(f"Current monsters in bag: {len(self.game_manager.bag._monsters_data)}")
         for monster in self.game_manager.bag._monsters_data:

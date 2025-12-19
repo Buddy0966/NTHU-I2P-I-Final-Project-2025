@@ -387,14 +387,14 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.37504718880847,
+    "x": 31.461763784112737,
     "y": 29.0
   },
   "bag": {
     "monsters": [
       {
         "name": "pikachu",
-        "hp": 99305,
+        "hp": 99299,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/pikachu.png",

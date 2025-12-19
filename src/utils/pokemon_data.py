@@ -322,26 +322,7 @@ def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tupl
     return (1.0, "Normal damage.")
 
 
-# Mapping from battle sprite_id to menu sprite_id
-# This maps sprites/spriteN.png -> menu_sprites/menuspriteM.png
-SPRITE_TO_MENU_SPRITE = {
-    1: 1,   # sprite1 -> menusprite1
-    2: 2,   # sprite2 -> menusprite2
-    3: 3,   # sprite3 -> menusprite3
-    4: 4,   # sprite4 -> menusprite4
-    5: 5,   # sprite5 -> menusprite5
-    6: 6,   # sprite6 -> menusprite6
-    7: 1,   # sprite7 -> menusprite1 (reuse menu sprites)
-    8: 2,   # sprite8 -> menusprite2
-    9: 3,   # sprite9 -> menusprite3
-    10: 4,  # sprite10 -> menusprite4
-    11: 5,  # sprite11 -> menusprite5
-    12: 6,  # sprite12 -> menusprite6
-    13: 1,  # sprite13 -> menusprite1
-    14: 2,  # sprite14 -> menusprite2
-    15: 3,  # sprite15 -> menusprite3
-    16: 4,  # sprite16 -> menusprite4
-}
+
 
 # Evolution chains mapping
 EVOLUTION_CHAINS = {
@@ -417,11 +398,6 @@ def evolve_pokemon(pokemon: dict) -> dict:
     # Update name and sprite
     pokemon["name"] = new_name
     pokemon["sprite_path"] = f"sprites/sprite{new_sprite_id}.png"
-
-    # Update menu_sprite_path for bag display
-    if new_sprite_id in SPRITE_TO_MENU_SPRITE:
-        menu_sprite_id = SPRITE_TO_MENU_SPRITE[new_sprite_id]
-        pokemon["menu_sprite_path"] = f"menu_sprites/menusprite{menu_sprite_id}.png"
 
     # Boost stats
     old_max_hp = pokemon.get("max_hp", 100)
