@@ -559,20 +559,24 @@ def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tupl
     if defender_type in TYPE_ADVANTAGE and TYPE_ADVANTAGE[defender_type] == attacker_type:
         return (0.67, "It's not very effective...")
 
-    # Neutral matchup
-    return (1.0, "")
+    # Neutral matchup - show message for typeless or neutral
+    if attacker_type == "None" or defender_type == "None":
+        return (1.0, "Typeless attack.")
+    else:
+        return (1.0, "Normal damage.")
 
 
 def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10, attack: int = 10, defense: int = 10) -> tuple[int, str]:
     """
     Calculate damage for a move considering type effectiveness, attack stat, and defense stat.
     Type effectiveness is based on the ATTACKER'S Pokemon type, not the move.
+    Level parameter is kept for compatibility but not used in damage calculation.
 
     Args:
         move_name: Name of the move being used
         attacker_type: Type of the attacking Pokemon (this determines effectiveness!)
         defender_type: Type of the defending Pokemon
-        level: Level of the attacker (default 10)
+        level: Level of the attacker (kept for compatibility, not used)
         attack: Attack stat of the attacker (default 10)
         defense: Defense stat of the defender (default 10)
 
@@ -582,22 +586,24 @@ def calculate_damage(move_name: str, attacker_type: str, defender_type: str, lev
     move_data = MOVES_DATABASE.get(move_name)
     if not move_data:
         # Fallback for unknown moves
-        return (10, "")
+        return (attack, "")
 
     base_power = move_data["power"]
 
     # Calculate type effectiveness based on ATTACKER's Pokemon type vs DEFENDER's Pokemon type
     multiplier, effectiveness_msg = calculate_type_effectiveness(attacker_type, defender_type)
 
-    # Calculate damage with some randomness - reduced scaling
-    import random
-    variance = random.uniform(0.85, 1.0)
-    # Include attack and defense stats in damage calculation
-    # Formula: (base_power / 2) * (attack / defense) * type_effectiveness * variance * level_scaling
-    attack_defense_ratio = attack / defense  # Higher attack vs lower defense = more damage
-    damage = int((base_power / 2) * attack_defense_ratio * multiplier * variance * (0.5 + level / 20))
+    # Calculate damage - ONLY based on attack, defense, and move power
+    
+    
+    # Simple formula: base_power * (attack / defense) * type_effectiveness * variance
+    # No level scaling - damage purely based on stats
+    attack_defense_ratio = attack / max(defense, 1)  # Prevent division by zero
+    
+    # Calculate damage
+    damage = int(base_power * attack_defense_ratio * multiplier)
 
-    # Ensure minimum damage of 3, maximum of 30
-    damage = max(3, min(damage, 30))
+    # Set reasonable minimum damage (at least 1)
+    damage = max(1, damage)
 
     return (damage, effectiveness_msg)

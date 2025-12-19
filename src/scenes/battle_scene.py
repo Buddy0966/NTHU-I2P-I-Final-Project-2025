@@ -200,12 +200,12 @@ class BattleScene(Scene):
         self.switch_panel = None
 
         # Main action buttons (will be repositioned in PLAYER_TURN)
-        btn_w, btn_h = 80, 40
+        btn_w, btn_h = 120, 50  # Wider and taller for better appearance
 
-        self.fight_btn = BattleActionButton("Fight", 0, 0, btn_w, btn_h, self._on_fight_click)
-        self.item_btn = BattleActionButton("Item", 0, 0, btn_w, btn_h, self._on_item_click)
-        self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h, self._on_switch_click)
-        self.run_btn = BattleActionButton("Run", 0, 0, btn_w, btn_h, self._on_run_click)
+        self.fight_btn = BattleActionButton("Fight", 0, 0, btn_w, btn_h, self._on_fight_click, button_type="fight")
+        self.item_btn = BattleActionButton("Item", 0, 0, btn_w, btn_h, self._on_item_click, button_type="item")
+        self.switch_btn = BattleActionButton("Switch", 0, 0, btn_w, btn_h, self._on_switch_click, button_type="switch")
+        self.run_btn = BattleActionButton("Run", 0, 0, btn_w, btn_h, self._on_run_click, button_type="run")
         
         # Move buttons (for attack selection) - will be populated dynamically
         self.move_buttons = []
@@ -340,41 +340,15 @@ class BattleScene(Scene):
             loop_speed=0.8
         )
 
-        Logger.info(f"Wild {selected['name']} (Lv.{level}) appeared! Rarity: {selected['rarity']}")
 
-        # Initialize player pokemon
+        # Create animated sprite for player (if they have a sprite_path with animated version)
         if self.game_manager.bag and len(self.game_manager.bag._monsters_data) > 0:
             self.player_pokemon = self.game_manager.bag._monsters_data[0]
 
-            # Ensure player pokemon has type and moves
-            if "type" not in self.player_pokemon or "moves" not in self.player_pokemon:
-                player_species_data = POKEMON_SPECIES.get(
-                    self.player_pokemon["name"],
-                    {"type": "None", "moves": ["QuickSlash"]}
-                )
-                self.player_pokemon["type"] = player_species_data["type"]
-                self.player_pokemon["moves"] = player_species_data["moves"].copy()
 
-            # Ensure player pokemon has attack and defense stats
-            if "attack" not in self.player_pokemon:
-                # Calculate default attack based on level
-                player_level = self.player_pokemon.get("level", 1)
-                self.player_pokemon["attack"] = int(10 + player_level * 0.5)
-
-            if "defense" not in self.player_pokemon:
-                # Calculate default defense based on level
-                player_level = self.player_pokemon.get("level", 1)
-                self.player_pokemon["defense"] = int(10 + player_level * 0.5)
-
-            # Ensure player pokemon has status fields
-            if "status" not in self.player_pokemon:
-                self.player_pokemon["status"] = None
-            if "status_turns" not in self.player_pokemon:
-                self.player_pokemon["status_turns"] = 0
-
-            # Create animated sprite for player (if they have a sprite_path with animated version)
+            
             player_sprite_path = self.player_pokemon.get("sprite_path", "")
-            # Try to use animated version if available, otherwise fallback to static
+
             if "sprite" in player_sprite_path and not "menu_sprites" in player_sprite_path:
                 self.player_sprite = AnimatedBattleSprite(
                     base_path=player_sprite_path.replace(".png", ""),
@@ -383,7 +357,6 @@ class BattleScene(Scene):
                     loop_speed=0.8
                 )
             else:
-                # Player has old static sprite, keep it for now
                 self.player_sprite = None
     
     def _init_move_buttons(self) -> None:
@@ -392,17 +365,48 @@ class BattleScene(Scene):
             return
 
         self.move_buttons = []
-        move_btn_w, move_btn_h = 120, 45
-        move_gap_x = 30
-        move_start_x = 150
-        move_start_y = GameSettings.SCREEN_HEIGHT - 150
+        # Button size - wider to accommodate icon and text
+        move_btn_w, move_btn_h = 234, 50  # 180 * 1.3 = 234, wider buttons for move name + damage
+        move_gap = 25  # Larger gap between buttons
 
         moves = self.player_pokemon["moves"]
+        num_moves = len(moves)
+
+        # Calculate total width needed for all buttons in a row
+        total_width = move_btn_w * num_moves + move_gap * (num_moves - 1)
+
+        # Center buttons horizontally
+        move_start_x = (GameSettings.SCREEN_WIDTH - total_width) // 2
+        move_start_y = GameSettings.SCREEN_HEIGHT - 150  # Move buttons higher above message box
+
+        # Get stats for damage calculation
+        attacker_type = self.player_pokemon.get("type", "None")
+        defender_type = self.opponent_pokemon.get("type", "None") if self.opponent_pokemon else "None"
+        attack = self.player_pokemon.get("attack", 10)
+        defense = self.opponent_pokemon.get("defense", 10) if self.opponent_pokemon else 10
+        level = self.player_pokemon.get("level", 10)
+
         for i, move in enumerate(moves):
-            x = move_start_x + (move_btn_w + move_gap_x) * (i % 2)
-            y = move_start_y - (move_btn_h + 15) * (i // 2)
-            btn = BattleActionButton(move, x, y, move_btn_w, move_btn_h,
-                                    lambda m=move: self._on_move_select(m))
+            # Calculate estimated damage for this move
+            estimated_damage, _ = calculate_damage(
+                move,
+                attacker_type,
+                defender_type,
+                level,
+                attack,
+                defense
+            )
+
+            # Create button text with move name and damage
+            button_text = f"{move} ({estimated_damage})"
+
+            # Layout: all buttons in a single horizontal row
+            x = move_start_x + i * (move_btn_w + move_gap)
+            y = move_start_y
+
+            btn = BattleActionButton(button_text, x, y, move_btn_w, move_btn_h,
+                                    lambda m=move: self._on_move_select(m),
+                                    is_move_button=True)  # Mark as move button for special styling
             self.move_buttons.append(btn)
 
     def _on_fight_click(self) -> None:
@@ -533,6 +537,7 @@ class BattleScene(Scene):
         defender_type = self.opponent_pokemon.get("type", "None")
         level = self.player_pokemon.get("level", 10)
         attack = self.player_pokemon.get("attack", 10)
+
         defense = self.opponent_pokemon.get("defense", 10)
 
         # Apply burn status effect (reduces attack by 50%)
@@ -938,13 +943,19 @@ class BattleScene(Scene):
             Logger.error("Catch failed: missing opponent_pokemon or bag")
             return
 
-        # Add caught pokemon as a new entry
+        # Add caught pokemon as a new entry with all necessary fields
         caught_pokemon = {
             "name": self.opponent_pokemon['name'],
             "hp": self.opponent_pokemon['max_hp'],  # Full HP
             "max_hp": self.opponent_pokemon['max_hp'],
             "level": self.opponent_pokemon['level'],
             "sprite_path": self.opponent_pokemon['sprite_path'],  # Battle sprite
+            "type": self.opponent_pokemon.get('type', 'None'),
+            "moves": self.opponent_pokemon.get('moves', []).copy(),  # Copy the moves list
+            "attack": self.opponent_pokemon.get('attack', 10),
+            "defense": self.opponent_pokemon.get('defense', 10),
+            "status": None,  # Reset status to healthy
+            "status_turns": 0
         }
         self.game_manager.bag.monsters.append(caught_pokemon)
         Logger.info(f"Caught {self.opponent_pokemon['name']}! Added to bag")
@@ -1006,6 +1017,9 @@ class BattleScene(Scene):
                     self._next_state()
                     self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
+                # Clear effectiveness message immediately when leaving SHOW_DAMAGE state
+                self.effectiveness_message = ""
+
                 # After showing damage, transition to next state
                 # Switch sprites back to idle animation
                 if self.opponent_sprite:
@@ -1103,7 +1117,7 @@ class BattleScene(Scene):
         if self.state == BattleState.CHOOSE_MOVE:
             for btn in self.move_buttons:
                 btn.update(dt)
-        
+
         if self.state == BattleState.CHOOSE_ITEM:
             if self.item_panel:
                 self.item_panel.update(dt)
@@ -1291,6 +1305,9 @@ class BattleScene(Scene):
                     self._next_state()
                     self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
+                # Clear effectiveness message immediately when leaving SHOW_DAMAGE state
+                self.effectiveness_message = ""
+
                 # After showing damage, transition to next state
                 # Switch sprites back to idle animation
                 if self.opponent_sprite:
@@ -1388,7 +1405,7 @@ class BattleScene(Scene):
         if self.state == BattleState.CHOOSE_MOVE:
             for btn in self.move_buttons:
                 btn.update(dt)
-        
+
         if self.state == BattleState.CHOOSE_ITEM:
             if self.item_panel:
                 self.item_panel.update(dt)
@@ -1748,13 +1765,14 @@ class BattleScene(Scene):
                 y = GameSettings.SCREEN_HEIGHT - size - 200
                 screen.blit(scaled_sprite, (x, y))
         
-        # Draw Message Box
+        # Draw Message Box (skip in CHOOSE_MOVE state to avoid blocking move buttons)
         box_h, box_w = 120, GameSettings.SCREEN_WIDTH - 40
         box_x, box_y = 20, GameSettings.SCREEN_HEIGHT - box_h - 20
-        
-        pg.draw.rect(screen, (0, 0, 0), (box_x, box_y, box_w, box_h))
-        pg.draw.rect(screen, (255, 255, 255), (box_x, box_y, box_w, box_h), 2)
-        
+
+        if self.state != BattleState.CHOOSE_MOVE:
+            pg.draw.rect(screen, (0, 0, 0), (box_x, box_y, box_w, box_h))
+            pg.draw.rect(screen, (255, 255, 255), (box_x, box_y, box_w, box_h), 2)
+
         # Display main message (skip during catch animation to avoid overlap)
         if self.state not in (BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             # Split message and effectiveness message for better formatting
@@ -1802,27 +1820,30 @@ class BattleScene(Scene):
                     screen.blit(hint_text, (box_x + box_w - 250, box_y + box_h - 30))
         
         if self.state == BattleState.PLAYER_TURN:
-            # Document 2的版本：按鈕更居中
-            btn_w, btn_h = 80, 40
-            gap = 10
-            btn_start_x = box_x + 300
-            btn_y = box_y + 50
-            
+            # Updated button layout with larger buttons and spacing
+            btn_w, btn_h = 120, 50  # Match the button size from __init__
+            gap = 20  # Larger gap between buttons
+
+            # Calculate total width and center the buttons
+            total_width = btn_w * 4 + gap * 3
+            btn_start_x = (GameSettings.SCREEN_WIDTH - total_width) // 2
+            btn_y = box_y + 45
+
             self.fight_btn.rect.x = btn_start_x
             self.fight_btn.rect.y = btn_y
             self.fight_btn.rect.width = btn_w
             self.fight_btn.rect.height = btn_h
-            
+
             self.item_btn.rect.x = btn_start_x + btn_w + gap
             self.item_btn.rect.y = btn_y
             self.item_btn.rect.width = btn_w
             self.item_btn.rect.height = btn_h
-            
+
             self.switch_btn.rect.x = btn_start_x + (btn_w + gap) * 2
             self.switch_btn.rect.y = btn_y
             self.switch_btn.rect.width = btn_w
             self.switch_btn.rect.height = btn_h
-            
+
             self.run_btn.rect.x = btn_start_x + (btn_w + gap) * 3
             self.run_btn.rect.y = btn_y
             self.run_btn.rect.width = btn_w
@@ -1834,21 +1855,10 @@ class BattleScene(Scene):
             self.run_btn.draw(screen)
         
         if self.state == BattleState.CHOOSE_MOVE:
-            start_x = box_x + 180
-            start_y = box_y + 120
-            btn_w = 100  # 按鈕可能要窄一點才塞得下
-            gap = 30     # 間距
-
-            for i, btn in enumerate(self.move_buttons):
-                # 每個按鈕往右推移
-                current_x = start_x + i * (btn_w + gap)
-                current_y = start_y - 100
-                
-                # 更新按鈕位置
-                btn.rect.topleft = (current_x, current_y)
-                
+            # Draw move buttons (positions already set in _init_move_buttons)
+            for btn in self.move_buttons:
                 btn.draw(screen)
-        
+
         if self.state == BattleState.CHOOSE_ITEM:
             if self.item_panel:
                 self.item_panel.draw(screen)
