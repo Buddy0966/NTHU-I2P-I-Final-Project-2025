@@ -13,7 +13,7 @@ from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
 from src.interface.components.battle_switch_panel import BattleSwitchPanel
 from src.utils.definition import Monster
-from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE
+from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE, STATUS_EFFECTS
 
 from typing import override
 
@@ -272,22 +272,22 @@ class BattleScene(Scene):
         # Pool of available opponents with varied stats
         # Using animated sprites from sprites folder (sprite1-16)
         opponent_pool = [
-            {"name": "Leafeon", "base_hp": 40, "level_range": (5, 10), "sprite_id": 1, "rarity": "common"},
-            {"name": "Aquafin", "base_hp": 50, "level_range": (6, 12), "sprite_id": 2, "rarity": "common"},
-            {"name": "Blazewing", "base_hp": 45, "level_range": (5, 11), "sprite_id": 3, "rarity": "common"},
-            {"name": "Rockfist", "base_hp": 55, "level_range": (7, 13), "sprite_id": 4, "rarity": "common"},
-            {"name": "Thunderpaw", "base_hp": 42, "level_range": (6, 11), "sprite_id": 5, "rarity": "common"},
-            {"name": "Frostbite", "base_hp": 48, "level_range": (7, 12), "sprite_id": 6, "rarity": "uncommon"},
-            {"name": "Shadowclaw", "base_hp": 43, "level_range": (8, 14), "sprite_id": 7, "rarity": "uncommon"},
-            {"name": "Steelwing", "base_hp": 52, "level_range": (9, 15), "sprite_id": 8, "rarity": "uncommon"},
-            {"name": "Mysticsoul", "base_hp": 46, "level_range": (7, 13), "sprite_id": 9, "rarity": "uncommon"},
-            {"name": "Venomfang", "base_hp": 44, "level_range": (8, 12), "sprite_id": 10, "rarity": "uncommon"},
-            {"name": "Sandstorm", "base_hp": 49, "level_range": (9, 14), "sprite_id": 11, "rarity": "rare"},
-            {"name": "Ghostflame", "base_hp": 41, "level_range": (10, 16), "sprite_id": 12, "rarity": "rare"},
-            {"name": "Crystalhorn", "base_hp": 60, "level_range": (11, 17), "sprite_id": 13, "rarity": "rare"},
-            {"name": "Stormchaser", "base_hp": 53, "level_range": (10, 15), "sprite_id": 14, "rarity": "rare"},
-            {"name": "Lavaguard", "base_hp": 58, "level_range": (12, 18), "sprite_id": 15, "rarity": "rare"},
-            {"name": "Cosmicdrake", "base_hp": 65, "level_range": (14, 20), "sprite_id": 16, "rarity": "legendary"},
+            {"name": "Budling", "base_hp": 40, "level_range": (5, 10), "sprite_id": 1, "rarity": "common"},
+            {"name": "Florion", "base_hp": 50, "level_range": (6, 12), "sprite_id": 2, "rarity": "common"},
+            {"name": "Verdantus", "base_hp": 55, "level_range": (8, 14), "sprite_id": 3, "rarity": "uncommon"},
+            {"name": "Rockpaw", "base_hp": 55, "level_range": (7, 13), "sprite_id": 4, "rarity": "common"},
+            {"name": "Ravenix", "base_hp": 42, "level_range": (6, 11), "sprite_id": 5, "rarity": "common"},
+            {"name": "Frostfox", "base_hp": 48, "level_range": (7, 12), "sprite_id": 6, "rarity": "uncommon"},
+            {"name": "Embear", "base_hp": 43, "level_range": (6, 12), "sprite_id": 7, "rarity": "common"},
+            {"name": "Blazefang", "base_hp": 52, "level_range": (9, 15), "sprite_id": 8, "rarity": "uncommon"},
+            {"name": "Charizord", "base_hp": 60, "level_range": (12, 18), "sprite_id": 9, "rarity": "rare"},
+            {"name": "Toxling", "base_hp": 44, "level_range": (8, 12), "sprite_id": 10, "rarity": "uncommon"},
+            {"name": "Venomcoil", "base_hp": 50, "level_range": (10, 16), "sprite_id": 11, "rarity": "rare"},
+            {"name": "Aquabit", "base_hp": 41, "level_range": (5, 10), "sprite_id": 12, "rarity": "common"},
+            {"name": "Tidecrest", "base_hp": 56, "level_range": (11, 17), "sprite_id": 13, "rarity": "rare"},
+            {"name": "Leviathan", "base_hp": 65, "level_range": (14, 20), "sprite_id": 14, "rarity": "rare"},
+            {"name": "Larvite", "base_hp": 38, "level_range": (5, 9), "sprite_id": 15, "rarity": "common"},
+            {"name": "Beetlord", "base_hp": 62, "level_range": (15, 22), "sprite_id": 16, "rarity": "legendary"},
         ]
 
         # Weighted random selection based on rarity
@@ -327,7 +327,9 @@ class BattleScene(Scene):
             "defense": defense,
             "sprite_path": panel_sprite_path,  # Panel uses the static .png file
             "type": species_data["type"],
-            "moves": species_data["moves"].copy()
+            "moves": species_data["moves"].copy(),
+            "status": None,  # Initialize with no status effect
+            "status_turns": 0
         }
 
         # Create animated sprite for opponent
@@ -363,6 +365,12 @@ class BattleScene(Scene):
                 # Calculate default defense based on level
                 player_level = self.player_pokemon.get("level", 1)
                 self.player_pokemon["defense"] = int(10 + player_level * 0.5)
+
+            # Ensure player pokemon has status fields
+            if "status" not in self.player_pokemon:
+                self.player_pokemon["status"] = None
+            if "status_turns" not in self.player_pokemon:
+                self.player_pokemon["status_turns"] = 0
 
             # Create animated sprite for player (if they have a sprite_path with animated version)
             player_sprite_path = self.player_pokemon.get("sprite_path", "")
@@ -481,12 +489,24 @@ class BattleScene(Scene):
         self._state_timer = 0.0
     
     def _on_move_select(self, move: str) -> None:
-        """Document 1的版本 - 包含state設定，這是關鍵！"""
+        """Handle move selection and check status effects"""
         if self.current_turn == "player":
-            self.player_selected_move = move
-            self.message = f"{self.player_pokemon['name']} used {move}!"
-            self.state = BattleState.PLAYER_TURN  # 這行很重要！
-            self._execute_player_attack()
+            # Check if status blocks action
+            blocked, status_msg = self._check_status_blocks_action(self.player_pokemon)
+
+            if blocked:
+                # Can't attack due to status
+                self.player_selected_move = None
+                self.message = status_msg
+                self.state = BattleState.SHOW_DAMAGE
+                self._state_timer = 0.0
+                Logger.info(f"Player's turn blocked by status: {status_msg}")
+            else:
+                # Normal attack
+                self.player_selected_move = move
+                self.message = f"{self.player_pokemon['name']} used {move}!"
+                self.state = BattleState.PLAYER_TURN
+                self._execute_player_attack()
     
     def _execute_player_attack(self) -> None:
         if not self.player_selected_move or not self.opponent_pokemon:
@@ -515,6 +535,11 @@ class BattleScene(Scene):
         attack = self.player_pokemon.get("attack", 10)
         defense = self.opponent_pokemon.get("defense", 10)
 
+        # Apply burn status effect (reduces attack by 50%)
+        if self.player_pokemon.get("status") == "burn":
+            burn_data = STATUS_EFFECTS["burn"]
+            attack = int(attack * burn_data["affects_attack"])
+
         damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
@@ -534,6 +559,19 @@ class BattleScene(Scene):
         if effectiveness_msg:
             self.message += f" {effectiveness_msg}"
 
+        # Try to apply status effect from move
+        if move_data and "status_effect" in move_data:
+            status_effect = move_data["status_effect"]
+            status_chance = move_data.get("status_chance", 0.3)
+
+            # Check if opponent already has a status
+            if not self.opponent_pokemon.get("status"):
+                if random.random() < status_chance:
+                    self._apply_status(self.opponent_pokemon, status_effect)
+                    status_name = STATUS_EFFECTS[status_effect]["name"]
+                    self.message += f" {self.opponent_pokemon['name']} is {status_name}!"
+                    Logger.info(f"Applied {status_effect} to opponent")
+
         Logger.info(f"Player attacked with {self.player_selected_move}: {damage} damage. {effectiveness_msg}. Opponent HP: {self.opponent_pokemon['hp']}")
 
         if self._check_battle_end():
@@ -546,6 +584,18 @@ class BattleScene(Scene):
     
     def _execute_enemy_attack(self) -> None:
         if not self.opponent_pokemon or not self.player_pokemon:
+            return
+
+        # Check if status blocks action
+        blocked, status_msg = self._check_status_blocks_action(self.opponent_pokemon)
+
+        if blocked:
+            # Can't attack due to status
+            self.enemy_selected_move = None
+            self.message = status_msg
+            self.state = BattleState.SHOW_DAMAGE
+            self._state_timer = 0.0
+            Logger.info(f"Enemy's turn blocked by status: {status_msg}")
             return
 
         # Enemy selects a random move from their moveset
@@ -588,6 +638,11 @@ class BattleScene(Scene):
         attack = self.opponent_pokemon.get("attack", 10)
         defense = self.player_pokemon.get("defense", 10)
 
+        # Apply burn status effect (reduces attack by 50%)
+        if self.opponent_pokemon.get("status") == "burn":
+            burn_data = STATUS_EFFECTS["burn"]
+            attack = int(attack * burn_data["affects_attack"])
+
         damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
@@ -607,6 +662,19 @@ class BattleScene(Scene):
         if effectiveness_msg:
             self.message += f" {effectiveness_msg}"
 
+        # Try to apply status effect from move
+        if move_data and "status_effect" in move_data:
+            status_effect = move_data["status_effect"]
+            status_chance = move_data.get("status_chance", 0.3)
+
+            # Check if player already has a status
+            if not self.player_pokemon.get("status"):
+                if random.random() < status_chance:
+                    self._apply_status(self.player_pokemon, status_effect)
+                    status_name = STATUS_EFFECTS[status_effect]["name"]
+                    self.message += f" {self.player_pokemon['name']} is {status_name}!"
+                    Logger.info(f"Applied {status_effect} to player")
+
         Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. {effectiveness_msg}. Player HP: {self.player_pokemon['hp']}")
 
         if self._check_battle_end():
@@ -619,6 +687,83 @@ class BattleScene(Scene):
         self.state = BattleState.SHOW_DAMAGE
         self.enemy_selected_move = None  # Reset for next turn
         
+    def _apply_status(self, pokemon: Monster, status: str) -> None:
+        """Apply a status effect to a pokemon"""
+        if status not in STATUS_EFFECTS:
+            return
+
+        pokemon["status"] = status
+
+        # Set duration for sleep status
+        if status == "sleep":
+            duration_range = STATUS_EFFECTS[status].get("duration_range", (1, 3))
+            pokemon["status_turns"] = random.randint(duration_range[0], duration_range[1])
+        else:
+            pokemon["status_turns"] = 0
+
+    def _check_status_blocks_action(self, pokemon: Monster) -> tuple[bool, str]:
+        """
+        Check if status effect blocks the pokemon's action
+
+        Returns:
+            tuple[bool, str]: (blocked, message)
+        """
+        status = pokemon.get("status")
+        if not status or status not in STATUS_EFFECTS:
+            return (False, "")
+
+        status_data = STATUS_EFFECTS[status]
+        pokemon_name = pokemon["name"]
+
+        # Sleep always blocks
+        if status == "sleep":
+            turns_left = pokemon.get("status_turns", 0)
+            if turns_left > 0:
+                return (True, f"{pokemon_name} is fast asleep! Zzz...")
+            else:
+                # Wake up
+                pokemon["status"] = None
+                pokemon["status_turns"] = 0
+                return (False, f"{pokemon_name} woke up!")
+
+        # Paralysis has a chance to block
+        elif status == "paralysis":
+            block_chance = status_data["blocks_action"]
+            if random.random() < block_chance:
+                return (True, f"{pokemon_name} is paralyzed and can't move!")
+
+        return (False, "")
+
+    def _apply_status_damage(self, pokemon: Monster) -> int:
+        """
+        Apply end-of-turn status damage (poison, burn)
+
+        Returns:
+            int: Damage dealt by status
+        """
+        status = pokemon.get("status")
+        if not status or status not in STATUS_EFFECTS:
+            return 0
+
+        status_data = STATUS_EFFECTS[status]
+        damage_percent = status_data.get("damage_per_turn", 0.0)
+
+        if damage_percent > 0:
+            max_hp = pokemon.get("max_hp", 100)
+            damage = int(max_hp * damage_percent)
+            pokemon["hp"] = max(0, pokemon["hp"] - damage)
+            return damage
+
+        return 0
+
+    def _update_status_turns(self, pokemon: Monster) -> None:
+        """Update status turn counter (for sleep)"""
+        status = pokemon.get("status")
+        if status == "sleep":
+            turns_left = pokemon.get("status_turns", 0)
+            if turns_left > 0:
+                pokemon["status_turns"] = turns_left - 1
+
     def _check_battle_end(self) -> bool:
         if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
             self.state = BattleState.CATCHING
@@ -873,6 +1018,41 @@ class BattleScene(Scene):
                     if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
                         self._show_catch_panel()
                 else:
+                    # Apply end-of-turn status damage
+                    status_messages = []
+
+                    # Apply status damage to both Pokemon
+                    if self.current_turn == "player":
+                        # Player just attacked, apply status damage to player
+                        player_status_dmg = self._apply_status_damage(self.player_pokemon)
+                        if player_status_dmg > 0:
+                            status_name = STATUS_EFFECTS[self.player_pokemon["status"]]["name"]
+                            status_messages.append(f"{self.player_pokemon['name']} took {player_status_dmg} damage from {status_name}!")
+                            Logger.info(f"Player took {player_status_dmg} status damage")
+
+                        # Update status turns (for sleep)
+                        self._update_status_turns(self.player_pokemon)
+                    else:
+                        # Enemy just attacked, apply status damage to enemy
+                        enemy_status_dmg = self._apply_status_damage(self.opponent_pokemon)
+                        if enemy_status_dmg > 0:
+                            status_name = STATUS_EFFECTS[self.opponent_pokemon["status"]]["name"]
+                            status_messages.append(f"{self.opponent_pokemon['name']} took {enemy_status_dmg} damage from {status_name}!")
+                            Logger.info(f"Enemy took {enemy_status_dmg} status damage")
+
+                        # Update status turns (for sleep)
+                        self._update_status_turns(self.opponent_pokemon)
+
+                    # Append status messages to main message
+                    if status_messages:
+                        self.message += "\n" + " ".join(status_messages)
+
+                    # Check if status damage caused a KO
+                    if self._check_battle_end():
+                        if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
+                            self._show_catch_panel()
+                        return
+
                     # Transition to next appropriate state
                     self._state_timer = 0.0
                     if self.current_turn == "player":
@@ -1123,6 +1303,41 @@ class BattleScene(Scene):
                     if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
                         self._show_catch_panel()
                 else:
+                    # Apply end-of-turn status damage
+                    status_messages = []
+
+                    # Apply status damage to both Pokemon
+                    if self.current_turn == "player":
+                        # Player just attacked, apply status damage to player
+                        player_status_dmg = self._apply_status_damage(self.player_pokemon)
+                        if player_status_dmg > 0:
+                            status_name = STATUS_EFFECTS[self.player_pokemon["status"]]["name"]
+                            status_messages.append(f"{self.player_pokemon['name']} took {player_status_dmg} damage from {status_name}!")
+                            Logger.info(f"Player took {player_status_dmg} status damage")
+
+                        # Update status turns (for sleep)
+                        self._update_status_turns(self.player_pokemon)
+                    else:
+                        # Enemy just attacked, apply status damage to enemy
+                        enemy_status_dmg = self._apply_status_damage(self.opponent_pokemon)
+                        if enemy_status_dmg > 0:
+                            status_name = STATUS_EFFECTS[self.opponent_pokemon["status"]]["name"]
+                            status_messages.append(f"{self.opponent_pokemon['name']} took {enemy_status_dmg} damage from {status_name}!")
+                            Logger.info(f"Enemy took {enemy_status_dmg} status damage")
+
+                        # Update status turns (for sleep)
+                        self._update_status_turns(self.opponent_pokemon)
+
+                    # Append status messages to main message
+                    if status_messages:
+                        self.message += "\n" + " ".join(status_messages)
+
+                    # Check if status damage caused a KO
+                    if self._check_battle_end():
+                        if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
+                            self._show_catch_panel()
+                        return
+
                     # Transition to next appropriate state
                     self._state_timer = 0.0
                     if self.current_turn == "player":
@@ -1343,10 +1558,12 @@ class BattleScene(Scene):
                 # After delay, apply damage
                 self._apply_enemy_damage()
         
-        # Update panels for HP changes
+        # Update panels for HP changes and animations
         if self.opponent_panel:
+            self.opponent_panel.update(dt)
             self.opponent_panel.update_pokemon(self.opponent_pokemon)
         if self.player_panel:
+            self.player_panel.update(dt)
             self.player_panel.update_pokemon(self.player_pokemon)
 
     def _draw_type_matchup_display(self, screen: pg.Surface) -> None:

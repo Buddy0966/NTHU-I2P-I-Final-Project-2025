@@ -2,6 +2,7 @@ from __future__ import annotations
 import pygame as pg
 from src.sprites import Sprite
 from src.utils.definition import Monster
+from src.interface.components.status_icon import StatusIcon
 
 class PokemonStatsPanel:
     monster: Monster
@@ -9,12 +10,23 @@ class PokemonStatsPanel:
     _font: pg.font.Font
     _small_font: pg.font.Font
     _bg_sprite: Sprite
-    
+    status_icon: StatusIcon | None
+
     def __init__(self, monster: Monster, x: int, y: int, width: int = 160, height: int = 100):
         self.monster = monster
         self.rect = pg.Rect(x, y, width, height)
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 14)
         self._small_font = pg.font.Font('assets/fonts/Minecraft.ttf', 12)
+
+        # Initialize status icon
+        status = monster.get("status", None)
+        if status:
+            # Position status icon in top-right corner of panel
+            icon_x = x + width - 25
+            icon_y = y + 25
+            self.status_icon = StatusIcon(status, icon_x, icon_y, size=20)
+        else:
+            self.status_icon = None
         
         try:
             self._bg_sprite = Sprite("UI/raw/UI_Flat_Banner03a.png", (width, height))
@@ -44,11 +56,22 @@ class PokemonStatsPanel:
             self.sprite_image = None
 
     def update(self, dt: float) -> None:
-        pass
+        # Update status icon animation
+        if self.status_icon:
+            self.status_icon.update(dt)
     
     def update_pokemon(self, monster: Monster) -> None:
         """Update the displayed pokemon data and reload sprite"""
         self.monster = monster
+
+        # Update status icon
+        status = monster.get("status", None)
+        if status:
+            icon_x = self.rect.x + self.rect.width - 25
+            icon_y = self.rect.y + 25
+            self.status_icon = StatusIcon(status, icon_x, icon_y, size=20)
+        else:
+            self.status_icon = None
 
         # Reload sprite for the new Pokemon
         try:
@@ -134,3 +157,7 @@ class PokemonStatsPanel:
         defense = self.monster.get("defense", 10)
         stats_text = self._small_font.render(f"ATK:{attack} DEF:{defense}", True, (0, 0, 0))
         screen.blit(stats_text, (self.rect.x + 60, self.rect.y + 70))
+
+        # Draw status icon if present
+        if self.status_icon:
+            self.status_icon.draw(screen)

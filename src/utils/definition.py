@@ -94,6 +94,8 @@ class Monster(TypedDict):
     sprite_path: str
     type: str  # Pokemon element type: Fire, Water, Ice, Wind, Light, Slash, or None
     moves: list[str]  # List of move names this Pokemon can use
+    status: str | None  # Current status effect: "poison", "paralysis", "burn", "sleep", or None
+    status_turns: int  # Remaining turns for status effects (used for sleep)
 
 class Item(TypedDict):
     name: str

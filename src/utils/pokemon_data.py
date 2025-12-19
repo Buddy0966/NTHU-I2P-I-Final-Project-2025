@@ -1,5 +1,5 @@
 """
-Pokemon and Move Database with Type System
+Pokemon and Move Database with Type System - REDESIGNED based on actual sprites
 """
 
 # Type effectiveness system - only one table needed!
@@ -13,6 +13,46 @@ TYPE_ADVANTAGE = {
     "Slash": "Water"    # Slash > Water, so Water < Slash
 }
 
+# Status effects database with properties
+STATUS_EFFECTS = {
+    "poison": {
+        "name": "Poison",
+        "color": (160, 80, 200),  # Purple
+        "icon": "💀",
+        "damage_per_turn": 0.1,  # 10% of max HP per turn
+        "blocks_action": False,
+        "affects_attack": False,
+        "duration": -1  # Lasts until battle ends (-1 = infinite)
+    },
+    "paralysis": {
+        "name": "Paralysis",
+        "color": (255, 220, 50),  # Yellow
+        "icon": "⚡",
+        "damage_per_turn": 0.0,
+        "blocks_action": 0.25,  # 25% chance to be unable to move
+        "affects_attack": False,
+        "duration": -1
+    },
+    "burn": {
+        "name": "Burn",
+        "color": (255, 100, 50),  # Orange-red
+        "icon": "🔥",
+        "damage_per_turn": 0.05,  # 5% of max HP per turn
+        "blocks_action": False,
+        "affects_attack": 0.5,  # Reduces physical attack by 50%
+        "duration": -1
+    },
+    "sleep": {
+        "name": "Sleep",
+        "color": (150, 200, 255),  # Light blue
+        "icon": "💤",
+        "damage_per_turn": 0.0,
+        "blocks_action": True,  # Cannot move at all
+        "affects_attack": False,
+        "duration_range": (1, 3)  # Lasts 1-3 turns
+    }
+}
+
 # Move database with properties (moves have NO type - only power and animation)
 MOVES_DATABASE = {
     "IceShard": {
@@ -22,7 +62,7 @@ MOVES_DATABASE = {
     },
     "LightPulse": {
         "name": "Light Pulse",
-        "power": 18,
+        "power": 17,
         "animation": "attack/attack2.png"
     },
     "WaterBurst": {
@@ -33,12 +73,16 @@ MOVES_DATABASE = {
     "FireBlast": {
         "name": "Fire Blast",
         "power": 20,
-        "animation": "attack/attack4.png"
+        "animation": "attack/attack4.png",
+        "status_effect": "burn",
+        "status_chance": 0.15  # 15% chance to burn
     },
     "FlameSlash": {
         "name": "Flame Slash",
         "power": 18,
-        "animation": "attack/attack5.png"
+        "animation": "attack/attack5.png",
+        "status_effect": "burn",
+        "status_chance": 0.2  # 20% chance to burn
     },
     "WindSpiral": {
         "name": "Wind Spiral",
@@ -48,28 +92,27 @@ MOVES_DATABASE = {
     "QuickSlash": {
         "name": "Quick Slash",
         "power": 15,
-        "animation": "attack/attack7.png"
-    },
-    # Additional moves
-    "NatureBurst": {
-        "name": "Nature Burst",
-        "power": 16,
-        "animation": None
+        "animation": "attack/attack5.png"
     },
     "AquaShield": {
         "name": "Aqua Shield",
-        "power": 12,  # Defense buff move
+        "power": 16,
         "animation": "attack/attack3.png"
     },
     "TidalStrike": {
         "name": "Tidal Strike",
-        "power": 22,
+        "power": 19,
         "animation": "attack/attack3.png"
     },
     "HeatDive": {
         "name": "Heat Dive",
-        "power": 20,
+        "power": 17,
         "animation": "attack/attack4.png"
+    },
+    "NatureBurst": {
+        "name": "Nature Burst",
+        "power": 16,
+        "animation": "attack/attack6.png"
     },
     "StonePunch": {
         "name": "Stone Punch",
@@ -84,12 +127,16 @@ MOVES_DATABASE = {
     "SparkClaw": {
         "name": "Spark Claw",
         "power": 16,
-        "animation": "attack/attack2.png"
+        "animation": "attack/attack2.png",
+        "status_effect": "paralysis",
+        "status_chance": 0.3  # 30% chance to paralyze
     },
     "VoltDash": {
         "name": "Volt Dash",
         "power": 19,
-        "animation": "attack/attack2.png"
+        "animation": "attack/attack2.png",
+        "status_effect": "paralysis",
+        "status_chance": 0.2  # 20% chance to paralyze
     },
     "FrostNova": {
         "name": "Frost Nova",
@@ -98,13 +145,23 @@ MOVES_DATABASE = {
     },
     "ColdBite": {
         "name": "Cold Bite",
-        "power": 16,
+        "power": 15,
         "animation": "attack/attack1.png"
+    },
+    "IronWing": {
+        "name": "Iron Wing",
+        "power": 18,
+        "animation": None
+    },
+    "SteelCharge": {
+        "name": "Steel Charge",
+        "power": 19,
+        "animation": None
     },
     "DarkSwipe": {
         "name": "Dark Swipe",
-        "power": 15,
-        "animation": "attack/attack7.png"
+        "power": 16,
+        "animation": None
     },
     "ShadowBurst": {
         "name": "Shadow Burst",
@@ -113,23 +170,13 @@ MOVES_DATABASE = {
     },
     "FearSlash": {
         "name": "Fear Slash",
-        "power": 16,
-        "animation": "attack/attack7.png"
-    },
-    "IronWing": {
-        "name": "Iron Wing",
         "power": 17,
-        "animation": "attack/attack7.png"
-    },
-    "SteelCharge": {
-        "name": "Steel Charge",
-        "power": 19,
-        "animation": None
+        "animation": "attack/attack5.png"
     },
     "MindPierce": {
         "name": "Mind Pierce",
         "power": 18,
-        "animation": None
+        "animation": "attack/attack2.png"
     },
     "SpiritWave": {
         "name": "Spirit Wave",
@@ -139,12 +186,16 @@ MOVES_DATABASE = {
     "ToxicBite": {
         "name": "Toxic Bite",
         "power": 14,
-        "animation": None
+        "animation": None,
+        "status_effect": "poison",
+        "status_chance": 0.4  # 40% chance to poison
     },
     "VenomShot": {
         "name": "Venom Shot",
         "power": 16,
-        "animation": None
+        "animation": None,
+        "status_effect": "poison",
+        "status_chance": 0.3  # 30% chance to poison
     },
     "SandBurst": {
         "name": "Sand Burst",
@@ -154,7 +205,7 @@ MOVES_DATABASE = {
     "DustBlade": {
         "name": "Dust Blade",
         "power": 16,
-        "animation": "attack/attack6.png"
+        "animation": None
     },
     "SoulSpark": {
         "name": "Soul Spark",
@@ -189,7 +240,9 @@ MOVES_DATABASE = {
     "MagmaSmash": {
         "name": "Magma Smash",
         "power": 21,
-        "animation": "attack/attack4.png"
+        "animation": "attack/attack4.png",
+        "status_effect": "burn",
+        "status_chance": 0.25  # 25% chance to burn
     },
     "CosmicPulse": {
         "name": "Cosmic Pulse",
@@ -205,141 +258,148 @@ MOVES_DATABASE = {
         "name": "Dragon Rift",
         "power": 25,
         "animation": None
+    },
+    "LeafBlade": {
+        "name": "Leaf Blade",
+        "power": 16,
+        "animation": "attack/attack6.png"
+    },
+    "VineWhip": {
+        "name": "Vine Whip",
+        "power": 14,
+        "animation": "attack/attack6.png"
+    },
+    "PoisonSting": {
+        "name": "Poison Sting",
+        "power": 13,
+        "animation": None,
+        "status_effect": "poison",
+        "status_chance": 0.35
+    },
+    "BugBite": {
+        "name": "Bug Bite",
+        "power": 15,
+        "animation": None
+    },
+    "WingAttack": {
+        "name": "Wing Attack",
+        "power": 17,
+        "animation": None
+    },
+    "Peck": {
+        "name": "Peck",
+        "power": 14,
+        "animation": None
+    },
+    "AerialAce": {
+        "name": "Aerial Ace",
+        "power": 19,
+        "animation": None
     }
 }
 
 # Pokemon species database with types and moves
+# REDESIGNED to match actual sprite appearances!
 POKEMON_SPECIES = {
-    # Common Pokemon
-    "Leafeon": {
+    # === GRASS TYPE EVOLUTION CHAIN (sprite1 -> sprite2 -> sprite3) ===
+    "Budling": {  # sprite1 - 小綠葉草系
         "type": "Wind",
-        "moves": ["QuickSlash", "WindSpiral", "NatureBurst"]
+        "moves": ["VineWhip", "LeafBlade", "NatureBurst"]
     },
-    "Aquafin": {
-        "type": "Water",
-        "moves": ["WaterBurst", "AquaShield", "TidalStrike"]
+    "Florion": {  # sprite2 - 中型草系，帶葉片 (玩家初始)
+        "type": "Wind",
+        "moves": ["LeafBlade", "WindSpiral", "QuickSlash"]
     },
-    "Blazewing": {
-        "type": "Fire",
-        "moves": ["FireBlast", "FlameSlash", "HeatDive"]
+    "Verdantus": {  # sprite3 - 大型草系最終進化
+        "type": "Wind",
+        "moves": ["NatureBurst", "TempestCrash", "LeafBlade"]
     },
-    "Rockfist": {
+
+    # === GROUND TYPE (sprite4) ===
+    "Rockpaw": {  # sprite4 - 棕色岩石小熊
         "type": "None",
         "moves": ["StonePunch", "EarthCrack", "QuickSlash"]
     },
-    "Thunderpaw": {
-        "type": "Light",
-        "moves": ["LightPulse", "SparkClaw", "VoltDash"]
+
+    # === FLYING/DARK TYPE (sprite5) ===
+    "Ravenix": {  # sprite5 - 黑色飛行鳥類
+        "type": "Slash",
+        "moves": ["Peck", "WingAttack", "AerialAce"]
     },
 
-    # Uncommon Pokemon
-    "Frostbite": {
+    # === ICE TYPE (sprite6) ===
+    "Frostfox": {  # sprite6 - 藍白冰狐
         "type": "Ice",
         "moves": ["IceShard", "FrostNova", "ColdBite"]
     },
-    "Shadowclaw": {
-        "type": "None",
-        "moves": ["DarkSwipe", "ShadowBurst", "FearSlash"]
-    },
-    "Steelwing": {
-        "type": "Wind",
-        "moves": ["WindSpiral", "IronWing", "SteelCharge"]
-    },
-    "Mysticsoul": {
-        "type": "Light",
-        "moves": ["LightPulse", "MindPierce", "SpiritWave"]
-    },
-    "Venomfang": {
-        "type": "None",
-        "moves": ["ToxicBite", "VenomShot", "QuickSlash"]
-    },
 
-    # Rare Pokemon
-    "Sandstorm": {
-        "type": "Wind",
-        "moves": ["SandBurst", "WindSpiral", "DustBlade"]
-    },
-    "Ghostflame": {
+    # === FIRE TYPE EVOLUTION CHAIN (sprite7 -> sprite8 -> sprite9) ===
+    "Embear": {  # sprite7 - 橙色火兔/火熊
         "type": "Fire",
-        "moves": ["FireBlast", "SoulSpark", "HauntFlame"]
+        "moves": ["FlameSlash", "HeatDive", "QuickSlash"]
     },
-    "Crystalhorn": {
-        "type": "Ice",
-        "moves": ["IceShard", "CrystalBeam", "ShatterStrike"]
-    },
-    "Stormchaser": {
-        "type": "Wind",
-        "moves": ["WindSpiral", "GaleBlade", "TempestCrash"]
-    },
-    "Lavaguard": {
+    "Blazefang": {  # sprite8 - 中型火系獸
         "type": "Fire",
-        "moves": ["FireBlast", "FlameSlash", "MagmaSmash"]
+        "moves": ["FireBlast", "FlameSlash", "HeatDive"]
+    },
+    "Charizord": {  # sprite9 - 噴火龍型！
+        "type": "Fire",
+        "moves": ["MagmaSmash", "FireBlast", "DragonRift"]
     },
 
-    # Legendary Pokemon
-    "Cosmicdrake": {
-        "type": "Light",
-        "moves": ["CosmicPulse", "StarfallBlaze", "DragonRift"]
+    # === POISON TYPE EVOLUTION CHAIN (sprite10 -> sprite11) ===
+    "Toxling": {  # sprite10 - 紫色小毒系
+        "type": "None",
+        "moves": ["PoisonSting", "ToxicBite", "QuickSlash"]
     },
-    "Mewtwo": {
-        "type": "Light",
-        "moves": ["MindPierce", "SpiritWave", "CosmicPulse", "LightPulse"]
+    "Venomcoil": {  # sprite11 - 紫色大型毒蛇/龍
+        "type": "None",
+        "moves": ["ToxicBite", "VenomShot", "ShadowBurst"]
     },
 
-    # User's Pokemon
-    "Florion": {
-        "type": "Slash",
-        "moves": ["QuickSlash", "FearSlash", "IronWing"]
+    # === WATER TYPE EVOLUTION CHAIN (sprite12 -> sprite13 -> sprite14) ===
+    "Aquabit": {  # sprite12 - 小藍魚
+        "type": "Water",
+        "moves": ["WaterBurst", "AquaShield", "QuickSlash"]
+    },
+    "Tidecrest": {  # sprite13 - 中型水龍
+        "type": "Water",
+        "moves": ["TidalStrike", "WaterBurst", "AquaShield"]
+    },
+    "Leviathan": {  # sprite14 - 大型水系巨龍
+        "type": "Water",
+        "moves": ["TidalStrike", "DragonRift", "WaterBurst"]
+    },
+
+    # === BUG TYPE EVOLUTION CHAIN (sprite15 -> sprite16) ===
+    "Larvite": {  # sprite15 - 綠色小蟲
+        "type": "Wind",
+        "moves": ["BugBite", "VineWhip", "QuickSlash"]
+    },
+    "Beetlord": {  # sprite16 - 大型瓢蟲/甲蟲 (傳說)
+        "type": "Wind",
+        "moves": ["BugBite", "NatureBurst", "CosmicPulse"]
     }
 }
 
 
-def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tuple[float, str]:
-    """
-    Calculate type effectiveness multiplier and message.
-    Uses the reciprocal relationship: if A > B, then B < A.
-
-    Returns:
-        tuple[float, str]: (damage_multiplier, effectiveness_message)
-        - damage_multiplier: 1.5 for super effective, 0.67 for not very effective, 1.0 for neutral
-        - effectiveness_message: Message to display to the player
-    """
-    # None type has no advantages/disadvantages - show neutral message
-    if attacker_type == "None" or defender_type == "None":
-        return (1.0, "Typeless attack.")
-
-    # Check if attacker has advantage over defender (A > B)
-    if TYPE_ADVANTAGE.get(attacker_type) == defender_type:
-        return (1.5, "It's super effective!")
-
-    # Check if defender has advantage over attacker (B > A, meaning A < B)
-    # This is the reciprocal relationship: if defender is strong against attacker,
-    # then attacker is weak against defender
-    if TYPE_ADVANTAGE.get(defender_type) == attacker_type:
-        return (0.67, "It's not very effective...")
-
-    # Neutral matchup - no type advantage either way
-    return (1.0, "Normal damage.")
-
-
-
-
-# Evolution chains mapping
+# Evolution chains mapping - CORRECTED to match actual sprites!
 EVOLUTION_CHAINS = {
-    # Chain 1: sprite1 -> sprite2 -> sprite3
-    "Leafeon": {"evolves_to": "Aquafin", "level": 16, "sprite_id": 2},
-    "Aquafin": {"evolves_to": "Blazewing", "level": 32, "sprite_id": 3},
+    # Chain 1: Grass evolution (sprite1 -> sprite2 -> sprite3)
+    "Budling": {"evolves_to": "Florion", "level": 16, "sprite_id": 2},
+    "Florion": {"evolves_to": "Verdantus", "level": 32, "sprite_id": 3},
 
-    # Chain 2: sprite7 -> sprite8 -> sprite9
-    "Shadowclaw": {"evolves_to": "Steelwing", "level": 20, "sprite_id": 8},
-    "Steelwing": {"evolves_to": "Mysticsoul", "level": 36, "sprite_id": 9},
+    # Chain 2: Fire evolution (sprite7 -> sprite8 -> sprite9)
+    "Embear": {"evolves_to": "Blazefang", "level": 20, "sprite_id": 8},
+    "Blazefang": {"evolves_to": "Charizord", "level": 36, "sprite_id": 9},
 
-    # Chain 3: sprite12 -> sprite13 -> sprite14
-    "Ghostflame": {"evolves_to": "Crystalhorn", "level": 25, "sprite_id": 13},
-    "Crystalhorn": {"evolves_to": "Stormchaser", "level": 40, "sprite_id": 14},
+    # Chain 3: Water evolution (sprite12 -> sprite13 -> sprite14)
+    "Aquabit": {"evolves_to": "Tidecrest", "level": 25, "sprite_id": 13},
+    "Tidecrest": {"evolves_to": "Leviathan", "level": 40, "sprite_id": 14},
 
-    # Chain 4: sprite15 -> sprite16
-    "Lavaguard": {"evolves_to": "Cosmicdrake", "level": 45, "sprite_id": 16},
+    # Chain 4: Bug/Poison evolution (sprite10 -> sprite11) & Bug evolution (sprite15 -> sprite16)
+    "Toxling": {"evolves_to": "Venomcoil", "level": 22, "sprite_id": 11},
+    "Larvite": {"evolves_to": "Beetlord", "level": 30, "sprite_id": 16},
 }
 
 # Stat multipliers for evolution (all stats increased)
@@ -441,18 +501,16 @@ def calculate_levelup_cost(current_level: int) -> int:
     # This creates a curve where higher levels cost significantly more
     base_cost = 50
     cost = int(base_cost * (current_level ** 1.5))
-
-    # Ensure minimum cost of 50
-    return max(50, cost)
+    return cost
 
 
-def levelup_pokemon(pokemon: dict, bag) -> tuple[bool, str]:
+def levelup_pokemon(pokemon: dict, money: int) -> tuple[bool, str]:
     """
-    Level up a pokemon by spending coins.
+    Level up a pokemon using coins. Returns success status and message.
 
     Args:
-        pokemon: Pokemon data dict to level up
-        bag: Player's bag object containing money
+        pokemon: Pokemon dict to level up
+        money: Available money
 
     Returns:
         tuple[bool, str]: (success, message)
@@ -460,41 +518,49 @@ def levelup_pokemon(pokemon: dict, bag) -> tuple[bool, str]:
     current_level = pokemon.get("level", 1)
     cost = calculate_levelup_cost(current_level)
 
-    # Check if player has enough coins
-    coins_item = None
-    for item in bag.items:
-        if item.get("name") == "Coins":
-            coins_item = item
-            break
+    if money < cost:
+        return (False, f"Not enough money! Need {cost} coins, have {money}")
 
-    if not coins_item or coins_item.get("count", 0) < cost:
-        return (False, f"Not enough coins! Need {cost} coins.")
-
-    # Deduct coins
-    coins_item["count"] -= cost
-
-    # Level up the pokemon
+    # Level up
     pokemon["level"] = current_level + 1
 
-    # Increase max HP slightly (5% per level)
+    # Increase stats
     old_max_hp = pokemon.get("max_hp", 100)
-    new_max_hp = int(old_max_hp * 1.05)
+    new_max_hp = int(old_max_hp * 1.1)  # 10% HP increase per level
     pokemon["max_hp"] = new_max_hp
 
-    # Increase attack stat (3% per level)
-    old_attack = pokemon.get("attack", 10)
-    new_attack = int(old_attack * 1.03)
-    pokemon["attack"] = new_attack
+    # Increase attack by 1
+    pokemon["attack"] = pokemon.get("attack", 10) + 1
 
-    # Increase defense stat (3% per level)
-    old_defense = pokemon.get("defense", 10)
-    new_defense = int(old_defense * 1.03)
-    pokemon["defense"] = new_defense
+    # Increase defense by 1
+    pokemon["defense"] = pokemon.get("defense", 10) + 1
 
     # Heal by the increased amount
     pokemon["hp"] = min(pokemon.get("hp", 0) + (new_max_hp - old_max_hp), new_max_hp)
 
     return (True, f"{pokemon['name']} leveled up to {pokemon['level']}! Cost: {cost} coins")
+
+
+def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tuple[float, str]:
+    """
+    Calculate type effectiveness multiplier and message.
+    Uses the reciprocal relationship: if A > B, then B < A.
+
+    Returns:
+        tuple[float, str]: (damage_multiplier, effectiveness_message)
+        - damage_multiplier: 1.5 for super effective, 0.67 for not very effective, 1.0 for neutral
+        - effectiveness_message: Message to display to the player
+    """
+    # Check if attacker has advantage
+    if attacker_type in TYPE_ADVANTAGE and TYPE_ADVANTAGE[attacker_type] == defender_type:
+        return (1.5, "It's super effective!")
+
+    # Check if defender has advantage (attacker is at disadvantage)
+    if defender_type in TYPE_ADVANTAGE and TYPE_ADVANTAGE[defender_type] == attacker_type:
+        return (0.67, "It's not very effective...")
+
+    # Neutral matchup
+    return (1.0, "")
 
 
 def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10, attack: int = 10, defense: int = 10) -> tuple[int, str]:

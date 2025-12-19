@@ -96,22 +96,22 @@ class CatchPokemonScene(Scene):
     
     # Wild pokemon data pool with rarity system
     WILD_POKEMON_POOL = [
-        {"name": "Leafeon", "base_hp": 40, "level_range": (5, 10), "sprite_id": 1, "rarity": "common"},
-        {"name": "Aquafin", "base_hp": 50, "level_range": (6, 12), "sprite_id": 2, "rarity": "common"},
-        {"name": "Blazewing", "base_hp": 45, "level_range": (5, 11), "sprite_id": 3, "rarity": "common"},
-        {"name": "Rockfist", "base_hp": 55, "level_range": (7, 13), "sprite_id": 4, "rarity": "common"},
-        {"name": "Thunderpaw", "base_hp": 42, "level_range": (6, 11), "sprite_id": 5, "rarity": "common"},
-        {"name": "Frostbite", "base_hp": 48, "level_range": (7, 12), "sprite_id": 6, "rarity": "uncommon"},
-        {"name": "Shadowclaw", "base_hp": 43, "level_range": (8, 14), "sprite_id": 7, "rarity": "uncommon"},
-        {"name": "Steelwing", "base_hp": 52, "level_range": (9, 15), "sprite_id": 8, "rarity": "uncommon"},
-        {"name": "Mysticsoul", "base_hp": 46, "level_range": (7, 13), "sprite_id": 9, "rarity": "uncommon"},
-        {"name": "Venomfang", "base_hp": 44, "level_range": (8, 12), "sprite_id": 10, "rarity": "uncommon"},
-        {"name": "Sandstorm", "base_hp": 49, "level_range": (9, 14), "sprite_id": 11, "rarity": "rare"},
-        {"name": "Ghostflame", "base_hp": 41, "level_range": (10, 16), "sprite_id": 12, "rarity": "rare"},
-        {"name": "Crystalhorn", "base_hp": 60, "level_range": (11, 17), "sprite_id": 13, "rarity": "rare"},
-        {"name": "Stormchaser", "base_hp": 53, "level_range": (10, 15), "sprite_id": 14, "rarity": "rare"},
-        {"name": "Lavaguard", "base_hp": 58, "level_range": (12, 18), "sprite_id": 15, "rarity": "rare"},
-        {"name": "Cosmicdrake", "base_hp": 65, "level_range": (14, 20), "sprite_id": 16, "rarity": "legendary"},
+        {"name": "Budling", "base_hp": 40, "level_range": (5, 10), "sprite_id": 1, "rarity": "common"},
+        {"name": "Florion", "base_hp": 50, "level_range": (6, 12), "sprite_id": 2, "rarity": "common"},
+        {"name": "Verdantus", "base_hp": 55, "level_range": (8, 14), "sprite_id": 3, "rarity": "uncommon"},
+        {"name": "Rockpaw", "base_hp": 55, "level_range": (7, 13), "sprite_id": 4, "rarity": "common"},
+        {"name": "Ravenix", "base_hp": 42, "level_range": (6, 11), "sprite_id": 5, "rarity": "common"},
+        {"name": "Frostfox", "base_hp": 48, "level_range": (7, 12), "sprite_id": 6, "rarity": "uncommon"},
+        {"name": "Embear", "base_hp": 43, "level_range": (6, 12), "sprite_id": 7, "rarity": "common"},
+        {"name": "Blazefang", "base_hp": 52, "level_range": (9, 15), "sprite_id": 8, "rarity": "uncommon"},
+        {"name": "Charizord", "base_hp": 60, "level_range": (12, 18), "sprite_id": 9, "rarity": "rare"},
+        {"name": "Toxling", "base_hp": 44, "level_range": (8, 12), "sprite_id": 10, "rarity": "uncommon"},
+        {"name": "Venomcoil", "base_hp": 50, "level_range": (10, 16), "sprite_id": 11, "rarity": "rare"},
+        {"name": "Aquabit", "base_hp": 41, "level_range": (5, 10), "sprite_id": 12, "rarity": "common"},
+        {"name": "Tidecrest", "base_hp": 56, "level_range": (11, 17), "sprite_id": 13, "rarity": "rare"},
+        {"name": "Leviathan", "base_hp": 65, "level_range": (14, 20), "sprite_id": 14, "rarity": "rare"},
+        {"name": "Larvite", "base_hp": 38, "level_range": (5, 9), "sprite_id": 15, "rarity": "common"},
+        {"name": "Beetlord", "base_hp": 62, "level_range": (15, 22), "sprite_id": 16, "rarity": "legendary"},
     ]
     
     def __init__(self, game_manager: GameManager):

@@ -387,14 +387,32 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.461763784112737,
-    "y": 29.0
+    "x": 32.029778069462616,
+    "y": 29.799999999999997
   },
   "bag": {
     "monsters": [
       {
+        "name": "Mysticsoul",
+        "hp": 57,
+        "max_hp": 60,
+        "level": 45,
+        "sprite_path": "sprites/sprite9.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
+        "type": "Light",
+        "moves": [
+          "LightPulse",
+          "MindPierce",
+          "SpiritWave"
+        ],
+        "attack": 32,
+        "defense": 32,
+        "status": null,
+        "status_turns": 0
+      },
+      {
         "name": "pikachu",
-        "hp": 99299,
+        "hp": 99287,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/pikachu.png",
@@ -406,21 +424,9 @@
           "IronWing"
         ],
         "attack": 60,
-        "defense": 60
-      },
-      {
-        "name": "Mysticsoul",
-        "hp": 60,
-        "max_hp": 60,
-        "level": 45,
-        "sprite_path": "sprites/sprite9.png",
-        "menu_sprite_path": "menu_sprites/menusprite3.png",
-        "type": "Light",
-        "moves": [
-          "LightPulse",
-          "MindPierce",
-          "SpiritWave"
-        ]
+        "defense": 60,
+        "status": null,
+        "status_turns": 0
       },
       {
         "name": "Steelwing",
