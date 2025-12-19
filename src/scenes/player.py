@@ -97,9 +97,13 @@ class Player(Entity):
             tp = self.game_manager.current_map.check_teleport(self.position)
             if tp:
                 dest = tp.destination
-                # Don't auto-teleport to new map or gym_new - require prompt confirmation
+                # Don't auto-teleport to new_map or gym_new - require prompt confirmation
                 if dest not in ["new_map.tmx", "gym_new.tmx"]:
-                    self.game_manager.switch_map(dest)
+                    # Skip boss portals that are locked
+                    if tp.requires_boss_defeated and not self.game_manager.boss_defeated:
+                        pass  # Don't teleport if boss not defeated
+                    else:
+                        self.game_manager.switch_map(dest)
                 
         super().update(dt)
 

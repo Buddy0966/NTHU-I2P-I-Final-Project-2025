@@ -15,7 +15,9 @@
       "Bash(ls:*)",
       "Bash(timeout /t 5)",
       "Bash(find:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(taskkill:*)",
+      "Bash(python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []

@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 24.318692926561734,
-        "y": 23.98800000000001
+        "x": 31.46453752081659,
+        "y": 29.166921492159748
       },
       "enemy_trainers": [
         {
@@ -114,8 +114,8 @@
         }
       ],
       "player": {
-        "x": 36.30300433275896,
-        "y": 17.982262335608354
+        "x": 37.96799509804291,
+        "y": 17.26400490195712
       },
       "enemy_trainers": [],
       "npcs": [],
@@ -141,8 +141,8 @@
         }
       ],
       "player": {
-        "x": 12.005892352261677,
-        "y": 11.096568542494929
+        "x": 12.1005601743307,
+        "y": 14.003037805415737
       },
       "enemy_trainers": [],
       "npcs": [],
@@ -151,7 +151,7 @@
           "x": 12.0,
           "y": 10.0,
           "name": "Gym Treasure Chest",
-          "opened": true,
+          "opened": false,
           "rewards": {
             "coins": 3000,
             "items": [
@@ -358,11 +358,17 @@
           "x": 13,
           "y": 4,
           "destination": "new_map.tmx"
+        },
+        {
+          "x": 11.0,
+          "y": 4,
+          "destination": "map.tmx",
+          "requires_boss_defeated": true
         }
       ],
       "player": {
-        "x": 11.746704760933,
-        "y": 4.606702309954449
+        "x": 11.907945309579063,
+        "y": 4.950868832195821
       },
       "enemy_trainers": [],
       "npcs": [
@@ -379,16 +385,16 @@
       "chests": []
     }
   ],
-  "current_map": "gym.tmx",
+  "current_map": "map.tmx",
   "player": {
-    "x": 12.194363348286043,
-    "y": 11.180097546470561
+    "x": 31.37504718880847,
+    "y": 29.0
   },
   "bag": {
     "monsters": [
       {
         "name": "pikachu",
-        "hp": 99491,
+        "hp": 99305,
         "max_hp": 100000,
         "level": 100,
         "sprite_path": "menu_sprites/pikachu.png",
@@ -975,30 +981,190 @@
         ],
         "attack": 20,
         "defense": 20
+      },
+      {
+        "name": "Leafeon",
+        "hp": 40,
+        "max_hp": 40,
+        "level": 10,
+        "sprite_path": "sprites/sprite1.png",
+        "menu_sprite_path": "menu_sprites/menusprite1.png",
+        "type": "Grass",
+        "moves": [
+          "VineWhip",
+          "LeafStorm",
+          "Synthesis"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Aquafin",
+        "hp": 50,
+        "max_hp": 50,
+        "level": 10,
+        "sprite_path": "sprites/sprite2.png",
+        "menu_sprite_path": "menu_sprites/menusprite2.png",
+        "type": "Water",
+        "moves": [
+          "WaterGun",
+          "AquaTail",
+          "HydroPump"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Blazewing",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 10,
+        "sprite_path": "sprites/sprite3.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
+        "type": "Fire",
+        "moves": [
+          "Ember",
+          "FireBlast",
+          "FlameCharge"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Rockfist",
+        "hp": 55,
+        "max_hp": 55,
+        "level": 10,
+        "sprite_path": "sprites/sprite4.png",
+        "menu_sprite_path": "menu_sprites/menusprite4.png",
+        "type": "Rock",
+        "moves": [
+          "StonePunch",
+          "EarthCrack",
+          "QuickSlash"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Thunderpaw",
+        "hp": 42,
+        "max_hp": 42,
+        "level": 10,
+        "sprite_path": "sprites/sprite5.png",
+        "menu_sprite_path": "menu_sprites/menusprite5.png",
+        "type": "Electric",
+        "moves": [
+          "ThunderShock",
+          "BoltStrike",
+          "ChargeBeam"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Frostbite",
+        "hp": 48,
+        "max_hp": 48,
+        "level": 10,
+        "sprite_path": "sprites/sprite6.png",
+        "menu_sprite_path": "menu_sprites/menusprite6.png",
+        "type": "Ice",
+        "moves": [
+          "IceShard",
+          "Blizzard",
+          "FrostBreath"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Shadowclaw",
+        "hp": 43,
+        "max_hp": 43,
+        "level": 10,
+        "sprite_path": "sprites/sprite7.png",
+        "menu_sprite_path": "menu_sprites/menusprite1.png",
+        "type": "Dark",
+        "moves": [
+          "ShadowStrike",
+          "DarkPulse",
+          "NightSlash"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Steelwing",
+        "hp": 52,
+        "max_hp": 52,
+        "level": 10,
+        "sprite_path": "sprites/sprite8.png",
+        "menu_sprite_path": "menu_sprites/menusprite2.png",
+        "type": "Steel",
+        "moves": [
+          "WindSpiral",
+          "IronWing",
+          "SteelCharge"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Mysticsoul",
+        "hp": 0,
+        "max_hp": 46,
+        "level": 10,
+        "sprite_path": "sprites/sprite9.png",
+        "menu_sprite_path": "menu_sprites/menusprite3.png",
+        "type": "Psychic",
+        "moves": [
+          "LightPulse",
+          "MindPierce",
+          "SpiritWave"
+        ],
+        "attack": 20,
+        "defense": 20
+      },
+      {
+        "name": "Venomfang",
+        "hp": 44,
+        "max_hp": 44,
+        "level": 10,
+        "sprite_path": "sprites/sprite10.png",
+        "menu_sprite_path": "menu_sprites/menusprite4.png",
+        "type": "Poison",
+        "moves": [
+          "PoisonSting",
+          "ToxicSpray",
+          "VenomBite"
+        ],
+        "attack": 20,
+        "defense": 20
       }
     ],
     "items": [
       {
         "name": "Defense Potion",
-        "count": 14,
+        "count": 16,
         "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
       },
       {
         "name": "Health Potion",
-        "count": 15,
+        "count": 17,
         "sprite_path": "ingame_ui/health-potion.png",
         "price": 100
       },
       {
         "name": "Strength Potion",
-        "count": 12,
+        "count": 14,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
       {
         "name": "Coins",
-        "count": 10744,
+        "count": 13744,
         "sprite_path": "ingame_ui/coin.png",
         "price": 1
       },
@@ -1010,5 +1176,6 @@
       }
     ],
     "money": 5000
-  }
+  },
+  "boss_defeated": true
 }

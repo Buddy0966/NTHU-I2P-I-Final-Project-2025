@@ -447,8 +447,10 @@ class BattleScene(Scene):
         self.switch_panel = BattleSwitchPanel(
             self.game_manager.bag.monsters,
             current_pokemon_index,
-            GameSettings.SCREEN_WIDTH // 2 - 200,
-            GameSettings.SCREEN_HEIGHT // 2 - 225
+            GameSettings.SCREEN_WIDTH // 2 - 250,
+            GameSettings.SCREEN_HEIGHT // 2 - 250,
+            width=500,
+            height=500
         )
         self.message = "Choose a Pokemon to switch:"
 
@@ -623,13 +625,34 @@ class BattleScene(Scene):
             self.message = f"{self.opponent_pokemon['name']} fainted! Throw a pokeball?"
             Logger.info("Battle won! Ready to catch opponent pokemon!")
             return True
-        
+
         if self.player_pokemon and self.player_pokemon['hp'] <= 0:
-            self.state = BattleState.BATTLE_END
-            self.message = f"{self.player_pokemon['name']} fainted! You lost!"
-            Logger.info("Battle lost!")
-            return True
-        
+            # Check if there are other healthy Pokemon available
+            current_pokemon_index = 0
+            available_pokemon = [p for i, p in enumerate(self.game_manager.bag.monsters)
+                               if i != current_pokemon_index and p.get("hp", 0) > 0]
+
+            if available_pokemon:
+                # Force player to switch to another Pokemon
+                self.state = BattleState.CHOOSE_SWITCH
+                self.switch_panel = BattleSwitchPanel(
+                    self.game_manager.bag.monsters,
+                    current_pokemon_index,
+                    GameSettings.SCREEN_WIDTH // 2 - 250,
+                    GameSettings.SCREEN_HEIGHT // 2 - 250,
+                    width=500,
+                    height=500
+                )
+                self.message = f"{self.player_pokemon['name']} fainted! Choose another Pokemon!"
+                Logger.info(f"{self.player_pokemon['name']} fainted, forcing switch to another Pokemon")
+                return True  # Return True to pause the battle flow
+            else:
+                # No healthy Pokemon left, player loses
+                self.state = BattleState.BATTLE_END
+                self.message = f"All your Pokemon fainted! You lost!"
+                Logger.info("Battle lost! No healthy Pokemon left!")
+                return True
+
         return False
     
     def _execute_switch(self, new_pokemon_index: int) -> None:
@@ -656,6 +679,9 @@ class BattleScene(Scene):
         if "defense" not in new_pokemon:
             player_level = new_pokemon.get("level", 1)
             new_pokemon["defense"] = int(10 + player_level * 0.5)
+
+        # Check if this was a forced switch (previous Pokemon fainted)
+        old_pokemon_fainted = self.player_pokemon and self.player_pokemon.get("hp", 0) <= 0
 
         # Swap Pokemon in the bag (move selected Pokemon to index 0)
         self.game_manager.bag.monsters[0], self.game_manager.bag.monsters[new_pokemon_index] = \
@@ -684,10 +710,18 @@ class BattleScene(Scene):
         self.message = f"Go, {self.player_pokemon['name']}!"
         Logger.info(f"Switched to {self.player_pokemon['name']}")
 
-        # Close switch panel and transition to show damage state (enemy gets free turn after switch)
+        # Close switch panel and transition to show damage state
         self.switch_panel = None
         self._state_timer = 0.0
         self.state = BattleState.SHOW_DAMAGE
+
+        # Enemy gets a free turn after switch (both voluntary and forced)
+        if old_pokemon_fainted:
+            # Forced switch - enemy attacks next
+            self.current_turn = "enemy"
+        else:
+            # Voluntary switch - enemy also gets free turn
+            self.current_turn = "enemy"
 
     def _execute_item_attack(self, item: dict) -> None:
         if not self.player_pokemon:
@@ -1331,10 +1365,121 @@ class BattleScene(Scene):
         if self.player_panel:
             self.player_panel.update_pokemon(self.player_pokemon)
 
+    def _draw_type_matchup_display(self, screen: pg.Surface) -> None:
+        """Draw a beautiful type matchup display at the top of the screen"""
+        if not self.player_pokemon or not self.opponent_pokemon:
+            return
+
+        from src.utils.pokemon_data import TYPE_ADVANTAGE
+
+        player_type = self.player_pokemon.get("type", "None")
+        opponent_type = self.opponent_pokemon.get("type", "None")
+
+        # Type color mapping for visual appeal
+        type_colors = {
+            "Fire": (255, 100, 50),
+            "Water": (50, 150, 255),
+            "Ice": (150, 230, 255),
+            "Wind": (200, 255, 200),
+            "Light": (255, 255, 150),
+            "Slash": (200, 200, 200),
+            "None": (150, 150, 150),
+        }
+
+        # Draw background panel
+        panel_width = 500
+        panel_height = 70
+        panel_x = (GameSettings.SCREEN_WIDTH - panel_width) // 2
+        panel_y = 10
+
+        # Semi-transparent dark background
+        panel_surface = pg.Surface((panel_width, panel_height), pg.SRCALPHA)
+        pg.draw.rect(panel_surface, (0, 0, 0, 180), (0, 0, panel_width, panel_height), border_radius=15)
+        pg.draw.rect(panel_surface, (255, 255, 255, 100), (0, 0, panel_width, panel_height), 3, border_radius=15)
+        screen.blit(panel_surface, (panel_x, panel_y))
+
+        # Draw player type badge (left side)
+        player_color = type_colors.get(player_type, (150, 150, 150))
+        player_badge_x = panel_x + 30
+        player_badge_y = panel_y + 20
+        player_badge_w = 120
+        player_badge_h = 35
+
+        pg.draw.rect(screen, player_color, (player_badge_x, player_badge_y, player_badge_w, player_badge_h), border_radius=10)
+        pg.draw.rect(screen, (255, 255, 255), (player_badge_x, player_badge_y, player_badge_w, player_badge_h), 2, border_radius=10)
+
+        player_type_text = self._font.render(player_type, True, (255, 255, 255))
+        text_rect = player_type_text.get_rect(center=(player_badge_x + player_badge_w // 2, player_badge_y + player_badge_h // 2))
+        screen.blit(player_type_text, text_rect)
+
+        # Draw opponent type badge (right side)
+        opponent_color = type_colors.get(opponent_type, (150, 150, 150))
+        opponent_badge_x = panel_x + panel_width - 150
+        opponent_badge_y = panel_y + 20
+        opponent_badge_w = 120
+        opponent_badge_h = 35
+
+        pg.draw.rect(screen, opponent_color, (opponent_badge_x, opponent_badge_y, opponent_badge_w, opponent_badge_h), border_radius=10)
+        pg.draw.rect(screen, (255, 255, 255), (opponent_badge_x, opponent_badge_y, opponent_badge_w, opponent_badge_h), 2, border_radius=10)
+
+        opponent_type_text = self._font.render(opponent_type, True, (255, 255, 255))
+        text_rect = opponent_type_text.get_rect(center=(opponent_badge_x + opponent_badge_w // 2, opponent_badge_y + opponent_badge_h // 2))
+        screen.blit(opponent_type_text, text_rect)
+
+        # Draw matchup indicator (center)
+        center_x = panel_x + panel_width // 2
+        center_y = panel_y + panel_height // 2
+
+        # Determine matchup
+        player_advantage = TYPE_ADVANTAGE.get(player_type) == opponent_type
+        opponent_advantage = TYPE_ADVANTAGE.get(opponent_type) == player_type
+
+        if player_type == "None" or opponent_type == "None":
+            # Neutral - no type advantages
+            symbol = "="
+            symbol_color = (200, 200, 200)
+            glow_color = (100, 100, 100)
+        elif player_advantage:
+            # Player has advantage
+            symbol = ">"
+            symbol_color = (100, 255, 100)
+            glow_color = (50, 200, 50)
+        elif opponent_advantage:
+            # Opponent has advantage
+            symbol = "<"
+            symbol_color = (255, 100, 100)
+            glow_color = (200, 50, 50)
+        else:
+            # Neutral matchup
+            symbol = "="
+            symbol_color = (255, 255, 150)
+            glow_color = (200, 200, 100)
+
+        # Draw glowing symbol
+        symbol_font = pg.font.Font('assets/fonts/Minecraft.ttf', 40)
+
+        # Glow effect
+        for offset in range(3, 0, -1):
+            glow_alpha = 80 - (offset * 20)
+            glow_surface = pg.Surface((60, 60), pg.SRCALPHA)
+            glow_text = symbol_font.render(symbol, True, (*glow_color, glow_alpha))
+            glow_rect = glow_text.get_rect(center=(30, 30))
+            glow_surface.blit(glow_text, glow_rect)
+            screen.blit(glow_surface, (center_x - 30 - offset, center_y - 30 - offset))
+
+        # Main symbol
+        symbol_text = symbol_font.render(symbol, True, symbol_color)
+        symbol_rect = symbol_text.get_rect(center=(center_x, center_y))
+        screen.blit(symbol_text, symbol_rect)
+
     @override
     def draw(self, screen: pg.Surface) -> None:
         self.background.draw(screen)
-        
+
+        # Draw type matchup display (only when both Pokemon are visible)
+        if self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_SWITCH):
+            self._draw_type_matchup_display(screen)
+
         # Draw panels
         if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             self.opponent_panel.draw(screen)

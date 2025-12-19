@@ -33,7 +33,8 @@ class GameManager:
                  enemy_trainers: dict[str, list[EnemyTrainer]],
                  npcs: dict[str, list["NPC"]] | None = None,
                  chests: dict[str, list["Chest"]] | None = None,
-                 bag: Bag | None = None):
+                 bag: Bag | None = None,
+                 boss_defeated: bool = False):
 
         from src.data.bag import Bag
         # Game Properties
@@ -44,6 +45,7 @@ class GameManager:
         self.npcs = npcs if npcs is not None else {}
         self.chests = chests if chests is not None else {}
         self.bag = bag if bag is not None else Bag([], [])
+        self.boss_defeated = boss_defeated
 
         # Track player spawn/last-position per map (in pixels)
         # Initialize from provided maps; if a player is present use its position for current map
@@ -169,6 +171,7 @@ class GameManager:
             "current_map": self.current_map_key,
             "player": self.player.to_dict() if self.player is not None else None,
             "bag": self.bag.to_dict(),
+            "boss_defeated": self.boss_defeated,
         }
 
     @classmethod
@@ -198,13 +201,15 @@ class GameManager:
                     sp["y"] * GameSettings.TILE_SIZE
                 )
         current_map = data["current_map"]
+        boss_defeated = data.get("boss_defeated", False)
         gm = cls(
             maps, current_map,
             None, # Player
             trainers,
             npcs,
             chests,
-            bag=None
+            bag=None,
+            boss_defeated=boss_defeated
         )
         gm.current_map_key = current_map
         # attach the loaded player spawn/positions

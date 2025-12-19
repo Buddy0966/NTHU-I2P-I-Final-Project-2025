@@ -16,6 +16,7 @@ from src.utils.pathfinding import Pathfinder
 from src.core.services import scene_manager, sound_manager, input_manager
 from src.core.services import sound_manager
 from src.sprites import Sprite, Animation
+from src.sprites.portal_sprite import PortalSprite
 from typing import override, Dict
 
 
@@ -44,6 +45,7 @@ class GameScene(Scene):
     reward_notification: RewardNotification | None
     chat_overlay: ChatOverlay | None
     minimap: Minimap
+    boss_portal: PortalSprite | None
 
     def __init__(self):
         super().__init__()
@@ -134,6 +136,9 @@ class GameScene(Scene):
             background_color=(0, 0, 0, 180),
             show_entities=True
         )
+
+        # Boss portal sprite (initialized when boss is defeated)
+        self.boss_portal = None
 
     def _toggle_settings(self) -> None:
         self.show_settings = not self.show_settings
@@ -270,16 +275,32 @@ class GameScene(Scene):
             self.game_manager.bush_cooldown = self.game_manager.BUSH_WAIT
             # Set teleport cooldown to prevent immediate teleportation on load
             self.game_manager.teleport_cooldown = self.game_manager.TELEPORT_WAIT
-        
+
+        # Initialize boss portal if boss is defeated and on gym_new map
+        self._init_boss_portal()
+
         # sound_manager.play_bgm("RBY 103 Pallet Town.ogg")
         if self.online_manager:
             self.online_manager.enter()
         
+    def _init_boss_portal(self) -> None:
+        """Initialize the boss portal sprite if conditions are met"""
+        if self.game_manager.boss_defeated and self.game_manager.current_map.path_name == "gym_new.tmx":
+            # Find the boss portal teleporter
+            for tp in self.game_manager.current_map.teleporters:
+                if tp.requires_boss_defeated:
+                    # Create portal sprite at the teleporter position
+                    self.boss_portal = PortalSprite(tp.pos.x, tp.pos.y, size=GameSettings.TILE_SIZE * 2)
+                    Logger.info("Boss portal initialized at position ({}, {})".format(tp.pos.x, tp.pos.y))
+                    break
+        else:
+            self.boss_portal = None
+
     @override
     def exit(self) -> None:
         if self.online_manager:
             self.online_manager.exit()
-        
+
     @override
     def update(self, dt: float):
         self.setting_button.update(dt)
@@ -350,9 +371,20 @@ class GameScene(Scene):
             # Check if player just stepped on a teleporter
             if self.game_manager.player and getattr(self.game_manager, "teleport_cooldown", 0.0) <= 0.0:
                 tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
-                if tp and tp.destination in ["new_map.tmx", "gym_new.tmx"]:  # Show prompt for new map and gym_new teleporters
-                    self.show_teleport_prompt = True
-                    self.pending_teleport_destination = tp.destination
+                if tp:
+                    # Check if this portal requires boss to be defeated
+                    if tp.requires_boss_defeated and not self.game_manager.boss_defeated:
+                        # Show locked message
+                        self.show_teleport_prompt = False
+                        self.pending_teleport_destination = None
+                    elif tp.destination in ["new_map.tmx", "gym_new.tmx"]:
+                        # Show prompt for new_map and gym_new teleporters
+                        self.show_teleport_prompt = True
+                        self.pending_teleport_destination = tp.destination
+                    elif tp.requires_boss_defeated and self.game_manager.boss_defeated:
+                        # Boss portal activated, show prompt
+                        self.show_teleport_prompt = True
+                        self.pending_teleport_destination = tp.destination
 
         # Check if there is assigned next scene
         self.game_manager.try_switch_map()
@@ -363,9 +395,15 @@ class GameScene(Scene):
             # Clear navigation arrow path when map changes
             if self.arrow_path:
                 self.arrow_path = None
+            # Re-initialize boss portal when map changes
+            self._init_boss_portal()
 
         # Update game manager timers (e.g., teleport cooldown)
         self.game_manager.update(dt)
+
+        # Update boss portal animation
+        if self.boss_portal:
+            self.boss_portal.update(dt)
 
         if self.game_manager.player:
             self.game_manager.player.update(dt)
@@ -503,6 +541,10 @@ class GameScene(Scene):
         for chest in self.game_manager.current_chests:
             chest.draw(screen, camera)
 
+        # Draw boss portal with animation
+        if self.boss_portal:
+            self.boss_portal.draw(screen, camera)
+
         # Draw navigation arrow path
         if self.arrow_path and self.game_manager.player:
             self.arrow_path.draw(screen, camera)
@@ -624,16 +666,30 @@ class GameScene(Scene):
 
         # Check if directly on teleporter
         tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
-        if tp and tp.destination in ["new_map.tmx", "gym_new.tmx"]:
-            return True
+        if tp:
+            # Skip locked boss portals
+            if tp.requires_boss_defeated and not self.game_manager.boss_defeated:
+                return False
+            # Check for prompt-required destinations or boss portal
+            if tp.destination in ["new_map.tmx", "gym_new.tmx"]:
+                return True
+            elif tp.requires_boss_defeated and self.game_manager.boss_defeated:
+                return True
 
         # Check adjacent tiles (left and right)
         player_pos = self.game_manager.player.position
         for offset_x in [-GameSettings.TILE_SIZE, GameSettings.TILE_SIZE]:
             adjacent_pos = Position(player_pos.x + offset_x, player_pos.y)
             tp_adjacent = self.game_manager.current_map.check_teleport(adjacent_pos)
-            if tp_adjacent and tp_adjacent.destination in ["new_map.tmx", "gym_new.tmx"]:
-                return True
+            if tp_adjacent:
+                # Skip locked boss portals
+                if tp_adjacent.requires_boss_defeated and not self.game_manager.boss_defeated:
+                    continue
+                # Check for prompt-required destinations or boss portal
+                if tp_adjacent.destination in ["new_map.tmx", "gym_new.tmx"]:
+                    return True
+                elif tp_adjacent.requires_boss_defeated and self.game_manager.boss_defeated:
+                    return True
 
         return False
 
@@ -653,10 +709,25 @@ class GameScene(Scene):
         banner = pg.transform.scale(banner, (banner_width, banner_height))
         screen.blit(banner, (banner_x, banner_y))
 
-        # Draw text - different text based on destination
+        # Draw text - different text based on destination and current map
         font = pg.font.Font(None, 32)
-        if self.pending_teleport_destination == "gym_new.tmx":
-            text1 = font.render("boss fight?", True, (0, 0, 0))
+        current_map = self.game_manager.current_map.path_name
+
+        # Check if this is the boss victory portal
+        if self.game_manager.player:
+            tp = self.game_manager.current_map.check_teleport(self.game_manager.player.position)
+            if tp and tp.requires_boss_defeated:
+                text1 = font.render("Victory Portal!", True, (255, 215, 0))
+            elif self.pending_teleport_destination == "gym_new.tmx":
+                text1 = font.render("Enter Boss Fight?", True, (0, 0, 0))
+            elif self.pending_teleport_destination == "new_map.tmx" and current_map == "gym_new.tmx":
+                text1 = font.render("Exit Boss Area?", True, (0, 0, 0))
+            else:
+                text1 = font.render("Enter a New World?", True, (0, 0, 0))
+        elif self.pending_teleport_destination == "gym_new.tmx":
+            text1 = font.render("Enter Boss Fight?", True, (0, 0, 0))
+        elif self.pending_teleport_destination == "new_map.tmx" and current_map == "gym_new.tmx":
+            text1 = font.render("Exit Boss Area?", True, (0, 0, 0))
         else:
             text1 = font.render("Enter a New World?", True, (0, 0, 0))
         text3 = font.render("ENTER to confirm", True, (0, 0, 0))

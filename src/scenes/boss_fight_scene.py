@@ -470,14 +470,36 @@ class BossFightScene(Scene):
         if self.boss_pokemon and self.boss_pokemon['hp'] <= 0:
             self.state = BossFightState.BATTLE_END
             self.message = f"Victory! You defeated Mewtwo!"
-            Logger.info("Boss defeated! Player wins!")
+            self.game_manager.boss_defeated = True
+            Logger.info("Boss defeated! Player wins! Portal unlocked!")
             return True
 
         if self.player_pokemon and self.player_pokemon['hp'] <= 0:
-            self.state = BossFightState.BATTLE_END
-            self.message = f"{self.player_pokemon['name']} fainted! You lost!"
-            Logger.info("Battle lost!")
-            return True
+            # Check if there are other healthy Pokemon available
+            current_pokemon_index = 0
+            available_pokemon = [p for i, p in enumerate(self.game_manager.bag.monsters)
+                               if i != current_pokemon_index and p.get("hp", 0) > 0]
+
+            if available_pokemon:
+                # Force player to switch to another Pokemon
+                self.state = BossFightState.CHOOSE_SWITCH
+                self.switch_panel = BattleSwitchPanel(
+                    self.game_manager.bag.monsters,
+                    current_pokemon_index,
+                    GameSettings.SCREEN_WIDTH // 2 - 250,
+                    GameSettings.SCREEN_HEIGHT // 2 - 250,
+                    width=500,
+                    height=500
+                )
+                self.message = f"{self.player_pokemon['name']} fainted! Choose another Pokemon!"
+                Logger.info(f"{self.player_pokemon['name']} fainted, forcing switch to another Pokemon")
+                return True  # Return True to pause the battle flow
+            else:
+                # No healthy Pokemon left, player loses
+                self.state = BossFightState.BATTLE_END
+                self.message = f"All your Pokemon fainted! You lost!"
+                Logger.info("Battle lost! No healthy Pokemon left!")
+                return True
 
         return False
 
@@ -504,6 +526,9 @@ class BossFightScene(Scene):
             player_level = new_pokemon.get("level", 1)
             new_pokemon["defense"] = int(10 + player_level * 0.5)
 
+        # Check if this was a forced switch (previous Pokemon fainted)
+        old_pokemon_fainted = self.player_pokemon and self.player_pokemon.get("hp", 0) <= 0
+
         self.game_manager.bag.monsters[0], self.game_manager.bag.monsters[new_pokemon_index] = \
             self.game_manager.bag.monsters[new_pokemon_index], self.game_manager.bag.monsters[0]
 
@@ -529,7 +554,17 @@ class BossFightScene(Scene):
 
         self.switch_panel = None
         self._state_timer = 0.0
-        self.state = BossFightState.SHOW_DAMAGE
+
+        # If this was a forced switch (Pokemon fainted), boss gets a free turn
+        # Otherwise it's a voluntary switch and boss also gets a turn
+        if old_pokemon_fainted:
+            # Forced switch - show message then let boss attack
+            self.state = BossFightState.SHOW_DAMAGE
+            self.current_turn = "boss"  # Boss will attack next
+        else:
+            # Voluntary switch - boss gets free turn
+            self.state = BossFightState.SHOW_DAMAGE
+            self.current_turn = "boss"  # Boss will attack next
 
     def _execute_item_attack(self, item: dict) -> None:
         if not self.player_pokemon:
@@ -701,6 +736,122 @@ class BossFightScene(Scene):
         if self.player_panel:
             self.player_panel.update_pokemon(self.player_pokemon)
 
+    def _draw_type_matchup_display(self, surface: pg.Surface) -> None:
+        """Draw a beautiful type matchup display at the top of the screen"""
+        if not self.player_pokemon or not self.boss_pokemon:
+            return
+
+        from src.utils.pokemon_data import TYPE_ADVANTAGE
+
+        player_type = self.player_pokemon.get("type", "None")
+        boss_type = self.boss_pokemon.get("type", "None")
+
+        # Type color mapping for visual appeal
+        type_colors = {
+            "Fire": (255, 100, 50),
+            "Water": (50, 150, 255),
+            "Ice": (150, 230, 255),
+            "Wind": (200, 255, 200),
+            "Light": (255, 255, 150),
+            "Slash": (200, 200, 200),
+            "Psychic": (255, 100, 255),  # Boss Mewtwo type
+            "None": (150, 150, 150),
+        }
+
+        # Draw background panel with boss theme
+        panel_width = 500
+        panel_height = 70
+        panel_x = (GameSettings.SCREEN_WIDTH - panel_width) // 2
+        panel_y = 10
+
+        # Semi-transparent dark background with purple tint for boss
+        panel_surface = pg.Surface((panel_width, panel_height), pg.SRCALPHA)
+        pg.draw.rect(panel_surface, (64, 0, 128, 180), (0, 0, panel_width, panel_height), border_radius=15)
+        pg.draw.rect(panel_surface, (148, 0, 211, 150), (0, 0, panel_width, panel_height), 3, border_radius=15)
+        surface.blit(panel_surface, (panel_x, panel_y))
+
+        # Draw player type badge (left side)
+        player_color = type_colors.get(player_type, (150, 150, 150))
+        player_badge_x = panel_x + 30
+        player_badge_y = panel_y + 20
+        player_badge_w = 120
+        player_badge_h = 35
+
+        pg.draw.rect(surface, player_color, (player_badge_x, player_badge_y, player_badge_w, player_badge_h), border_radius=10)
+        pg.draw.rect(surface, (255, 255, 255), (player_badge_x, player_badge_y, player_badge_w, player_badge_h), 2, border_radius=10)
+
+        player_type_text = self._font.render(player_type, True, (255, 255, 255))
+        text_rect = player_type_text.get_rect(center=(player_badge_x + player_badge_w // 2, player_badge_y + player_badge_h // 2))
+        surface.blit(player_type_text, text_rect)
+
+        # Draw boss type badge (right side) with special glow
+        boss_color = type_colors.get(boss_type, (150, 150, 150))
+        boss_badge_x = panel_x + panel_width - 150
+        boss_badge_y = panel_y + 20
+        boss_badge_w = 120
+        boss_badge_h = 35
+
+        # Boss badge glow effect
+        glow_size = 6
+        for i in range(glow_size, 0, -1):
+            glow_alpha = 30 + (glow_size - i) * 10
+            glow_surf = pg.Surface((boss_badge_w + i*2, boss_badge_h + i*2), pg.SRCALPHA)
+            pg.draw.rect(glow_surf, (*boss_color, glow_alpha), (0, 0, boss_badge_w + i*2, boss_badge_h + i*2), border_radius=10)
+            surface.blit(glow_surf, (boss_badge_x - i, boss_badge_y - i))
+
+        pg.draw.rect(surface, boss_color, (boss_badge_x, boss_badge_y, boss_badge_w, boss_badge_h), border_radius=10)
+        pg.draw.rect(surface, (255, 255, 255), (boss_badge_x, boss_badge_y, boss_badge_w, boss_badge_h), 2, border_radius=10)
+
+        boss_type_text = self._font.render(boss_type, True, (255, 255, 255))
+        text_rect = boss_type_text.get_rect(center=(boss_badge_x + boss_badge_w // 2, boss_badge_y + boss_badge_h // 2))
+        surface.blit(boss_type_text, text_rect)
+
+        # Draw matchup indicator (center)
+        center_x = panel_x + panel_width // 2
+        center_y = panel_y + panel_height // 2
+
+        # Determine matchup
+        player_advantage = TYPE_ADVANTAGE.get(player_type) == boss_type
+        boss_advantage = TYPE_ADVANTAGE.get(boss_type) == player_type
+
+        if player_type == "None" or boss_type == "None":
+            # Neutral - no type advantages
+            symbol = "="
+            symbol_color = (200, 200, 200)
+            glow_color = (100, 100, 100)
+        elif player_advantage:
+            # Player has advantage
+            symbol = ">"
+            symbol_color = (100, 255, 100)
+            glow_color = (50, 200, 50)
+        elif boss_advantage:
+            # Boss has advantage
+            symbol = "<"
+            symbol_color = (255, 100, 100)
+            glow_color = (200, 50, 50)
+        else:
+            # Neutral matchup
+            symbol = "="
+            symbol_color = (255, 255, 150)
+            glow_color = (200, 200, 100)
+
+        # Draw glowing symbol with enhanced effect for boss battle
+        symbol_font = pg.font.Font('assets/fonts/Minecraft.ttf', 40)
+
+        # Enhanced glow effect
+        for offset in range(4, 0, -1):
+            glow_alpha = 100 - (offset * 20)
+            glow_surface = pg.Surface((60, 60), pg.SRCALPHA)
+            glow_text = symbol_font.render(symbol, True, (*glow_color, glow_alpha))
+            glow_rect = glow_text.get_rect(center=(30, 30))
+            glow_surface.blit(glow_text, glow_rect)
+            surface.blit(glow_surface, (center_x - 30 - offset, center_y - 30 - offset))
+
+        # Main symbol
+        symbol_text = symbol_font.render(symbol, True, symbol_color)
+        symbol_rect = symbol_text.get_rect(center=(center_x, center_y))
+        surface.blit(symbol_text, symbol_rect)
+
     @override
     def draw(self, screen: pg.Surface) -> None:
         # Calculate screen shake offset
@@ -714,6 +865,10 @@ class BossFightScene(Scene):
         temp_surface = pg.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
 
         self.background.draw(temp_surface)
+
+        # Draw type matchup display (only when both Pokemon are visible)
+        if self.state in (BossFightState.PLAYER_TURN, BossFightState.BOSS_TURN, BossFightState.CHOOSE_MOVE, BossFightState.CHOOSE_ITEM, BossFightState.SHOW_DAMAGE, BossFightState.CHOOSE_SWITCH):
+            self._draw_type_matchup_display(temp_surface)
 
         # Draw panels
         if self.boss_panel and self.state in (BossFightState.BOSS_APPEAR, BossFightState.SEND_PLAYER, BossFightState.PLAYER_TURN, BossFightState.BOSS_TURN, BossFightState.BATTLE_END, BossFightState.SHOW_DAMAGE, BossFightState.CHOOSE_MOVE, BossFightState.CHOOSE_ITEM):

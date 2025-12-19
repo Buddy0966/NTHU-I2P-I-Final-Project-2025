@@ -2,23 +2,15 @@
 Pokemon and Move Database with Type System
 """
 
-# Type effectiveness system
-WEAK_TO = {
-    "Fire": "Water",
-    "Water": "Light",
-    "Ice": "Fire",
-    "Wind": "Ice",
-    "Light": "Wind",
-    "Slash": "Light"
-}
-
-STRONG_AGAINST = {
-    "Fire": "Ice",
-    "Water": "Fire",
-    "Ice": "Wind",
-    "Wind": "Light",
-    "Light": "Slash",
-    "Slash": "Water"
+# Type effectiveness system - only one table needed!
+# If A is strong against B, then B is weak against A (reciprocal relationship)
+TYPE_ADVANTAGE = {
+    "Fire": "Ice",      # Fire > Ice, so Ice < Fire
+    "Water": "Fire",    # Water > Fire, so Fire < Water
+    "Ice": "Wind",      # Ice > Wind, so Wind < Ice
+    "Wind": "Light",    # Wind > Light, so Light < Wind
+    "Light": "Slash",   # Light > Slash, so Slash < Light
+    "Slash": "Water"    # Slash > Water, so Water < Slash
 }
 
 # Move database with properties (moves have NO type - only power and animation)
@@ -305,6 +297,7 @@ POKEMON_SPECIES = {
 def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tuple[float, str]:
     """
     Calculate type effectiveness multiplier and message.
+    Uses the reciprocal relationship: if A > B, then B < A.
 
     Returns:
         tuple[float, str]: (damage_multiplier, effectiveness_message)
@@ -315,15 +308,17 @@ def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tupl
     if attacker_type == "None" or defender_type == "None":
         return (1.0, "Typeless attack.")
 
-    # Check if attacker is strong against defender
-    if STRONG_AGAINST.get(attacker_type) == defender_type:
+    # Check if attacker has advantage over defender (A > B)
+    if TYPE_ADVANTAGE.get(attacker_type) == defender_type:
         return (1.5, "It's super effective!")
 
-    # Check if attacker is weak against defender (defender resists)
-    if WEAK_TO.get(attacker_type) == defender_type:
+    # Check if defender has advantage over attacker (B > A, meaning A < B)
+    # This is the reciprocal relationship: if defender is strong against attacker,
+    # then attacker is weak against defender
+    if TYPE_ADVANTAGE.get(defender_type) == attacker_type:
         return (0.67, "It's not very effective...")
 
-    # Neutral matchup - any type not in "against" relationships
+    # Neutral matchup - no type advantage either way
     return (1.0, "Normal damage.")
 
 

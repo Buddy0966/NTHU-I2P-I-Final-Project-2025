@@ -44,31 +44,45 @@ class PositionCamera:
 class Teleport:
     pos: Position
     destination: str
-    
+    requires_boss_defeated: bool
+
     @overload
-    def __init__(self, x: int, y: int, destination: str) -> None: ...
+    def __init__(self, x: int, y: int, destination: str, requires_boss_defeated: bool = False) -> None: ...
     @overload
-    def __init__(self, pos: Position, destination: str) -> None: ...
+    def __init__(self, pos: Position, destination: str, requires_boss_defeated: bool = False) -> None: ...
 
     def __init__(self, *args, **kwargs):
+        self.requires_boss_defeated = kwargs.get("requires_boss_defeated", False)
         if isinstance(args[0], Position):
             self.pos = args[0]
             self.destination = args[1]
+            if len(args) > 2:
+                self.requires_boss_defeated = args[2]
         else:
-            x, y, dest = args
+            x, y, dest = args[:3]
             self.pos = Position(x, y)
             self.destination = dest
-    
+            if len(args) > 3:
+                self.requires_boss_defeated = args[3]
+
     def to_dict(self):
-        return {
+        result = {
             "x": self.pos.x // GameSettings.TILE_SIZE,
             "y": self.pos.y // GameSettings.TILE_SIZE,
             "destination": self.destination
         }
-    
+        if self.requires_boss_defeated:
+            result["requires_boss_defeated"] = True
+        return result
+
     @classmethod
     def from_dict(cls, data: dict):
-        return cls(data["x"] * GameSettings.TILE_SIZE, data["y"] * GameSettings.TILE_SIZE, data["destination"])
+        return cls(
+            data["x"] * GameSettings.TILE_SIZE,
+            data["y"] * GameSettings.TILE_SIZE,
+            data["destination"],
+            requires_boss_defeated=data.get("requires_boss_defeated", False)
+        )
     
 class Monster(TypedDict):
     name: str
