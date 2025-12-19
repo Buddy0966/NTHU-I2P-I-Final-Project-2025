@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 30.83788051789042,
-        "y": 28.442269268022606
+        "x": 30.96804040507107,
+        "y": 16.291999999999987
       },
       "enemy_trainers": [
         {
@@ -114,8 +114,8 @@
         }
       ],
       "player": {
-        "x": 37.96799509804291,
-        "y": 17.26400490195712
+        "x": 37.96111544670422,
+        "y": 17.558161322930737
       },
       "enemy_trainers": [],
       "npcs": [],
@@ -241,8 +241,8 @@
         }
       ],
       "player": {
-        "x": 11.907945309579063,
-        "y": 4.950868832195821
+        "x": 11.32809754647056,
+        "y": 4.503790621709018
       },
       "enemy_trainers": [],
       "npcs": [
@@ -261,26 +261,25 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.048083261120684,
-    "y": 29.52799999999999
+    "x": 31.06221457760154,
+    "y": 29.444379787261017
   },
   "bag": {
     "monsters": [
       {
-        "name": "pikachu",
-        "hp": 99958,
-        "max_hp": 100000,
-        "level": 100,
-        "sprite_path": "menu_sprites/pikachu.png",
-        "menu_sprite_path": "menu_sprites/pikachu.png",
-        "type": "Light",
+        "name": "Aquabit",
+        "hp": 42,
+        "max_hp": 42,
+        "level": 8,
+        "sprite_path": "sprites/sprite12.png",
+        "type": "Water",
         "moves": [
-          "Thunder Shock",
-          "Thunderbolt",
-          "Quick Attack"
+          "WaterBurst",
+          "AquaShield",
+          "QuickSlash"
         ],
-        "attack": 1000,
-        "defense": 60,
+        "attack": 14,
+        "defense": 14,
         "status": null,
         "status_turns": 0
       },
@@ -351,24 +350,74 @@
         "defense": 14,
         "status": null,
         "status_turns": 0
+      },
+      {
+        "name": "pikachu",
+        "hp": 99958,
+        "max_hp": 100000,
+        "level": 100,
+        "sprite_path": "menu_sprites/pikachu.png",
+        "menu_sprite_path": "menu_sprites/pikachu.png",
+        "type": "Light",
+        "moves": [
+          "Thunder Shock",
+          "Thunderbolt",
+          "Quick Attack"
+        ],
+        "attack": 1000,
+        "defense": 60,
+        "status": null,
+        "status_turns": 0
+      },
+      {
+        "name": "Budling",
+        "hp": 41,
+        "max_hp": 41,
+        "level": 6,
+        "sprite_path": "sprites/sprite1.png",
+        "type": "Wind",
+        "moves": [
+          "VineWhip",
+          "LeafBlade",
+          "NatureBurst"
+        ],
+        "attack": 13,
+        "defense": 13,
+        "status": null,
+        "status_turns": 0
+      },
+      {
+        "name": "Ravenix",
+        "hp": 0,
+        "max_hp": 48,
+        "level": 6,
+        "sprite_path": "sprites/sprite5.png",
+        "type": "Slash",
+        "moves": [
+          "Peck",
+          "WingAttack",
+          "AerialAce"
+        ],
+        "attack": 13,
+        "defense": 13
       }
     ],
     "items": [
       {
         "name": "Defense Potion",
-        "count": 18,
+        "count": 17,
         "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
       },
       {
         "name": "Health Potion",
-        "count": 19,
+        "count": 18,
         "sprite_path": "ingame_ui/health-potion.png",
         "price": 100
       },
       {
         "name": "Strength Potion",
-        "count": 16,
+        "count": 15,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
@@ -380,7 +429,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99951,
+        "count": 99948,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }

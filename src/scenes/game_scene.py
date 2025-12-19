@@ -236,10 +236,10 @@ class GameScene(Scene):
         )
 
         if path:
-            # Simplify path for better visualization
+            # Simplify path for direction calculation, but use full path for arrow placement
             simplified_path = Pathfinder.simplify_path(path)
-            self.arrow_path = ArrowPath(simplified_path)
-            Logger.info(f"Navigation started: {len(path)} points, simplified to {len(simplified_path)}")
+            self.arrow_path = ArrowPath(path, simplified_path)
+            Logger.info(f"Navigation started: {len(path)} points (all tiles), simplified to {len(simplified_path)} waypoints")
         else:
             Logger.warning("No path found to destination")
             self.arrow_path = None

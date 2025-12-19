@@ -8,15 +8,19 @@ from src.sprites import Sprite
 class ArrowPath:
     """Renders an arrow path for navigation"""
 
-    def __init__(self, path: list[Position]):
+    def __init__(self, full_path: list[Position], simplified_path: list[Position] = None):
         """
         Initialize arrow path renderer.
 
         Args:
-            path: List of positions forming the path
+            full_path: Complete list of positions (every tile on the path)
+            simplified_path: Simplified path with only turning points (for direction calculation)
+                           If None, uses full_path for both
         """
-        self.path = path
-        self.original_path = path.copy()  # Keep original for reference
+        self.full_path = full_path
+        self.simplified_path = simplified_path if simplified_path else full_path
+        self.path = self.simplified_path  # For compatibility with existing code
+        self.original_path = full_path.copy()  # Keep original for reference
         self.consumed_up_to_index = 0  # Track how much of the path has been consumed
         self.arrow_sprite = None
 
@@ -28,68 +32,106 @@ class ArrowPath:
 
         # Animation parameters
         self.animation_time = 0.0
-        self.arrow_spacing = 2.0 * GameSettings.TILE_SIZE  # Distance between arrows
         self.pulse_speed = 2.0  # Speed of pulsing animation
-        self.consumption_distance = GameSettings.TILE_SIZE * 1.5  # Distance to consume path
+        self.consumption_distance = GameSettings.TILE_SIZE * 0.7  # Distance to consume each arrow
+
+        # Create arrow positions at each tile in the path
+        self.arrows = []  # List of dict with 'pos', 'angle', 'visible'
+        self._create_tile_arrows()
+
+    def _create_tile_arrows(self) -> None:
+        """Create an arrow for each tile in the full path"""
+        if len(self.full_path) < 2:
+            return
+
+        # For each position in the full path (except the last one which is the destination)
+        for i in range(len(self.full_path) - 1):
+            current = self.full_path[i]
+            
+            # Find which segment of simplified_path this tile belongs to
+            # This determines the direction the arrow should point
+            angle = self._get_angle_for_position(current)
+
+            self.arrows.append({
+                'pos': current,
+                'angle': angle,
+                'visible': True
+            })
+
+    def _get_angle_for_position(self, pos: Position) -> float:
+        """
+        Get the arrow angle for a given position based on simplified path.
+        
+        Args:
+            pos: Position to get angle for
+            
+        Returns:
+            Angle in degrees for the arrow at this position
+        """
+        # Find which segment of simplified_path this position is closest to
+        min_distance = float('inf')
+        best_segment_idx = 0
+        
+        for i in range(len(self.simplified_path) - 1):
+            seg_start = self.simplified_path[i]
+            seg_end = self.simplified_path[i + 1]
+            
+            # Calculate distance from position to this segment
+            dist = self._point_to_segment_distance(pos, seg_start, seg_end)
+            
+            if dist < min_distance:
+                min_distance = dist
+                best_segment_idx = i
+        
+        # Calculate angle based on the direction of this segment
+        seg_start = self.simplified_path[best_segment_idx]
+        seg_end = self.simplified_path[best_segment_idx + 1]
+        
+        dx = seg_end.x - seg_start.x
+        dy = seg_end.y - seg_start.y
+        
+        # Calculate angle (in degrees)
+        # atan2(dy, dx) gives angle where 0=right, 90=down
+        # Our arrow sprite points up, so we need to add 90 degrees
+        angle = math.degrees(math.atan2(dy, dx)) + 90
+        
+        return angle
 
     def update(self, dt: float, player_pos: Position = None) -> None:
         """
-        Update animation and check for path consumption.
+        Update animation and check for arrow consumption.
 
         Args:
             dt: Delta time
-            player_pos: Current player position (for path consumption)
+            player_pos: Current player position (for arrow consumption)
         """
         self.animation_time += dt * self.pulse_speed
 
-        # Check if player is consuming the path
-        if player_pos and len(self.path) > 1:
-            self._consume_path(player_pos)
+        # Check if player is consuming arrows
+        if player_pos:
+            self._consume_arrows(player_pos)
 
-    def _consume_path(self, player_pos: Position) -> None:
+    def _consume_arrows(self, player_pos: Position) -> None:
         """
-        Remove path segments that the player has walked through.
+        Hide arrows that the player has touched (like collecting coins).
 
         Args:
             player_pos: Current player position
         """
-        import math
+        # Check each visible arrow
+        for arrow in self.arrows:
+            if not arrow['visible']:
+                continue
 
-        # Check each segment from the start
-        segments_to_remove = 0
+            # Calculate distance from player to arrow
+            arrow_pos = arrow['pos']
+            dx = player_pos.x - arrow_pos.x
+            dy = player_pos.y - arrow_pos.y
+            distance = math.sqrt(dx * dx + dy * dy)
 
-        for i in range(len(self.path) - 1):
-            p1 = self.path[i]
-            p2 = self.path[i + 1]
-
-            # Check if player is near this segment
-            distance = self._point_to_segment_distance(player_pos, p1, p2)
-
+            # If player is close enough to the arrow, consume it
             if distance < self.consumption_distance:
-                # Player is on or near this segment
-                # Check if player has passed beyond the segment start
-                # Calculate progress along the segment
-                segment_dx = p2.x - p1.x
-                segment_dy = p2.y - p1.y
-                segment_length_sq = segment_dx * segment_dx + segment_dy * segment_dy
-
-                if segment_length_sq > 0:
-                    # Project player position onto segment
-                    player_dx = player_pos.x - p1.x
-                    player_dy = player_pos.y - p1.y
-                    t = (player_dx * segment_dx + player_dy * segment_dy) / segment_length_sq
-
-                    # If player is past the start of this segment (t > 0.3), consume previous segments
-                    if t > 0.3:
-                        segments_to_remove = i + 1
-            else:
-                # If we're not near this segment anymore, stop checking
-                break
-
-        # Remove consumed path segments
-        if segments_to_remove > 0 and segments_to_remove < len(self.path):
-            self.path = self.path[segments_to_remove:]
-            self.consumed_up_to_index += segments_to_remove
+                arrow['visible'] = False
 
     def _point_to_segment_distance(self, point: Position, seg_start: Position, seg_end: Position) -> float:
         """Calculate distance from point to line segment"""
@@ -124,10 +166,7 @@ class ArrowPath:
         if not self.path or len(self.path) < 2:
             return
 
-        # Draw path line
-        self._draw_path_line(screen, camera)
-
-        # Draw arrows along the path
+        # Draw arrows along the path (removed path line drawing)
         if self.arrow_sprite:
             self._draw_arrows(screen, camera)
 
@@ -148,21 +187,14 @@ class ArrowPath:
             pg.draw.lines(screen, (150, 220, 255), False, screen_points, 2)
 
     def _draw_arrows(self, screen: pg.Surface, camera: PositionCamera) -> None:
-        """Draw arrows along the path"""
-        if len(self.path) < 2:
-            return
-
-        # Calculate positions along the path for arrows
-        total_length = self._calculate_path_length()
-        num_arrows = max(1, int(total_length / self.arrow_spacing))
-
-        for i in range(num_arrows):
-            # Calculate position along path (0.0 to 1.0)
-            t = (i + 1) / (num_arrows + 1)
-            pos, angle = self._get_position_and_angle_at(t)
-
-            if pos is None:
+        """Draw arrows at each tile position"""
+        # Draw each visible arrow
+        for i, arrow in enumerate(self.arrows):
+            if not arrow['visible']:
                 continue
+
+            pos = arrow['pos']
+            angle = arrow['angle']
 
             # Transform to screen coordinates
             screen_pos = camera.transform_position(pos)  # Returns a tuple (x, y)
@@ -172,6 +204,7 @@ class ArrowPath:
             arrow_size = int(96 * pulse)
 
             # Rotate arrow to point in direction of movement
+            # Note: We need to rotate by -angle because pygame rotates counter-clockwise
             rotated_sprite = pg.transform.rotate(self.arrow_sprite.image, -angle)
             scaled_sprite = pg.transform.scale(rotated_sprite, (arrow_size, arrow_size))
 
@@ -242,5 +275,5 @@ class ArrowPath:
         self.path = []
 
     def is_complete(self) -> bool:
-        """Check if the path has been completely consumed"""
-        return len(self.path) <= 1
+        """Check if all arrows have been consumed"""
+        return all(not arrow['visible'] for arrow in self.arrows)

@@ -9,8 +9,9 @@ from src.core.services import input_manager, scene_manager
 from src.core import GameManager
 from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
+from src.interface.components.battle_switch_panel import BattleSwitchPanel
 from src.utils.definition import Monster
-from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE
+from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE, STATUS_EFFECTS
 
 from typing import override
 
@@ -93,6 +94,9 @@ class CatchPokemonScene(Scene):
     # Potion buffs
     attack_boost: float
     defense_boost: float
+
+    # Switch panel
+    switch_panel: BattleSwitchPanel | None
     
     # Wild pokemon data pool with rarity system
     WILD_POKEMON_POOL = [
@@ -172,6 +176,9 @@ class CatchPokemonScene(Scene):
         self.attack_boost = 1.0  # Multiplier for attack damage
         self.defense_boost = 1.0  # Multiplier for defense (reduces incoming damage)
 
+        # Switch panel
+        self.switch_panel = None
+
         # Main action buttons (will be repositioned in PLAYER_TURN)
         btn_w, btn_h = 80, 40
         
@@ -237,6 +244,9 @@ class CatchPokemonScene(Scene):
         self.attack_boost = 1.0
         self.defense_boost = 1.0
 
+        # Reset switch panel
+        self.switch_panel = None
+
         # Initialize battle
         self._init_battle()
         self._next_state()
@@ -292,7 +302,9 @@ class CatchPokemonScene(Scene):
                 "sprite_path": panel_sprite_path,  # Panel uses the static .png file
                 "sprite_base_path": sprite_base_path,  # For animated sprite
                 "type": species_data["type"],
-                "moves": species_data["moves"].copy()
+                "moves": species_data["moves"].copy(),
+                "status": None,  # Initialize with no status effect
+                "status_turns": 0
             }
 
             self.enemy_party.append(enemy_pokemon)
@@ -424,9 +436,32 @@ class CatchPokemonScene(Scene):
         self.message = "Choose a potion:"
     
     def _on_switch_click(self) -> None:
-        """Switch pokemon - for future implementation"""
-        self.message = "Switch pokemon feature coming soon!"
+        """Handle switch button click - show Pokemon selection panel"""
+        if not self.game_manager.bag or len(self.game_manager.bag.monsters) <= 1:
+            self.message = "No other Pokemon to switch to!"
+            return
+
+        # Get current Pokemon index (player pokemon is at index 0)
+        current_pokemon_index = 0
+
+        # Filter out fainted Pokemon (HP <= 0) - this is done in BattleSwitchPanel
+        available_pokemon = [p for i, p in enumerate(self.game_manager.bag.monsters)
+                           if i != current_pokemon_index and p.get("hp", 0) > 0]
+
+        if not available_pokemon:
+            self.message = "No healthy Pokemon to switch to!"
+            return
+
         self.state = WildBattleState.SWITCH_POKEMON
+        self.switch_panel = BattleSwitchPanel(
+            self.game_manager.bag.monsters,
+            current_pokemon_index,
+            GameSettings.SCREEN_WIDTH // 2 - 250,
+            GameSettings.SCREEN_HEIGHT // 2 - 250,
+            width=500,
+            height=500
+        )
+        self.message = "Choose a Pokemon to switch:"
     
     def _show_catch_panel(self) -> None:
         """Show pokeball catching panel after opponent is defeated"""
@@ -457,10 +492,22 @@ class CatchPokemonScene(Scene):
     def _on_move_select(self, move: str) -> None:
         """Execute player's move selection"""
         if self.current_turn == "player":
-            self.player_selected_move = move
-            self.message = f"{self.player_pokemon['name']} used {move}!"
-            self.state = WildBattleState.PLAYER_TURN
-            self._execute_player_attack()
+            # Check if status blocks action
+            blocked, status_msg = self._check_status_blocks_action(self.player_pokemon)
+
+            if blocked:
+                # Can't attack due to status
+                self.player_selected_move = None
+                self.message = status_msg
+                self.state = WildBattleState.SHOW_DAMAGE
+                self._state_timer = 0.0
+                Logger.info(f"Player's turn blocked by status: {status_msg}")
+            else:
+                # Normal attack
+                self.player_selected_move = move
+                self.message = f"{self.player_pokemon['name']} used {move}!"
+                self.state = WildBattleState.PLAYER_TURN
+                self._execute_player_attack()
     
     def _execute_player_attack(self) -> None:
         if not self.player_selected_move or not self.opponent_pokemon:
@@ -489,6 +536,11 @@ class CatchPokemonScene(Scene):
         attack = self.player_pokemon.get("attack", 10)
         defense = self.opponent_pokemon.get("defense", 10)
 
+        # Apply burn status effect (reduces attack by 50%)
+        if self.player_pokemon.get("status") == "burn":
+            burn_data = STATUS_EFFECTS["burn"]
+            attack = int(attack * burn_data["affects_attack"])
+
         damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
@@ -508,6 +560,19 @@ class CatchPokemonScene(Scene):
         if effectiveness_msg:
             self.message += f" {effectiveness_msg}"
 
+        # Try to apply status effect from move
+        if move_data and "status_effect" in move_data:
+            status_effect = move_data["status_effect"]
+            status_chance = move_data.get("status_chance", 0.3)
+
+            # Check if opponent already has a status
+            if not self.opponent_pokemon.get("status"):
+                if random.random() < status_chance:
+                    self._apply_status(self.opponent_pokemon, status_effect)
+                    status_name = STATUS_EFFECTS[status_effect]["name"]
+                    self.message += f" {self.opponent_pokemon['name']} is {status_name}!"
+                    Logger.info(f"Applied {status_effect} to opponent")
+
         Logger.info(f"Player attacked with {self.player_selected_move}: {damage} damage. {effectiveness_msg}. Opponent HP: {self.opponent_pokemon['hp']}")
 
         if self._check_battle_end():
@@ -520,6 +585,18 @@ class CatchPokemonScene(Scene):
     
     def _execute_enemy_attack(self) -> None:
         if not self.opponent_pokemon or not self.player_pokemon:
+            return
+
+        # Check if status blocks action
+        blocked, status_msg = self._check_status_blocks_action(self.opponent_pokemon)
+
+        if blocked:
+            # Can't attack due to status
+            self.enemy_selected_move = None
+            self.message = status_msg
+            self.state = WildBattleState.SHOW_DAMAGE
+            self._state_timer = 0.0
+            Logger.info(f"Enemy's turn blocked by status: {status_msg}")
             return
 
         # Enemy selects a random move from their moveset
@@ -562,6 +639,11 @@ class CatchPokemonScene(Scene):
         attack = self.opponent_pokemon.get("attack", 10)
         defense = self.player_pokemon.get("defense", 10)
 
+        # Apply burn status effect (reduces attack by 50%)
+        if self.opponent_pokemon.get("status") == "burn":
+            burn_data = STATUS_EFFECTS["burn"]
+            attack = int(attack * burn_data["affects_attack"])
+
         damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
@@ -581,6 +663,19 @@ class CatchPokemonScene(Scene):
         if effectiveness_msg:
             self.message += f" {effectiveness_msg}"
 
+        # Try to apply status effect from move
+        if move_data and "status_effect" in move_data:
+            status_effect = move_data["status_effect"]
+            status_chance = move_data.get("status_chance", 0.3)
+
+            # Check if player already has a status
+            if not self.player_pokemon.get("status"):
+                if random.random() < status_chance:
+                    self._apply_status(self.player_pokemon, status_effect)
+                    status_name = STATUS_EFFECTS[status_effect]["name"]
+                    self.message += f" {self.player_pokemon['name']} is {status_name}!"
+                    Logger.info(f"Applied {status_effect} to player")
+
         Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. {effectiveness_msg}. Player HP: {self.player_pokemon['hp']}")
 
         if self._check_battle_end():
@@ -592,7 +687,84 @@ class CatchPokemonScene(Scene):
         self._state_timer = 0.0
         self.state = WildBattleState.SHOW_DAMAGE
         self.enemy_selected_move = None  # Reset for next turn
-        
+
+    def _apply_status(self, pokemon: Monster, status: str) -> None:
+        """Apply a status effect to a pokemon"""
+        if status not in STATUS_EFFECTS:
+            return
+
+        pokemon["status"] = status
+
+        # Set duration for sleep status
+        if status == "sleep":
+            duration_range = STATUS_EFFECTS[status].get("duration_range", (1, 3))
+            pokemon["status_turns"] = random.randint(duration_range[0], duration_range[1])
+        else:
+            pokemon["status_turns"] = 0
+
+    def _check_status_blocks_action(self, pokemon: Monster) -> tuple[bool, str]:
+        """
+        Check if status effect blocks the pokemon's action
+
+        Returns:
+            tuple[bool, str]: (blocked, message)
+        """
+        status = pokemon.get("status")
+        if not status or status not in STATUS_EFFECTS:
+            return (False, "")
+
+        status_data = STATUS_EFFECTS[status]
+        pokemon_name = pokemon["name"]
+
+        # Sleep always blocks
+        if status == "sleep":
+            turns_left = pokemon.get("status_turns", 0)
+            if turns_left > 0:
+                return (True, f"{pokemon_name} is fast asleep! Zzz...")
+            else:
+                # Wake up
+                pokemon["status"] = None
+                pokemon["status_turns"] = 0
+                return (False, f"{pokemon_name} woke up!")
+
+        # Paralysis has a chance to block
+        elif status == "paralysis":
+            block_chance = status_data["blocks_action"]
+            if random.random() < block_chance:
+                return (True, f"{pokemon_name} is paralyzed and can't move!")
+
+        return (False, "")
+
+    def _apply_status_damage(self, pokemon: Monster) -> int:
+        """
+        Apply end-of-turn status damage (poison, burn)
+
+        Returns:
+            int: Damage dealt by status
+        """
+        status = pokemon.get("status")
+        if not status or status not in STATUS_EFFECTS:
+            return 0
+
+        status_data = STATUS_EFFECTS[status]
+        damage_percent = status_data.get("damage_per_turn", 0.0)
+
+        if damage_percent > 0:
+            max_hp = pokemon.get("max_hp", 100)
+            damage = int(max_hp * damage_percent)
+            pokemon["hp"] = max(0, pokemon["hp"] - damage)
+            return damage
+
+        return 0
+
+    def _update_status_turns(self, pokemon: Monster) -> None:
+        """Update status turn counter (for sleep)"""
+        status = pokemon.get("status")
+        if status == "sleep":
+            turns_left = pokemon.get("status_turns", 0)
+            if turns_left > 0:
+                pokemon["status_turns"] = turns_left - 1
+
     def _check_battle_end(self) -> bool:
         """Check if battle should end and handle pokemon switching"""
         if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
@@ -607,7 +779,75 @@ class CatchPokemonScene(Scene):
             return True
         
         return False
-    
+
+    def _execute_switch(self, new_pokemon_index: int) -> None:
+        """Switch to a different Pokemon"""
+        if not self.game_manager.bag or new_pokemon_index >= len(self.game_manager.bag.monsters):
+            return
+
+        # Get the new Pokemon
+        new_pokemon = self.game_manager.bag.monsters[new_pokemon_index]
+
+        # Make sure new Pokemon has required stats
+        if "type" not in new_pokemon or "moves" not in new_pokemon:
+            species_data = POKEMON_SPECIES.get(
+                new_pokemon["name"],
+                {"type": "None", "moves": ["QuickSlash"]}
+            )
+            new_pokemon["type"] = species_data["type"]
+            new_pokemon["moves"] = species_data["moves"].copy()
+
+        if "attack" not in new_pokemon:
+            player_level = new_pokemon.get("level", 1)
+            new_pokemon["attack"] = int(10 + player_level * 0.5)
+
+        if "defense" not in new_pokemon:
+            player_level = new_pokemon.get("level", 1)
+            new_pokemon["defense"] = int(10 + player_level * 0.5)
+
+        # Check if this was a forced switch (previous Pokemon fainted)
+        old_pokemon_fainted = self.player_pokemon and self.player_pokemon.get("hp", 0) <= 0
+
+        # Swap Pokemon in the bag (move selected Pokemon to index 0)
+        self.game_manager.bag.monsters[0], self.game_manager.bag.monsters[new_pokemon_index] = \
+            self.game_manager.bag.monsters[new_pokemon_index], self.game_manager.bag.monsters[0]
+
+        # Update player Pokemon reference
+        self.player_pokemon = self.game_manager.bag.monsters[0]
+
+        # Create animated sprite for new player Pokemon
+        player_sprite_path = self.player_pokemon.get("sprite_path", "")
+        if "sprite" in player_sprite_path and not "menu_sprites" in player_sprite_path:
+            self.player_sprite = AnimatedBattleSprite(
+                base_path=player_sprite_path.replace(".png", ""),
+                size=(250, 250),
+                frames=4,
+                loop_speed=0.8
+            )
+        else:
+            self.player_sprite = None
+
+        # Update player panel with new Pokemon
+        if self.player_panel:
+            self.player_panel.update_pokemon(self.player_pokemon)
+
+        # Show switch message
+        self.message = f"Go, {self.player_pokemon['name']}!"
+        Logger.info(f"Switched to {self.player_pokemon['name']}")
+
+        # Close switch panel and transition to show damage state
+        self.switch_panel = None
+        self._state_timer = 0.0
+        self.state = WildBattleState.SHOW_DAMAGE
+
+        # Enemy gets a free turn after switch (both voluntary and forced)
+        if old_pokemon_fainted:
+            # Forced switch - enemy attacks next
+            self.current_turn = "enemy"
+        else:
+            # Voluntary switch - enemy also gets free turn
+            self.current_turn = "enemy"
+
     def _execute_item_attack(self, item: dict) -> None:
         if not self.player_pokemon:
             return
@@ -737,6 +977,9 @@ class CatchPokemonScene(Scene):
                 self._next_state()
                 self._pokemon_scale = 0.0
             elif self.state == WildBattleState.SHOW_DAMAGE:
+                # Clear effectiveness message immediately when leaving SHOW_DAMAGE state
+                self.effectiveness_message = ""
+
                 # After showing damage, transition to next state
                 # Switch sprites back to idle animation
                 if self.opponent_sprite:
@@ -750,6 +993,41 @@ class CatchPokemonScene(Scene):
                         self._show_catch_panel()
                         self.message = f"{self.opponent_pokemon['name']} fainted! Catch it?"
                 else:
+                    # Apply end-of-turn status damage
+                    status_messages = []
+
+                    # Apply status damage to both Pokemon
+                    if self.current_turn == "player":
+                        # Player just attacked, apply status damage to player
+                        player_status_dmg = self._apply_status_damage(self.player_pokemon)
+                        if player_status_dmg > 0:
+                            status_name = STATUS_EFFECTS[self.player_pokemon["status"]]["name"]
+                            status_messages.append(f"{self.player_pokemon['name']} took {player_status_dmg} damage from {status_name}!")
+                            Logger.info(f"Player took {player_status_dmg} status damage")
+
+                        # Update status turns (for sleep)
+                        self._update_status_turns(self.player_pokemon)
+                    else:
+                        # Enemy just attacked, apply status damage to enemy
+                        enemy_status_dmg = self._apply_status_damage(self.opponent_pokemon)
+                        if enemy_status_dmg > 0:
+                            status_name = STATUS_EFFECTS[self.opponent_pokemon["status"]]["name"]
+                            status_messages.append(f"{self.opponent_pokemon['name']} took {enemy_status_dmg} damage from {status_name}!")
+                            Logger.info(f"Enemy took {enemy_status_dmg} status damage")
+
+                        # Update status turns (for sleep)
+                        self._update_status_turns(self.opponent_pokemon)
+
+                    # Append status messages to main message
+                    if status_messages:
+                        self.message += "\n" + " ".join(status_messages)
+
+                    # Check if status damage caused a KO
+                    if self._check_battle_end():
+                        if self.opponent_pokemon and self.opponent_pokemon['hp'] <= 0:
+                            self._show_catch_panel()
+                        return
+
                     # Transition to next appropriate state
                     self._state_timer = 0.0
                     if self.current_turn == "player":
