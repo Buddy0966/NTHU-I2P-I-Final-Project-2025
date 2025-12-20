@@ -57,243 +57,243 @@ STATUS_EFFECTS = {
 MOVES_DATABASE = {
     "IceShard": {
         "name": "Ice Shard",
-        "power": 18,
+        "power": 1.8,
         "animation": "attack/attack1.png"
     },
     "LightPulse": {
         "name": "Light Pulse",
-        "power": 17,
+        "power": 1.7,
         "animation": "attack/attack2.png"
     },
     "WaterBurst": {
         "name": "Water Burst",
-        "power": 18,
+        "power": 1.8,
         "animation": "attack/attack3.png"
     },
     "FireBlast": {
         "name": "Fire Blast",
-        "power": 20,
+        "power": 2.0,
         "animation": "attack/attack4.png",
         "status_effect": "burn",
         "status_chance": 0.15  # 15% chance to burn
     },
     "FlameSlash": {
         "name": "Flame Slash",
-        "power": 18,
+        "power": 1.8,
         "animation": "attack/attack5.png",
         "status_effect": "burn",
         "status_chance": 0.2  # 20% chance to burn
     },
     "WindSpiral": {
         "name": "Wind Spiral",
-        "power": 18,
+        "power": 1.8,
         "animation": "attack/attack6.png"
     },
     "QuickSlash": {
         "name": "Quick Slash",
-        "power": 15,
+        "power": 1.5,
         "animation": "attack/attack5.png"
     },
     "AquaShield": {
         "name": "Aqua Shield",
-        "power": 16,
+        "power": 1.6,
         "animation": "attack/attack3.png"
     },
     "TidalStrike": {
         "name": "Tidal Strike",
-        "power": 19,
+        "power": 1.9,
         "animation": "attack/attack3.png"
     },
     "HeatDive": {
         "name": "Heat Dive",
-        "power": 17,
+        "power": 1.7,
         "animation": "attack/attack4.png"
     },
     "NatureBurst": {
         "name": "Nature Burst",
-        "power": 16,
+        "power": 1.6,
         "animation": "attack/attack6.png"
     },
     "StonePunch": {
         "name": "Stone Punch",
-        "power": 17,
+        "power": 1.7,
         "animation": None
     },
     "EarthCrack": {
         "name": "Earth Crack",
-        "power": 18,
+        "power": 1.8,
         "animation": None
     },
     "SparkClaw": {
         "name": "Spark Claw",
-        "power": 16,
+        "power": 1.6,
         "animation": "attack/attack2.png",
         "status_effect": "paralysis",
         "status_chance": 0.3  # 30% chance to paralyze
     },
     "VoltDash": {
         "name": "Volt Dash",
-        "power": 19,
+        "power": 1.9,
         "animation": "attack/attack2.png",
         "status_effect": "paralysis",
         "status_chance": 0.2  # 20% chance to paralyze
     },
     "FrostNova": {
         "name": "Frost Nova",
-        "power": 17,
+        "power": 1.7,
         "animation": "attack/attack1.png"
     },
     "ColdBite": {
         "name": "Cold Bite",
-        "power": 15,
+        "power": 1.5,
         "animation": "attack/attack1.png"
     },
     "IronWing": {
         "name": "Iron Wing",
-        "power": 18,
+        "power": 1.8,
         "animation": None
     },
     "SteelCharge": {
         "name": "Steel Charge",
-        "power": 19,
+        "power": 1.9,
         "animation": None
     },
     "DarkSwipe": {
         "name": "Dark Swipe",
-        "power": 16,
+        "power": 1.6,
         "animation": None
     },
     "ShadowBurst": {
         "name": "Shadow Burst",
-        "power": 18,
+        "power": 1.8,
         "animation": None
     },
     "FearSlash": {
         "name": "Fear Slash",
-        "power": 17,
+        "power": 1.7,
         "animation": "attack/attack5.png"
     },
     "MindPierce": {
         "name": "Mind Pierce",
-        "power": 18,
+        "power": 1.8,
         "animation": "attack/attack2.png"
     },
     "SpiritWave": {
         "name": "Spirit Wave",
-        "power": 20,
+        "power": 2.0,
         "animation": "attack/attack2.png"
     },
     "ToxicBite": {
         "name": "Toxic Bite",
-        "power": 14,
+        "power": 1.4,
         "animation": None,
         "status_effect": "poison",
         "status_chance": 0.4  # 40% chance to poison
     },
     "VenomShot": {
         "name": "Venom Shot",
-        "power": 16,
+        "power": 1.6,
         "animation": None,
         "status_effect": "poison",
         "status_chance": 0.3  # 30% chance to poison
     },
     "SandBurst": {
         "name": "Sand Burst",
-        "power": 17,
+        "power": 1.7,
         "animation": "attack/attack6.png"
     },
     "DustBlade": {
         "name": "Dust Blade",
-        "power": 16,
+        "power": 1.6,
         "animation": None
     },
     "SoulSpark": {
         "name": "Soul Spark",
-        "power": 19,
+        "power": 1.9,
         "animation": "attack/attack2.png"
     },
     "HauntFlame": {
         "name": "Haunt Flame",
-        "power": 17,
+        "power": 1.7,
         "animation": "attack/attack4.png"
     },
     "CrystalBeam": {
         "name": "Crystal Beam",
-        "power": 19,
+        "power": 1.9,
         "animation": "attack/attack2.png"
     },
     "ShatterStrike": {
         "name": "Shatter Strike",
-        "power": 18,
+        "power": 1.8,
         "animation": "attack/attack1.png"
     },
     "GaleBlade": {
         "name": "Gale Blade",
-        "power": 17,
+        "power": 1.7,
         "animation": "attack/attack6.png"
     },
     "TempestCrash": {
         "name": "Tempest Crash",
-        "power": 21,
+        "power": 2.1,
         "animation": "attack/attack6.png"
     },
     "MagmaSmash": {
         "name": "Magma Smash",
-        "power": 21,
+        "power": 2.1,
         "animation": "attack/attack4.png",
         "status_effect": "burn",
         "status_chance": 0.25  # 25% chance to burn
     },
     "CosmicPulse": {
         "name": "Cosmic Pulse",
-        "power": 23,
+        "power": 2.3,
         "animation": "attack/attack2.png"
     },
     "StarfallBlaze": {
         "name": "Starfall Blaze",
-        "power": 24,
+        "power": 2.4,
         "animation": "attack/attack4.png"
     },
     "DragonRift": {
         "name": "Dragon Rift",
-        "power": 25,
+        "power": 2.5,
         "animation": None
     },
     "LeafBlade": {
         "name": "Leaf Blade",
-        "power": 16,
+        "power": 1.6,
         "animation": "attack/attack6.png"
     },
     "VineWhip": {
         "name": "Vine Whip",
-        "power": 14,
+        "power": 1.4,
         "animation": "attack/attack6.png"
     },
     "PoisonSting": {
         "name": "Poison Sting",
-        "power": 13,
+        "power": 1.3,
         "animation": None,
         "status_effect": "poison",
         "status_chance": 0.35
     },
     "BugBite": {
         "name": "Bug Bite",
-        "power": 15,
+        "power": 1.5,
         "animation": None
     },
     "WingAttack": {
         "name": "Wing Attack",
-        "power": 17,
+        "power": 1.7,
         "animation": None
     },
     "Peck": {
         "name": "Peck",
-        "power": 14,
+        "power": 1.4,
         "animation": None
     },
     "AerialAce": {
         "name": "Aerial Ace",
-        "power": 19,
+        "power": 1.9,
         "animation": None
     }
 }
@@ -568,42 +568,47 @@ def calculate_type_effectiveness(attacker_type: str, defender_type: str) -> tupl
 
 def calculate_damage(move_name: str, attacker_type: str, defender_type: str, level: int = 10, attack: int = 10, defense: int = 10) -> tuple[int, str]:
     """
-    Calculate damage for a move considering type effectiveness, attack stat, and defense stat.
-    Type effectiveness is based on the ATTACKER'S Pokemon type, not the move.
-    Level parameter is kept for compatibility but not used in damage calculation.
-
+    Calculate damage using the custom formula: 
+    Damage = (Attack * Move_Power_Multiplier * Type_Multiplier) - Defense
+    
     Args:
-        move_name: Name of the move being used
-        attacker_type: Type of the attacking Pokemon (this determines effectiveness!)
+        move_name: Name of the move
+        attacker_type: Type of the attacking Pokemon (used for effectiveness check)
         defender_type: Type of the defending Pokemon
-        level: Level of the attacker (kept for compatibility, not used)
-        attack: Attack stat of the attacker (default 10)
-        defense: Defense stat of the defender (default 10)
+        level: Not used (kept for compatibility)
+        attack: Attacker's Attack stat
+        defense: Defender's Defense stat
 
     Returns:
-        tuple[int, str]: (damage, effectiveness_message)
+        tuple[int, str]: (final_damage, effectiveness_message)
     """
     move_data = MOVES_DATABASE.get(move_name)
+    
+    # 處理未知招式的防呆機制
     if not move_data:
-        # Fallback for unknown moves
-        return (attack, "")
+        # 預設倍率為 1.0
+        return (max(1, attack - defense), "")
 
-    base_power = move_data["power"]
+    # 這裡假設你的資料庫中 'power' 已經是一個倍率數值 (例如 1.5, 2.0, 0.8)
+    # 而不是傳統的 威力數值 (例如 60, 90)
+    move_power_multiplier = move_data["power"] 
 
-    # Calculate type effectiveness based on ATTACKER's Pokemon type vs DEFENDER's Pokemon type
-    multiplier, effectiveness_msg = calculate_type_effectiveness(attacker_type, defender_type)
+    # 1. 計算屬性剋制倍率 (Type Effectiveness)
+    # 邏輯維持：基於 攻擊者屬性 vs 防禦者屬性
+    type_multiplier, effectiveness_msg = calculate_type_effectiveness(attacker_type, defender_type)
 
-    # Calculate damage - ONLY based on attack, defense, and move power
+    # 2. 計算總攻擊力 (Total Attack Force)
+    # 公式：Attack * Skill_Multiplier * Type_Multiplier
+    total_attack_force = attack * move_power_multiplier * type_multiplier
+
+    # 3. 減法計算 (Threshold)
+    # 公式：總攻擊力 - Defense
+    final_damage = total_attack_force - defense
+
+    # 4. 設定最小傷害
+    # 避免出現負數 (例如防禦力太高導致變成補血)
+    # 設定為 1 表示至少會強制扣 1 滴血 (破防失敗)
+    if final_damage < 1:
+        final_damage = 1
     
-    
-    # Simple formula: base_power * (attack / defense) * type_effectiveness * variance
-    # No level scaling - damage purely based on stats
-    attack_defense_ratio = attack / max(defense, 1)  # Prevent division by zero
-    
-    # Calculate damage
-    damage = int(base_power * attack_defense_ratio * multiplier)
-
-    # Set reasonable minimum damage (at least 1)
-    damage = max(1, damage)
-
-    return (damage, effectiveness_msg)
+    return (int(final_damage), effectiveness_msg)

@@ -140,6 +140,8 @@ class BattleScene(Scene):
     # Potion buffs
     attack_boost: float
     defense_boost: float
+    attack_boost_used: bool  # Track if attack boost was used this turn
+    defense_boost_used: bool  # Track if defense boost was used this turn
 
     # Switch panel
     switch_panel: BattleSwitchPanel | None
@@ -173,7 +175,9 @@ class BattleScene(Scene):
         # Potion buffs
         self.attack_boost = 1.0  # Multiplier for attack damage
         self.defense_boost = 1.0  # Multiplier for defense (reduces incoming damage)
-        
+        self.attack_boost_used = False
+        self.defense_boost_used = False
+
         # pokeball catching animation
         self.pokeball_sprite = Sprite("ingame_ui/ball.png", (40, 40))
         self.pokeball_x = 0.0
@@ -214,12 +218,6 @@ class BattleScene(Scene):
     def enter(self) -> None:
         Logger.info(f"Battle started against {self.opponent_name}")
 
-        # Reload game manager to get latest position and state
-        loaded = GameManager.load("saves/game0.json")
-        if loaded:
-            self.game_manager = loaded
-            Logger.info("BattleScene: Game data reloaded from save file")
-
         # Reset all battle state variables
         self.state = BattleState.INTRO
         self.opponent_pokemon = None
@@ -242,6 +240,8 @@ class BattleScene(Scene):
         # Reset potion buffs
         self.attack_boost = 1.0
         self.defense_boost = 1.0
+        self.attack_boost_used = False
+        self.defense_boost_used = False
 
         # Reset switch panel
         self.switch_panel = None
@@ -386,6 +386,8 @@ class BattleScene(Scene):
         defense = self.opponent_pokemon.get("defense", 10) if self.opponent_pokemon else 10
         level = self.player_pokemon.get("level", 10)
 
+        attack = attack * self.attack_boost
+        
         for i, move in enumerate(moves):
             # Calculate estimated damage for this move
             estimated_damage, _ = calculate_damage(
@@ -545,6 +547,8 @@ class BattleScene(Scene):
             burn_data = STATUS_EFFECTS["burn"]
             attack = int(attack * burn_data["affects_attack"])
 
+        attack = attack * self.attack_boost
+
         damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
@@ -553,9 +557,6 @@ class BattleScene(Scene):
             attack,
             defense
         )
-
-        # Apply attack boost from Strength Potion
-        damage = int(damage * self.attack_boost)
 
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -578,6 +579,14 @@ class BattleScene(Scene):
                     Logger.info(f"Applied {status_effect} to opponent")
 
         Logger.info(f"Player attacked with {self.player_selected_move}: {damage} damage. {effectiveness_msg}. Opponent HP: {self.opponent_pokemon['hp']}")
+
+        # Reset attack boost after it's been used once
+        if self.attack_boost_used:
+            self.attack_boost = 1.0
+            self.attack_boost_used = False
+        elif self.attack_boost > 1.0:
+            # Mark as used if boost is active
+            self.attack_boost_used = True
 
         if self._check_battle_end():
             self.state = BattleState.SHOW_DAMAGE
@@ -648,6 +657,9 @@ class BattleScene(Scene):
             burn_data = STATUS_EFFECTS["burn"]
             attack = int(attack * burn_data["affects_attack"])
 
+ 
+        defense = int(defense * self.defense_boost)
+
         damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
@@ -657,8 +669,6 @@ class BattleScene(Scene):
             defense
         )
 
-        # Apply defense boost from Defense Potion (reduces incoming damage)
-        damage = int(damage * self.defense_boost)
 
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -681,6 +691,14 @@ class BattleScene(Scene):
                     Logger.info(f"Applied {status_effect} to player")
 
         Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. {effectiveness_msg}. Player HP: {self.player_pokemon['hp']}")
+
+        # Reset defense boost after it's been used once
+        if self.defense_boost_used:
+            self.defense_boost = 1.0
+            self.defense_boost_used = False
+        elif self.defense_boost > 1.0:
+            # Mark as used if boost is active
+            self.defense_boost_used = True
 
         if self._check_battle_end():
             self.state = BattleState.SHOW_DAMAGE
@@ -897,7 +915,7 @@ class BattleScene(Scene):
 
         # Defense Potion (defense-potion.png): Reduce opponent's attack damage
         elif 'defense' in item_name or 'defence' in item_name:
-            self.defense_boost = 0.7  # Reduce incoming damage by 30%
+            self.defense_boost = 1.5  
             self.message = f"{self.player_pokemon['name']} used Defense Potion! Defense increased!"
             Logger.info(f"Player used Defense Potion: defense boost now {self.defense_boost}x (reduces incoming damage)")
 
@@ -1018,6 +1036,9 @@ class BattleScene(Scene):
                     self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
                 # Clear effectiveness message immediately when leaving SHOW_DAMAGE state
+                # Also remove it from self.message if it was appended there
+                if self.effectiveness_message and self.effectiveness_message in self.message:
+                    self.message = self.message.replace(self.effectiveness_message, "").strip()
                 self.effectiveness_message = ""
 
                 # After showing damage, transition to next state
@@ -1306,6 +1327,9 @@ class BattleScene(Scene):
                     self._pokemon_scale = 0.0
             elif self.state == BattleState.SHOW_DAMAGE:
                 # Clear effectiveness message immediately when leaving SHOW_DAMAGE state
+                # Also remove it from self.message if it was appended there
+                if self.effectiveness_message and self.effectiveness_message in self.message:
+                    self.message = self.message.replace(self.effectiveness_message, "").strip()
                 self.effectiveness_message = ""
 
                 # After showing damage, transition to next state

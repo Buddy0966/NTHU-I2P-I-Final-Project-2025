@@ -12,7 +12,7 @@ from typing import override
 class BattleTransitionScene(Scene):
     _start_time: float
     _duration: float
-    
+
     def __init__(self, duration: float = 0.7):
         super().__init__()
         self.background = BackgroundSprite("backgrounds/background1.png")
