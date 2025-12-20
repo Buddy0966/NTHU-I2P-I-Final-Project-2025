@@ -82,7 +82,7 @@ class GameScene(Scene):
 
         # Navigation button
         self.navigation_button = Button(
-            "UI/button_setting.png", "UI/button_setting_hover.png",  # Temporary, can change later
+            "UI/navigation_button.png", "UI/navigation_button.png",   # Temporary, can change later
             bx - 2 * (btn_w + margin), by, btn_w, btn_h,
             self._toggle_navigation
         )

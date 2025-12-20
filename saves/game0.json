@@ -261,25 +261,25 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.43602857069974,
-    "y": 29.0
+    "x": 47.994143571373776,
+    "y": 15.0
   },
   "bag": {
     "monsters": [
       {
-        "name": "Budling",
-        "hp": 23,
-        "max_hp": 41,
-        "level": 6,
-        "sprite_path": "sprites/sprite1.png",
-        "type": "Wind",
+        "name": "Aquabit",
+        "hp": 42,
+        "max_hp": 42,
+        "level": 8,
+        "sprite_path": "sprites/sprite12.png",
+        "type": "Water",
         "moves": [
-          "VineWhip",
-          "LeafBlade",
-          "NatureBurst"
+          "WaterBurst",
+          "AquaShield",
+          "QuickSlash"
         ],
-        "attack": 13,
-        "defense": 13,
+        "attack": 14,
+        "defense": 14,
         "status": null,
         "status_turns": 0
       },
@@ -302,7 +302,7 @@
       },
       {
         "name": "Budling",
-        "hp": 0,
+        "hp": 21,
         "max_hp": 43,
         "level": 10,
         "sprite_path": "sprites/sprite1.png",
@@ -318,25 +318,25 @@
         "status_turns": 0
       },
       {
-        "name": "Aquabit",
+        "name": "Budling",
         "hp": 0,
-        "max_hp": 42,
-        "level": 8,
-        "sprite_path": "sprites/sprite12.png",
-        "type": "Water",
+        "max_hp": 41,
+        "level": 6,
+        "sprite_path": "sprites/sprite1.png",
+        "type": "Wind",
         "moves": [
-          "WaterBurst",
-          "AquaShield",
-          "QuickSlash"
+          "VineWhip",
+          "LeafBlade",
+          "NatureBurst"
         ],
-        "attack": 14,
-        "defense": 14,
+        "attack": 13,
+        "defense": 13,
         "status": null,
         "status_turns": 0
       },
       {
         "name": "Verdantus",
-        "hp": 0,
+        "hp": 50,
         "max_hp": 50,
         "level": 8,
         "sprite_path": "sprites/sprite3.png",
@@ -371,7 +371,7 @@
       },
       {
         "name": "Verdantus",
-        "hp": 7,
+        "hp": 50,
         "max_hp": 50,
         "level": 8,
         "sprite_path": "sprites/sprite3.png",
@@ -388,7 +388,7 @@
       },
       {
         "name": "Ravenix",
-        "hp": 0,
+        "hp": 48,
         "max_hp": 48,
         "level": 6,
         "sprite_path": "sprites/sprite5.png",
@@ -439,31 +439,31 @@
     "items": [
       {
         "name": "Defense Potion",
-        "count": 15,
+        "count": 13,
         "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
       },
       {
         "name": "Health Potion",
-        "count": 16,
+        "count": 5,
         "sprite_path": "ingame_ui/health-potion.png",
         "price": 100
       },
       {
         "name": "Strength Potion",
-        "count": 12,
+        "count": 9,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
       {
         "name": "Coins",
-        "count": 15919,
+        "count": 9999999999471,
         "sprite_path": "ingame_ui/coin.png",
         "price": 1
       },
       {
         "name": "Pokeball",
-        "count": 99953,
+        "count": 99956,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }
