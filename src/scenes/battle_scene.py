@@ -71,7 +71,7 @@ class BattleScene(Scene):
     
     def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
         super().__init__()
-        self.background = BackgroundSprite("backgrounds/background1.png")
+        self.background = BackgroundSprite("backgrounds/battleBackground")
         self.opponent_name = opponent_name
         self.game_manager = game_manager
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 24)
@@ -152,7 +152,7 @@ class BattleScene(Scene):
 
     def __init__(self, game_manager: GameManager, opponent_name: str = "Rival"):
         super().__init__()
-        self.background = BackgroundSprite("backgrounds/background1.png")
+        self.background = BackgroundSprite("backgrounds/battleBackground.png")
         self.opponent_name = opponent_name
         self.game_manager = game_manager
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 24)
@@ -1148,15 +1148,15 @@ class BattleScene(Scene):
         if self.opponent_panel is None and self.opponent_pokemon and self.state == BattleState.SEND_OPPONENT:
             self.opponent_panel = PokemonStatsPanel(
                 self.opponent_pokemon,
-                GameSettings.SCREEN_WIDTH - 180,
+                GameSettings.SCREEN_WIDTH - 230,
                 20
             )
-        
+
         if self.player_panel is None and self.player_pokemon and self.state == BattleState.SEND_PLAYER:
             self.player_panel = PokemonStatsPanel(
                 self.player_pokemon,
                 20,
-                GameSettings.SCREEN_HEIGHT - 250
+                GameSettings.SCREEN_HEIGHT - 300
             )
         
         if self.state == BattleState.PLAYER_TURN:
@@ -1442,15 +1442,15 @@ class BattleScene(Scene):
         if self.opponent_panel is None and self.opponent_pokemon and self.state == BattleState.SEND_OPPONENT:
             self.opponent_panel = PokemonStatsPanel(
                 self.opponent_pokemon,
-                GameSettings.SCREEN_WIDTH - 180,
+                GameSettings.SCREEN_WIDTH - 270,
                 20
             )
-        
+
         if self.player_panel is None and self.player_pokemon and self.state == BattleState.SEND_PLAYER:
             self.player_panel = PokemonStatsPanel(
                 self.player_pokemon,
                 20,
-                GameSettings.SCREEN_HEIGHT - 250
+                GameSettings.SCREEN_HEIGHT - 175
             )
         
         if self.state == BattleState.PLAYER_TURN:
@@ -1747,6 +1747,53 @@ class BattleScene(Scene):
         symbol_rect = symbol_text.get_rect(center=(center_x, center_y))
         screen.blit(symbol_text, symbol_rect)
 
+    def _draw_status_description(self, screen: pg.Surface, pokemon: Monster, panel: PokemonStatsPanel) -> None:
+        """Draw status effect description above the pokemon stats panel"""
+        if not pokemon:
+            return
+
+        status = pokemon.get("status", None)
+        if not status:
+            return
+
+        # Get status effect data
+        status_data = STATUS_EFFECTS.get(status)
+        if not status_data:
+            return
+
+        # Position above the panel
+        text_x = panel.rect.x
+        text_y = panel.rect.y - 30
+
+        # Create status description text
+        status_name = status_data["name"]
+        turns_left = pokemon.get("status_turns", 0)
+
+        # Build description based on status type
+        if turns_left > 0:
+            description = f"{status_name} ({turns_left} turns left)"
+        else:
+            description = f"{status_name}"
+
+        # Draw background for text
+        status_font = pg.font.Font('assets/fonts/Minecraft.ttf', 14)
+        text_surface = status_font.render(description, True, (255, 255, 255))
+        text_width = text_surface.get_width()
+        text_height = text_surface.get_height()
+
+        # Semi-transparent background
+        bg_padding = 8
+        bg_rect = pg.Rect(text_x - bg_padding, text_y - bg_padding,
+                         text_width + bg_padding * 2, text_height + bg_padding * 2)
+        bg_surface = pg.Surface((bg_rect.width, bg_rect.height), pg.SRCALPHA)
+
+        status_color = status_data["color"]
+        pg.draw.rect(bg_surface, (*status_color, 200), (0, 0, bg_rect.width, bg_rect.height), border_radius=8)
+        pg.draw.rect(bg_surface, (255, 255, 255), (0, 0, bg_rect.width, bg_rect.height), 2, border_radius=8)
+
+        screen.blit(bg_surface, (bg_rect.x, bg_rect.y))
+        screen.blit(text_surface, (text_x, text_y))
+
     @override
     def draw(self, screen: pg.Surface) -> None:
         self.background.draw(screen)
@@ -1758,9 +1805,16 @@ class BattleScene(Scene):
         # Draw panels
         if self.opponent_panel and self.state in (BattleState.SEND_OPPONENT, BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
             self.opponent_panel.draw(screen)
+            # Draw status effect description above opponent panel
+            self._draw_status_description(screen, self.opponent_pokemon, self.opponent_panel)
 
         if self.player_panel and self.state in (BattleState.SEND_PLAYER, BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.BATTLE_END, BattleState.CATCHING, BattleState.CATCH_ANIMATION, BattleState.CATCH_FLASHING, BattleState.SHOW_DAMAGE, BattleState.CHOOSE_MOVE, BattleState.CHOOSE_ITEM, BattleState.CATCH_FALLING, BattleState.CATCH_SHAKE, BattleState.CATCH_SUCCESS):
+            # Update boost values before drawing
+            self.player_panel.attack_boost = self.attack_boost
+            self.player_panel.defense_boost = self.defense_boost
             self.player_panel.draw(screen)
+            # Draw status effect description above player panel
+            self._draw_status_description(screen, self.player_pokemon, self.player_panel)
 
         # Draw attack animation (before Pokemon so it appears behind them)
         if self.attack_animation:

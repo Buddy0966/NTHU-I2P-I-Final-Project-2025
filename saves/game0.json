@@ -261,14 +261,14 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.74143564158718,
-    "y": 29.648000000000003
+    "x": 31.29602857069974,
+    "y": 29.172068975770806
   },
   "bag": {
     "monsters": [
       {
         "name": "Aquabit",
-        "hp": 42,
+        "hp": 16,
         "max_hp": 42,
         "level": 8,
         "sprite_path": "sprites/sprite12.png",
@@ -353,9 +353,9 @@
       },
       {
         "name": "pikachu",
-        "hp": 99958,
-        "max_hp": 100000,
-        "level": 100,
+        "hp": 100,
+        "max_hp": 100,
+        "level": 60,
         "sprite_path": "menu_sprites/pikachu.png",
         "menu_sprite_path": "menu_sprites/pikachu.png",
         "type": "Light",
@@ -364,7 +364,7 @@
           "Thunderbolt",
           "Quick Attack"
         ],
-        "attack": 1000,
+        "attack": 100,
         "defense": 60,
         "status": null,
         "status_turns": 0
@@ -400,6 +400,40 @@
         ],
         "attack": 13,
         "defense": 13
+      },
+      {
+        "name": "Rockpaw",
+        "hp": 49,
+        "max_hp": 49,
+        "level": 7,
+        "sprite_path": "sprites/sprite4.png",
+        "type": "None",
+        "moves": [
+          "StonePunch",
+          "EarthCrack",
+          "QuickSlash"
+        ],
+        "attack": 13,
+        "defense": 13,
+        "status": null,
+        "status_turns": 0
+      },
+      {
+        "name": "Florion",
+        "hp": 57,
+        "max_hp": 57,
+        "level": 8,
+        "sprite_path": "sprites/sprite2.png",
+        "type": "Wind",
+        "moves": [
+          "LeafBlade",
+          "WindSpiral",
+          "QuickSlash"
+        ],
+        "attack": 14,
+        "defense": 14,
+        "status": null,
+        "status_turns": 0
       }
     ],
     "items": [
@@ -411,13 +445,13 @@
       },
       {
         "name": "Health Potion",
-        "count": 18,
+        "count": 16,
         "sprite_path": "ingame_ui/health-potion.png",
         "price": 100
       },
       {
         "name": "Strength Potion",
-        "count": 16,
+        "count": 14,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
@@ -429,7 +463,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99955,
+        "count": 99953,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }

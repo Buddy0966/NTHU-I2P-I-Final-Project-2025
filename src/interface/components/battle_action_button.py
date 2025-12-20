@@ -36,7 +36,7 @@ class BattleActionButton:
             elif button_type == "item":
                 # Item button uses potion icons (options4 and options6)
                 self.icon_default = resource_manager.get_image("ingame_ui/options4.png")
-                self.icon_hover = resource_manager.get_image("ingame_ui/options6.png")
+                self.icon_hover = resource_manager.get_image("ingame_ui/options8.png")
                 self.icon_default = pg.transform.scale(self.icon_default, (icon_size, icon_size))
                 self.icon_hover = pg.transform.scale(self.icon_hover, (icon_size, icon_size))
             elif button_type == "switch":

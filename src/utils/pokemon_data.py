@@ -22,7 +22,7 @@ STATUS_EFFECTS = {
         "damage_per_turn": 0.1,  # 10% of max HP per turn
         "blocks_action": False,
         "affects_attack": False,
-        "duration": -1  # Lasts until battle ends (-1 = infinite)
+        "duration_range": (3, 3)  # Lasts exactly 3 turns
     },
     "paralysis": {
         "name": "Paralysis",
@@ -31,7 +31,7 @@ STATUS_EFFECTS = {
         "damage_per_turn": 0.0,
         "blocks_action": 0.25,  # 25% chance to be unable to move
         "affects_attack": False,
-        "duration": -1
+        "duration_range": (3, 3)  # Lasts exactly 3 turns
     },
     "burn": {
         "name": "Burn",
@@ -40,7 +40,7 @@ STATUS_EFFECTS = {
         "damage_per_turn": 0.05,  # 5% of max HP per turn
         "blocks_action": False,
         "affects_attack": 0.5,  # Reduces physical attack by 50%
-        "duration": -1
+        "duration_range": (3, 3)  # Lasts exactly 3 turns
     },
     "sleep": {
         "name": "Sleep",
