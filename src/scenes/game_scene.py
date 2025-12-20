@@ -412,6 +412,11 @@ class GameScene(Scene):
             # Battle trigger
             if enemy.detected and input_manager.key_pressed(pg.K_SPACE):
                 self.game_manager.save("saves/game0.json")
+                # Update battle scene's game_manager to use the latest state
+                from src.scenes.battle_scene import BattleScene
+                battle_scene = scene_manager._scenes.get("battle")
+                if battle_scene and isinstance(battle_scene, BattleScene):
+                    battle_scene.game_manager = self.game_manager
                 scene_manager.change_scene("battle_transition")
                 return
 
@@ -429,6 +434,11 @@ class GameScene(Scene):
                     # Boss fight trigger - press E to start boss battle
                     if input_manager.key_pressed(pg.K_e):
                         self.game_manager.save("saves/game0.json")
+                        # Update boss fight scene's game_manager to use the latest state
+                        from src.scenes.boss_fight_scene import BossFightScene
+                        boss_scene = scene_manager._scenes.get("boss_fight")
+                        if boss_scene and isinstance(boss_scene, BossFightScene):
+                            boss_scene.game_manager = self.game_manager
                         scene_manager.change_scene("boss_fight")
                         return
                 else:
@@ -499,6 +509,11 @@ class GameScene(Scene):
                 if input_manager.key_pressed(pg.K_e):
                     Logger.info("Wild pokemon encountered in bush!")
                     self.game_manager.save("saves/game0.json")
+                    # Update catch pokemon scene's game_manager to use the latest state
+                    from src.scenes.catch_pokemon_scene import CatchPokemonScene
+                    catch_scene = scene_manager._scenes.get("catch_pokemon")
+                    if catch_scene and isinstance(catch_scene, CatchPokemonScene):
+                        catch_scene.game_manager = self.game_manager
                     scene_manager.change_scene("catch_pokemon")
                     return
             else:

@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 48.31009724911721,
-        "y": 15.07450966799188
+        "x": 23.72790448398619,
+        "y": 30.00462568389441
       },
       "enemy_trainers": [
         {
@@ -261,14 +261,14 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 47.994143571373776,
-    "y": 15.0
+    "x": 23.72790448398619,
+    "y": 30.00462568389441
   },
   "bag": {
     "monsters": [
       {
         "name": "Aquabit",
-        "hp": 42,
+        "hp": 34,
         "max_hp": 42,
         "level": 8,
         "sprite_path": "sprites/sprite12.png",
@@ -445,7 +445,7 @@
       },
       {
         "name": "Health Potion",
-        "count": 5,
+        "count": 4,
         "sprite_path": "ingame_ui/health-potion.png",
         "price": 100
       },

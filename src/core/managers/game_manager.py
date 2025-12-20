@@ -136,6 +136,10 @@ class GameManager:
         
     def save(self, path: str) -> None:
         try:
+            # Update player_spawns with current position before saving
+            if self.player is not None:
+                self.player_spawns[self.current_map_key] = self.player.position.copy()
+            
             with open(path, "w") as f:
                 json.dump(self.to_dict(), f, indent=2)
             Logger.info(f"Game saved to {path}")
