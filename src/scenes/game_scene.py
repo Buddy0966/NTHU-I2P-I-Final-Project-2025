@@ -526,10 +526,54 @@ class GameScene(Scene):
             )
         
     @override
-    def draw(self, screen: pg.Surface):        
+    def draw(self, screen: pg.Surface):
         if self.game_manager.player:
             camera = self.game_manager.player.camera
             self.game_manager.current_map.draw(screen, camera)
+
+            # Draw online players first (behind local player)
+            if self.online_manager:
+                list_online = self.online_manager.get_list_players()
+
+                # Clean up animations for disconnected players
+                current_pids = set(p["id"] for p in list_online)
+                for pid in list(self.online_player_animations.keys()):
+                    if pid not in current_pids:
+                        del self.online_player_animations[pid]
+
+                for player_data in list_online:
+                    if player_data["map"] == self.game_manager.current_map.path_name:
+                        player_id = player_data["id"]
+
+                        # Create or get animation for this online player
+                        if player_id not in self.online_player_animations:
+                            self.online_player_animations[player_id] = Animation(
+                                "character/ow1.png",  # Use same sprite as local player
+                                ["down", "left", "right", "up"], 4,
+                                (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
+                            )
+
+                        anim = self.online_player_animations[player_id]
+
+                        # Update position
+                        pos = Position(player_data["x"], player_data["y"])
+                        anim.update_pos(pos)
+
+                        # Update animation based on direction and movement
+                        direction = player_data.get("direction", "DOWN").lower()
+                        is_moving = player_data.get("is_moving", False)
+
+                        # Switch to appropriate animation state
+                        anim.switch(direction)
+
+                        # Update animation (this advances frames if moving)
+                        if is_moving:
+                            anim.update(0.016)  # Approximate frame time
+
+                        # Draw the animated sprite
+                        anim.draw(screen, camera)
+
+            # Draw local player on top of online players
             self.game_manager.player.draw(screen, camera)
         else:
             camera = PositionCamera(0, 0)
@@ -553,59 +597,23 @@ class GameScene(Scene):
 
         # Draw minimap (only when no modal panels are open)
         if not self.show_settings and not self.show_bag and not self.show_shop and not self.show_navigation:
+            # Get online players list if available
+            online_players_list = None
+            if self.online_manager:
+                online_players_list = self.online_manager.get_list_players()
+
             self.minimap.draw(
                 screen,
                 self.game_manager.current_map,
                 self.game_manager.player,
                 self.game_manager.current_enemy_trainers,
-                self.game_manager.current_npcs
+                self.game_manager.current_npcs,
+                online_players_list
             )
 
         self.setting_button.draw(screen)
         self.backpack_button.draw(screen)
         self.navigation_button.draw(screen)
-
-        if self.online_manager and self.game_manager.player:
-            list_online = self.online_manager.get_list_players()
-            cam = self.game_manager.player.camera
-
-            # Clean up animations for disconnected players
-            current_pids = set(p["id"] for p in list_online)
-            for pid in list(self.online_player_animations.keys()):
-                if pid not in current_pids:
-                    del self.online_player_animations[pid]
-
-            for player_data in list_online:
-                if player_data["map"] == self.game_manager.current_map.path_name:
-                    player_id = player_data["id"]
-
-                    # Create or get animation for this online player
-                    if player_id not in self.online_player_animations:
-                        self.online_player_animations[player_id] = Animation(
-                            "character/ow1.png",  # Use same sprite as local player
-                            ["down", "left", "right", "up"], 4,
-                            (GameSettings.TILE_SIZE, GameSettings.TILE_SIZE)
-                        )
-
-                    anim = self.online_player_animations[player_id]
-
-                    # Update position
-                    pos = Position(player_data["x"], player_data["y"])
-                    anim.update_pos(pos)
-
-                    # Update animation based on direction and movement
-                    direction = player_data.get("direction", "DOWN").lower()
-                    is_moving = player_data.get("is_moving", False)
-
-                    # Switch to appropriate animation state
-                    anim.switch(direction)
-
-                    # Update animation (this advances frames if moving)
-                    if is_moving:
-                        anim.update(0.016)  # Approximate frame time
-
-                    # Draw the animated sprite
-                    anim.draw(screen, cam)
         
         if self.show_settings and self.settings_panel:
             overlay = pg.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))

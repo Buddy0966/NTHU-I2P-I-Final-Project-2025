@@ -21,7 +21,8 @@
       "Bash(del \"d:\\\\NTHU-I2P-I-Final-Project-2025-main\\\\saves\\\\game0.json\")",
       "Bash(git merge:*)",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(python server.py:*)"
     ],
     "deny": [],
     "ask": []

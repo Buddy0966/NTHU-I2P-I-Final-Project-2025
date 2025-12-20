@@ -67,6 +67,7 @@ class Minimap:
         player: "Player",
         trainers: list["Trainer"] = None,
         npcs: list["NPC"] = None,
+        online_players: list[dict] = None,
     ) -> None:
         """
         Draw the minimap to the screen.
@@ -77,6 +78,7 @@ class Minimap:
             player: The player entity
             trainers: List of trainer entities (optional)
             npcs: List of NPC entities (optional)
+            online_players: List of online player data dictionaries (optional)
         """
         # Check if we need to regenerate the cached map surface
         if (self._cached_map_surface is None or
@@ -99,6 +101,8 @@ class Minimap:
                 self._draw_entities(trainers, camera, viewport_info, (255, 100, 100))  # Red for trainers
             if npcs:
                 self._draw_entities(npcs, camera, viewport_info, (100, 255, 100))  # Green for NPCs
+            if online_players:
+                self._draw_online_players(online_players, camera, viewport_info, current_map)
 
         # Draw player indicator (always on top)
         self._draw_player(player, camera, viewport_info)
@@ -302,4 +306,57 @@ class Minimap:
                     color,
                     (int(minimap_x), int(minimap_y)),
                     3
+                )
+
+    def _draw_online_players(
+        self,
+        online_players: list[dict],
+        camera: PositionCamera,
+        viewport_info: dict,
+        current_map: "Map"
+    ) -> None:
+        """
+        Draw online player markers on the minimap.
+
+        Args:
+            online_players: List of online player data dictionaries
+            camera: The camera transformation
+            viewport_info: Viewport information from _draw_map_viewport
+            current_map: The current map
+        """
+        for player_data in online_players:
+            # Only draw players on the same map
+            if player_data.get("map") != current_map.path_name:
+                continue
+
+            # Get player position from data
+            player_x = player_data.get("x", 0)
+            player_y = player_data.get("y", 0)
+
+            # Convert player position to scaled map coordinates
+            player_scaled_x = player_x * self.scale_factor
+            player_scaled_y = player_y * self.scale_factor
+
+            # Convert to minimap coordinates accounting for viewport offset
+            minimap_x = viewport_info["dest_x"] + (player_scaled_x - viewport_info["source_x"])
+            minimap_y = viewport_info["dest_y"] + (player_scaled_y - viewport_info["source_y"])
+
+            # Only draw if within minimap bounds
+            if 0 <= minimap_x < self.size[0] and 0 <= minimap_y < self.size[1]:
+                # Draw small triangle for online player (cyan color)
+                size = 4
+                # Draw outline
+                pg.draw.circle(
+                    self.surface,
+                    (0, 0, 0),
+                    (int(minimap_x), int(minimap_y)),
+                    size + 1,
+                    1  # Outline
+                )
+                # Draw filled circle
+                pg.draw.circle(
+                    self.surface,
+                    (0, 255, 255),  # Cyan for online players
+                    (int(minimap_x), int(minimap_y)),
+                    size
                 )

@@ -22,6 +22,16 @@ class InputManager:
         self._pressed_mouse.clear()
         self._released_mouse.clear()
         self.mouse_wheel = 0
+
+        # Check if window has focus using pygame's built-in function
+        # If window doesn't have focus, clear all held keys/mouse buttons
+        try:
+            # pg.key.get_focused() returns True if display window has keyboard focus
+            if not pg.key.get_focused():
+                self._down_keys.clear()
+                self._down_mouse.clear()
+        except:
+            pass  # Fail silently if pygame not initialized
         
     def handle_events(self, e: pg.event.Event) -> None:
         if e.type == pg.MOUSEMOTION:

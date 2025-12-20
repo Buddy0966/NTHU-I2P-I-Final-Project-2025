@@ -30,7 +30,7 @@ class ChatOverlay(UIComponent):
         self._input_text = ""
         self._cursor_timer = 0.0
         self._cursor_visible = True
-        _just_opened = False
+        self._just_opened = False
         self._send_callback = send_callback
         self._get_messages = get_messages
 

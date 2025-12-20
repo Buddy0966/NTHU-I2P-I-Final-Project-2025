@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 30.96804040507107,
-        "y": 16.291999999999987
+        "x": 48.31009724911721,
+        "y": 15.07450966799188
       },
       "enemy_trainers": [
         {
@@ -114,8 +114,8 @@
         }
       ],
       "player": {
-        "x": 37.96111544670422,
-        "y": 17.558161322930737
+        "x": 37.97009927957408,
+        "y": 17.096338961668383
       },
       "enemy_trainers": [],
       "npcs": [],
@@ -141,8 +141,8 @@
         }
       ],
       "player": {
-        "x": 12.1005601743307,
-        "y": 14.039999999999992
+        "x": 12.01088311754568,
+        "y": 14.030118466881106
       },
       "enemy_trainers": [],
       "npcs": [],
@@ -241,8 +241,8 @@
         }
       ],
       "player": {
-        "x": 11.32809754647056,
-        "y": 4.503790621709018
+        "x": 11.596798123321447,
+        "y": 4.649947042682623
       },
       "enemy_trainers": [],
       "npcs": [
@@ -261,8 +261,8 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.06221457760154,
-    "y": 29.444379787261017
+    "x": 48.31009724911721,
+    "y": 15.07450966799188
   },
   "bag": {
     "monsters": [
@@ -405,7 +405,7 @@
     "items": [
       {
         "name": "Defense Potion",
-        "count": 17,
+        "count": 16,
         "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
       },
@@ -417,19 +417,19 @@
       },
       {
         "name": "Strength Potion",
-        "count": 15,
+        "count": 16,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
       {
         "name": "Coins",
-        "count": 16744,
+        "count": 15919,
         "sprite_path": "ingame_ui/coin.png",
         "price": 1
       },
       {
         "name": "Pokeball",
-        "count": 99948,
+        "count": 99955,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }
