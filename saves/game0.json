@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 23.72790448398619,
-        "y": 30.00462568389441
+        "x": 31.0,
+        "y": 30.0
       },
       "enemy_trainers": [
         {
@@ -261,14 +261,14 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 23.72790448398619,
-    "y": 30.00462568389441
+    "x": 31.0,
+    "y": 30.0
   },
   "bag": {
     "monsters": [
       {
         "name": "Aquabit",
-        "hp": 34,
+        "hp": 6,
         "max_hp": 42,
         "level": 8,
         "sprite_path": "sprites/sprite12.png",
