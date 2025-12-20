@@ -261,25 +261,25 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.29602857069974,
-    "y": 29.172068975770806
+    "x": 31.43602857069974,
+    "y": 29.0
   },
   "bag": {
     "monsters": [
       {
-        "name": "Aquabit",
-        "hp": 16,
-        "max_hp": 42,
-        "level": 8,
-        "sprite_path": "sprites/sprite12.png",
-        "type": "Water",
+        "name": "Budling",
+        "hp": 23,
+        "max_hp": 41,
+        "level": 6,
+        "sprite_path": "sprites/sprite1.png",
+        "type": "Wind",
         "moves": [
-          "WaterBurst",
-          "AquaShield",
-          "QuickSlash"
+          "VineWhip",
+          "LeafBlade",
+          "NatureBurst"
         ],
-        "attack": 14,
-        "defense": 14,
+        "attack": 13,
+        "defense": 13,
         "status": null,
         "status_turns": 0
       },
@@ -318,16 +318,16 @@
         "status_turns": 0
       },
       {
-        "name": "Verdantus",
-        "hp": 7,
-        "max_hp": 50,
+        "name": "Aquabit",
+        "hp": 0,
+        "max_hp": 42,
         "level": 8,
-        "sprite_path": "sprites/sprite3.png",
-        "type": "Wind",
+        "sprite_path": "sprites/sprite12.png",
+        "type": "Water",
         "moves": [
-          "NatureBurst",
-          "TempestCrash",
-          "LeafBlade"
+          "WaterBurst",
+          "AquaShield",
+          "QuickSlash"
         ],
         "attack": 14,
         "defense": 14,
@@ -370,19 +370,19 @@
         "status_turns": 0
       },
       {
-        "name": "Budling",
-        "hp": 41,
-        "max_hp": 41,
-        "level": 6,
-        "sprite_path": "sprites/sprite1.png",
+        "name": "Verdantus",
+        "hp": 7,
+        "max_hp": 50,
+        "level": 8,
+        "sprite_path": "sprites/sprite3.png",
         "type": "Wind",
         "moves": [
-          "VineWhip",
-          "LeafBlade",
-          "NatureBurst"
+          "NatureBurst",
+          "TempestCrash",
+          "LeafBlade"
         ],
-        "attack": 13,
-        "defense": 13,
+        "attack": 14,
+        "defense": 14,
         "status": null,
         "status_turns": 0
       },
@@ -439,7 +439,7 @@
     "items": [
       {
         "name": "Defense Potion",
-        "count": 16,
+        "count": 15,
         "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
       },
@@ -451,7 +451,7 @@
       },
       {
         "name": "Strength Potion",
-        "count": 14,
+        "count": 12,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },

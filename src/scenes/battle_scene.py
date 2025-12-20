@@ -600,12 +600,9 @@ class BattleScene(Scene):
         Logger.info(f"Player attacked with {self.player_selected_move}: {damage} damage. {effectiveness_msg}. Opponent HP: {self.opponent_pokemon['hp']}")
 
         # Reset attack boost after it's been used once
-        if self.attack_boost_used:
+        if self.attack_boost > 1.0:
             self.attack_boost = 1.0
-            self.attack_boost_used = False
-        elif self.attack_boost > 1.0:
-            # Mark as used if boost is active
-            self.attack_boost_used = True
+            Logger.info("Strength potion effect expired")
 
         if self._check_battle_end():
             self.state = BattleState.SHOW_DAMAGE
@@ -720,12 +717,9 @@ class BattleScene(Scene):
         Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. {effectiveness_msg}. Player HP: {self.player_pokemon['hp']}")
 
         # Reset defense boost after it's been used once
-        if self.defense_boost_used:
+        if self.defense_boost > 1.0:
             self.defense_boost = 1.0
-            self.defense_boost_used = False
-        elif self.defense_boost > 1.0:
-            # Mark as used if boost is active
-            self.defense_boost_used = True
+            Logger.info("Defense potion effect expired")
 
         if self._check_battle_end():
             self.state = BattleState.SHOW_DAMAGE
@@ -937,13 +931,13 @@ class BattleScene(Scene):
         # Strength Potion: Increase attack power
         elif 'strength' in item_name or 'attack' in item_name:
             self.attack_boost = 1.5  # 50% attack boost
-            self.message = f"{self.player_pokemon['name']} used Strength Potion! Attack power increased!"
+            self.message = f"{self.player_pokemon['name']} used Strength Potion! Attack power increased for next attack!"
             Logger.info(f"Player used Strength Potion: attack boost now {self.attack_boost}x")
 
         # Defense Potion (defense-potion.png): Reduce opponent's attack damage
         elif 'defense' in item_name or 'defence' in item_name:
-            self.defense_boost = 1.5  
-            self.message = f"{self.player_pokemon['name']} used Defense Potion! Defense increased!"
+            self.defense_boost = 1.5
+            self.message = f"{self.player_pokemon['name']} used Defense Potion! Defense increased for next attack!"
             Logger.info(f"Player used Defense Potion: defense boost now {self.defense_boost}x (reduces incoming damage)")
 
         else:
