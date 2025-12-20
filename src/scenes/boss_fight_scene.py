@@ -80,7 +80,7 @@ class BossFightScene(Scene):
     def __init__(self, game_manager: GameManager):
         super().__init__()
         # Use a special boss background
-        self.background = BackgroundSprite("backgrounds/background1.png")
+        self.background = BackgroundSprite("backgrounds/battleBackground.png")
         self.game_manager = game_manager
         self._font = pg.font.Font('assets/fonts/Minecraft.ttf', 28)
         self._message_font = pg.font.Font('assets/fonts/Minecraft.ttf', 18)
@@ -678,7 +678,7 @@ class BossFightScene(Scene):
         if self.boss_panel is None and self.boss_pokemon and self.state == BossFightState.BOSS_APPEAR:
             self.boss_panel = PokemonStatsPanel(
                 self.boss_pokemon,
-                GameSettings.SCREEN_WIDTH - 180,
+                GameSettings.SCREEN_WIDTH - 270,
                 20
             )
 
@@ -686,7 +686,7 @@ class BossFightScene(Scene):
             self.player_panel = PokemonStatsPanel(
                 self.player_pokemon,
                 20,
-                GameSettings.SCREEN_HEIGHT - 250
+                GameSettings.SCREEN_HEIGHT - 300
             )
 
         if self.state == BossFightState.PLAYER_TURN:

@@ -15,8 +15,8 @@
         }
       ],
       "player": {
-        "x": 31.0,
-        "y": 30.0
+        "x": 24.311532470182666,
+        "y": 30.47322871427476
       },
       "enemy_trainers": [
         {
@@ -114,8 +114,8 @@
         }
       ],
       "player": {
-        "x": 37.97009927957408,
-        "y": 17.096338961668383
+        "x": 37.991006783737575,
+        "y": 17.22907056019759
       },
       "enemy_trainers": [],
       "npcs": [],
@@ -241,8 +241,8 @@
         }
       ],
       "player": {
-        "x": 11.596798123321447,
-        "y": 4.649947042682623
+        "x": 11.46103362133363,
+        "y": 4.901378500187696
       },
       "enemy_trainers": [],
       "npcs": [
@@ -261,14 +261,31 @@
   ],
   "current_map": "map.tmx",
   "player": {
-    "x": 31.0,
-    "y": 30.0
+    "x": 24.311532470182666,
+    "y": 30.47322871427476
   },
   "bag": {
     "monsters": [
       {
+        "name": "Verdantus",
+        "hp": 45,
+        "max_hp": 50,
+        "level": 8,
+        "sprite_path": "sprites/sprite3.png",
+        "type": "Wind",
+        "moves": [
+          "NatureBurst",
+          "TempestCrash",
+          "LeafBlade"
+        ],
+        "attack": 14,
+        "defense": 14,
+        "status": null,
+        "status_turns": 0
+      },
+      {
         "name": "Aquabit",
-        "hp": 6,
+        "hp": 0,
         "max_hp": 42,
         "level": 8,
         "sprite_path": "sprites/sprite12.png",
@@ -280,23 +297,6 @@
         ],
         "attack": 14,
         "defense": 14,
-        "status": null,
-        "status_turns": 0
-      },
-      {
-        "name": "Budling",
-        "hp": 43,
-        "max_hp": 43,
-        "level": 10,
-        "sprite_path": "sprites/sprite1.png",
-        "type": "Wind",
-        "moves": [
-          "VineWhip",
-          "LeafBlade",
-          "NatureBurst"
-        ],
-        "attack": 15,
-        "defense": 15,
         "status": null,
         "status_turns": 0
       },
@@ -352,6 +352,23 @@
         "status_turns": 0
       },
       {
+        "name": "Budling",
+        "hp": 0,
+        "max_hp": 43,
+        "level": 10,
+        "sprite_path": "sprites/sprite1.png",
+        "type": "Wind",
+        "moves": [
+          "VineWhip",
+          "LeafBlade",
+          "NatureBurst"
+        ],
+        "attack": 15,
+        "defense": 15,
+        "status": null,
+        "status_turns": 0
+      },
+      {
         "name": "pikachu",
         "hp": 100,
         "max_hp": 100,
@@ -366,23 +383,6 @@
         ],
         "attack": 100,
         "defense": 60,
-        "status": null,
-        "status_turns": 0
-      },
-      {
-        "name": "Verdantus",
-        "hp": 50,
-        "max_hp": 50,
-        "level": 8,
-        "sprite_path": "sprites/sprite3.png",
-        "type": "Wind",
-        "moves": [
-          "NatureBurst",
-          "TempestCrash",
-          "LeafBlade"
-        ],
-        "attack": 14,
-        "defense": 14,
         "status": null,
         "status_turns": 0
       },
@@ -434,24 +434,48 @@
         "defense": 14,
         "status": null,
         "status_turns": 0
+      },
+      {
+        "name": "Tidecrest",
+        "hp": 47,
+        "max_hp": 47,
+        "level": 11,
+        "sprite_path": "sprites/sprite13.png"
+      },
+      {
+        "name": "Larvite",
+        "hp": 45,
+        "max_hp": 45,
+        "level": 7,
+        "sprite_path": "sprites/sprite15.png",
+        "type": "Wind",
+        "moves": [
+          "BugBite",
+          "VineWhip",
+          "QuickSlash"
+        ],
+        "attack": 13,
+        "defense": 13,
+        "status": null,
+        "status_turns": 0
       }
     ],
     "items": [
       {
         "name": "Defense Potion",
-        "count": 13,
+        "count": 12,
         "sprite_path": "ingame_ui/defense-potion.png",
         "price": 50
       },
       {
         "name": "Health Potion",
-        "count": 4,
+        "count": 3,
         "sprite_path": "ingame_ui/health-potion.png",
         "price": 100
       },
       {
         "name": "Strength Potion",
-        "count": 9,
+        "count": 6,
         "sprite_path": "ingame_ui/strength-potion.png",
         "price": 150
       },
@@ -463,7 +487,7 @@
       },
       {
         "name": "Pokeball",
-        "count": 99956,
+        "count": 99954,
         "sprite_path": "ingame_ui/ball.png",
         "price": 100
       }

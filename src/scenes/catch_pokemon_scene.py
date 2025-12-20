@@ -11,7 +11,7 @@ from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
 from src.interface.components.battle_switch_panel import BattleSwitchPanel
 from src.utils.definition import Monster
-from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE, STATUS_EFFECTS
+from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE, STATUS_EFFECTS, calculate_type_effectiveness
 
 from typing import override
 
@@ -34,12 +34,11 @@ class WildBattleState(Enum):
     SHOW_DAMAGE = 10
     CATCHING = 11  # pokeball catching state
     CATCH_ANIMATION = 12  # pokeball flying animation
-    SWITCH_POKEMON = 13  # Player switching pokemon
-    CATCH_FLASHING = 14  # Pokemon flashing when caught
-    # CATCH_FLASHING = 14  # Pokemon flashing when caught
-    CATCH_FALLING = 15  # Pokeball falling after catch
-    CATCH_SHAKE = 16    # Pokeball shaking on ground
-    CATCH_SUCCESS = 17  # Catch successful
+    CATCH_FLASHING = 13  # Pokemon flashing when caught
+    CATCH_FALLING = 14  # Pokeball falling after catch
+    CATCH_SHAKE = 15    # Pokeball shaking on ground
+    CATCH_SUCCESS = 16  # Catch successful
+    CHOOSE_SWITCH = 17  # Choose Pokemon to switch
 
 
 class CatchPokemonScene(Scene):
@@ -94,6 +93,12 @@ class CatchPokemonScene(Scene):
     # Potion buffs
     attack_boost: float
     defense_boost: float
+    attack_boost_used: bool  # Track if attack boost was used this turn
+    defense_boost_used: bool  # Track if defense boost was used this turn
+
+    # Damage calculation display
+    damage_formula: str  # Formula string to display
+    show_damage_formula: bool  # Whether to show the formula
 
     # Switch panel
     switch_panel: BattleSwitchPanel | None
@@ -175,6 +180,12 @@ class CatchPokemonScene(Scene):
         # Potion buffs
         self.attack_boost = 1.0  # Multiplier for attack damage
         self.defense_boost = 1.0  # Multiplier for defense (reduces incoming damage)
+        self.attack_boost_used = False
+        self.defense_boost_used = False
+
+        # Damage calculation display
+        self.damage_formula = ""
+        self.show_damage_formula = False
 
         # Switch panel
         self.switch_panel = None
@@ -243,6 +254,8 @@ class CatchPokemonScene(Scene):
         # Reset potion buffs
         self.attack_boost = 1.0
         self.defense_boost = 1.0
+        self.attack_boost_used = False
+        self.defense_boost_used = False
 
         # Reset switch panel
         self.switch_panel = None
@@ -393,17 +406,50 @@ class CatchPokemonScene(Scene):
             return
 
         self.move_buttons = []
-        move_btn_w, move_btn_h = 120, 45
-        move_gap_x = 30
-        move_start_x = 150
-        move_start_y = GameSettings.SCREEN_HEIGHT - 150
+        # Button size - wider to accommodate icon and text
+        move_btn_w, move_btn_h = 234, 50  # 180 * 1.3 = 234, wider buttons for move name + damage
+        move_gap = 25  # Larger gap between buttons
 
         moves = self.player_pokemon["moves"]
+        num_moves = len(moves)
+
+        # Calculate total width needed for all buttons in a row
+        total_width = move_btn_w * num_moves + move_gap * (num_moves - 1)
+
+        # Center buttons horizontally
+        move_start_x = (GameSettings.SCREEN_WIDTH - total_width) // 2
+        move_start_y = GameSettings.SCREEN_HEIGHT - 150  # Move buttons higher above message box
+
+        # Get stats for damage calculation
+        attacker_type = self.player_pokemon.get("type", "None")
+        defender_type = self.opponent_pokemon.get("type", "None") if self.opponent_pokemon else "None"
+        attack = self.player_pokemon.get("attack", 10)
+        defense = self.opponent_pokemon.get("defense", 10) if self.opponent_pokemon else 10
+        level = self.player_pokemon.get("level", 10)
+
+        attack = attack * self.attack_boost
+
         for i, move in enumerate(moves):
-            x = move_start_x + (move_btn_w + move_gap_x) * (i % 2)
-            y = move_start_y - (move_btn_h + 15) * (i // 2)
-            btn = BattleActionButton(move, x, y, move_btn_w, move_btn_h,
-                                    lambda m=move: self._on_move_select(m))
+            # Calculate estimated damage for this move
+            estimated_damage, _ = calculate_damage(
+                move,
+                attacker_type,
+                defender_type,
+                level,
+                attack,
+                defense
+            )
+
+            # Create button text with move name and damage
+            button_text = f"{move} ({estimated_damage})"
+
+            # Layout: all buttons in a single horizontal row
+            x = move_start_x + i * (move_btn_w + move_gap)
+            y = move_start_y
+
+            btn = BattleActionButton(button_text, x, y, move_btn_w, move_btn_h,
+                                    lambda m=move: self._on_move_select(m),
+                                    is_move_button=True)  # Mark as move button for special styling
             self.move_buttons.append(btn)
 
     def _on_fight_click(self) -> None:
@@ -452,7 +498,7 @@ class CatchPokemonScene(Scene):
             self.message = "No healthy Pokemon to switch to!"
             return
 
-        self.state = WildBattleState.SWITCH_POKEMON
+        self.state = WildBattleState.CHOOSE_SWITCH
         self.switch_panel = BattleSwitchPanel(
             self.game_manager.bag.monsters,
             current_pokemon_index,
@@ -541,6 +587,14 @@ class CatchPokemonScene(Scene):
             burn_data = STATUS_EFFECTS["burn"]
             attack = int(attack * burn_data["affects_attack"])
 
+        attack = attack * self.attack_boost
+
+        # Get move data for formula display
+        move_data = MOVES_DATABASE.get(self.player_selected_move)
+        move_power = move_data["power"] if move_data else 1.0
+        type_mult, _ = calculate_type_effectiveness(attacker_type, defender_type)
+
+        # Calculate damage and generate formula
         damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
@@ -550,8 +604,10 @@ class CatchPokemonScene(Scene):
             defense
         )
 
-        # Apply attack boost from Strength Potion
-        damage = int(damage * self.attack_boost)
+        # Generate damage formula display
+        total_attack = attack * move_power * type_mult
+        self.damage_formula = f"ATK:{int(attack)} x Skill:{move_power} x Type:{type_mult} - DEF:{defense} = {int(total_attack)} - {defense} = {damage}"
+        self.show_damage_formula = True
 
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -574,6 +630,11 @@ class CatchPokemonScene(Scene):
                     Logger.info(f"Applied {status_effect} to opponent")
 
         Logger.info(f"Player attacked with {self.player_selected_move}: {damage} damage. {effectiveness_msg}. Opponent HP: {self.opponent_pokemon['hp']}")
+
+        # Reset attack boost after it's been used once
+        if self.attack_boost > 1.0:
+            self.attack_boost = 1.0
+            Logger.info("Strength potion effect expired")
 
         if self._check_battle_end():
             self.state = WildBattleState.SHOW_DAMAGE
@@ -644,6 +705,14 @@ class CatchPokemonScene(Scene):
             burn_data = STATUS_EFFECTS["burn"]
             attack = int(attack * burn_data["affects_attack"])
 
+
+        defense = int(defense * self.defense_boost)
+
+        # Get move data for formula display
+        move_data = MOVES_DATABASE.get(self.enemy_selected_move)
+        move_power = move_data["power"] if move_data else 1.0
+        type_mult, _ = calculate_type_effectiveness(attacker_type, defender_type)
+
         damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
@@ -653,8 +722,10 @@ class CatchPokemonScene(Scene):
             defense
         )
 
-        # Apply defense boost from Defense Potion (reduces incoming damage)
-        damage = int(damage * self.defense_boost)
+        # Generate damage formula display
+        total_attack = attack * move_power * type_mult
+        self.damage_formula = f"ATK:{int(attack)} x Skill:{move_power} x Type:{type_mult} - DEF:{defense} = {int(total_attack)} - {defense} = {damage}"
+        self.show_damage_formula = True
 
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -677,6 +748,11 @@ class CatchPokemonScene(Scene):
                     Logger.info(f"Applied {status_effect} to player")
 
         Logger.info(f"Enemy attacked with {self.enemy_selected_move}: {damage} damage. {effectiveness_msg}. Player HP: {self.player_pokemon['hp']}")
+
+        # Reset defense boost after it's been used once
+        if self.defense_boost > 1.0:
+            self.defense_boost = 1.0
+            Logger.info("Defense potion effect expired")
 
         if self._check_battle_end():
             self.state = WildBattleState.SHOW_DAMAGE
@@ -867,14 +943,14 @@ class CatchPokemonScene(Scene):
         # Strength Potion: Increase attack power
         elif 'strength' in item_name or 'attack' in item_name:
             self.attack_boost = 1.5  # 50% attack boost
-            self.message = f"{self.player_pokemon['name']} used Strength Potion! Attack power increased!"
+            self.message = f"{self.player_pokemon['name']} used Strength Potion! Attack power increased for next attack!"
             Logger.info(f"Player used Strength Potion: attack boost now {self.attack_boost}x")
 
-        # Defense Potion (defense-potion.png): Reduce opponent's attack damage
+        # Defense Potion (defense-potion.png): Increase defense
         elif 'defense' in item_name or 'defence' in item_name:
-            self.defense_boost = 0.7  # Reduce incoming damage by 30%
-            self.message = f"{self.player_pokemon['name']} used Defense Potion! Defense increased!"
-            Logger.info(f"Player used Defense Potion: defense boost now {self.defense_boost}x (reduces incoming damage)")
+            self.defense_boost = 1.5  # Increase defense by 50%
+            self.message = f"{self.player_pokemon['name']} used Defense Potion! Defense increased for next attack!"
+            Logger.info(f"Player used Defense Potion: defense boost now {self.defense_boost}x (increases defense)")
 
         else:
             # Fallback for unknown items
@@ -978,7 +1054,13 @@ class CatchPokemonScene(Scene):
                 self._pokemon_scale = 0.0
             elif self.state == WildBattleState.SHOW_DAMAGE:
                 # Clear effectiveness message immediately when leaving SHOW_DAMAGE state
+                # Also remove it from self.message if it was appended there
+                if self.effectiveness_message and self.effectiveness_message in self.message:
+                    self.message = self.message.replace(self.effectiveness_message, "").strip()
                 self.effectiveness_message = ""
+
+                # Clear damage formula display
+                self.show_damage_formula = False
 
                 # After showing damage, transition to next state
                 # Switch sprites back to idle animation
@@ -1057,15 +1139,15 @@ class CatchPokemonScene(Scene):
         if self.opponent_panel is None and self.opponent_pokemon and self.state == WildBattleState.SEND_OPPONENT:
             self.opponent_panel = PokemonStatsPanel(
                 self.opponent_pokemon,
-                GameSettings.SCREEN_WIDTH - 180,
+                GameSettings.SCREEN_WIDTH - 230,
                 20
             )
-        
+
         if self.player_panel is None and self.player_pokemon and self.state == WildBattleState.SEND_PLAYER:
             self.player_panel = PokemonStatsPanel(
                 self.player_pokemon,
                 20,
-                GameSettings.SCREEN_HEIGHT - 250
+                GameSettings.SCREEN_HEIGHT - 300
             )
         
         if self.state == WildBattleState.PLAYER_TURN:
@@ -1084,13 +1166,27 @@ class CatchPokemonScene(Scene):
                 selected = self.item_panel.get_selected_item()
                 if selected:
                     self._execute_item_attack(selected)
-                
+
                 # Close item panel with ESC key
                 if input_manager.key_pressed(pg.K_ESCAPE):
                     self.state = WildBattleState.PLAYER_TURN
                     self.item_panel = None
                     self.message = "What will " + self.player_pokemon['name'] + " do?"
-        
+
+        # Switch panel handling
+        if self.state == WildBattleState.CHOOSE_SWITCH:
+            if self.switch_panel:
+                self.switch_panel.update(dt)
+                selected_index = self.switch_panel.get_selected_pokemon_index()
+                if selected_index is not None:
+                    self._execute_switch(selected_index)
+
+                # Close switch panel with ESC key
+                if input_manager.key_pressed(pg.K_ESCAPE):
+                    self.state = WildBattleState.PLAYER_TURN
+                    self.switch_panel = None
+                    self.message = "What will " + self.player_pokemon['name'] + " do?"
+
         # Catching panel handling
         if self.state == WildBattleState.CATCHING:
             if self.catch_panel:
@@ -1257,16 +1353,181 @@ class CatchPokemonScene(Scene):
         if self.player_panel:
             self.player_panel.update_pokemon(self.player_pokemon)
 
+    def _draw_type_matchup_display(self, screen: pg.Surface) -> None:
+        """Draw a beautiful type matchup display at the top of the screen"""
+        if not self.player_pokemon or not self.opponent_pokemon:
+            return
+
+        from src.utils.pokemon_data import TYPE_ADVANTAGE
+
+        player_type = self.player_pokemon.get("type", "None")
+        opponent_type = self.opponent_pokemon.get("type", "None")
+
+        # Type color mapping for visual appeal
+        type_colors = {
+            "Fire": (255, 100, 50),
+            "Water": (50, 150, 255),
+            "Ice": (150, 230, 255),
+            "Wind": (200, 255, 200),
+            "Light": (255, 255, 150),
+            "Slash": (200, 200, 200),
+            "None": (150, 150, 150),
+        }
+
+        # Draw background panel
+        panel_width = 500
+        panel_height = 70
+        panel_x = (GameSettings.SCREEN_WIDTH - panel_width) // 2
+        panel_y = 10
+
+        # Semi-transparent dark background
+        panel_surface = pg.Surface((panel_width, panel_height), pg.SRCALPHA)
+        pg.draw.rect(panel_surface, (0, 0, 0, 180), (0, 0, panel_width, panel_height), border_radius=15)
+        pg.draw.rect(panel_surface, (255, 255, 255, 100), (0, 0, panel_width, panel_height), 3, border_radius=15)
+        screen.blit(panel_surface, (panel_x, panel_y))
+
+        # Draw player type badge (left side)
+        player_color = type_colors.get(player_type, (150, 150, 150))
+        player_badge_x = panel_x + 30
+        player_badge_y = panel_y + 20
+        player_badge_w = 120
+        player_badge_h = 35
+
+        pg.draw.rect(screen, player_color, (player_badge_x, player_badge_y, player_badge_w, player_badge_h), border_radius=10)
+        pg.draw.rect(screen, (255, 255, 255), (player_badge_x, player_badge_y, player_badge_w, player_badge_h), 2, border_radius=10)
+
+        player_type_text = self._font.render(player_type, True, (255, 255, 255))
+        text_rect = player_type_text.get_rect(center=(player_badge_x + player_badge_w // 2, player_badge_y + player_badge_h // 2))
+        screen.blit(player_type_text, text_rect)
+
+        # Draw opponent type badge (right side)
+        opponent_color = type_colors.get(opponent_type, (150, 150, 150))
+        opponent_badge_x = panel_x + panel_width - 150
+        opponent_badge_y = panel_y + 20
+        opponent_badge_w = 120
+        opponent_badge_h = 35
+
+        pg.draw.rect(screen, opponent_color, (opponent_badge_x, opponent_badge_y, opponent_badge_w, opponent_badge_h), border_radius=10)
+        pg.draw.rect(screen, (255, 255, 255), (opponent_badge_x, opponent_badge_y, opponent_badge_w, opponent_badge_h), 2, border_radius=10)
+
+        opponent_type_text = self._font.render(opponent_type, True, (255, 255, 255))
+        text_rect = opponent_type_text.get_rect(center=(opponent_badge_x + opponent_badge_w // 2, opponent_badge_y + opponent_badge_h // 2))
+        screen.blit(opponent_type_text, text_rect)
+
+        # Draw matchup indicator (center)
+        center_x = panel_x + panel_width // 2
+        center_y = panel_y + panel_height // 2
+
+        # Determine matchup
+        player_advantage = TYPE_ADVANTAGE.get(player_type) == opponent_type
+        opponent_advantage = TYPE_ADVANTAGE.get(opponent_type) == player_type
+
+        if player_type == "None" or opponent_type == "None":
+            # Neutral - no type advantages
+            symbol = "="
+            symbol_color = (200, 200, 200)
+            glow_color = (100, 100, 100)
+        elif player_advantage:
+            # Player has advantage
+            symbol = ">"
+            symbol_color = (100, 255, 100)
+            glow_color = (50, 200, 50)
+        elif opponent_advantage:
+            # Opponent has advantage
+            symbol = "<"
+            symbol_color = (255, 100, 100)
+            glow_color = (200, 50, 50)
+        else:
+            # Neutral matchup
+            symbol = "="
+            symbol_color = (255, 255, 150)
+            glow_color = (200, 200, 100)
+
+        # Draw glowing symbol
+        symbol_font = pg.font.Font('assets/fonts/Minecraft.ttf', 40)
+
+        # Glow effect
+        for offset in range(3, 0, -1):
+            glow_alpha = 80 - (offset * 20)
+            glow_surface = pg.Surface((60, 60), pg.SRCALPHA)
+            glow_text = symbol_font.render(symbol, True, (*glow_color, glow_alpha))
+            glow_rect = glow_text.get_rect(center=(30, 30))
+            glow_surface.blit(glow_text, glow_rect)
+            screen.blit(glow_surface, (center_x - 30 - offset, center_y - 30 - offset))
+
+        # Main symbol
+        symbol_text = symbol_font.render(symbol, True, symbol_color)
+        symbol_rect = symbol_text.get_rect(center=(center_x, center_y))
+        screen.blit(symbol_text, symbol_rect)
+
+    def _draw_status_description(self, screen: pg.Surface, pokemon: Monster, panel: PokemonStatsPanel) -> None:
+        """Draw status effect description above the pokemon stats panel"""
+        if not pokemon:
+            return
+
+        status = pokemon.get("status", None)
+        if not status:
+            return
+
+        # Get status effect data
+        status_data = STATUS_EFFECTS.get(status)
+        if not status_data:
+            return
+
+        # Position above the panel
+        text_x = panel.rect.x
+        text_y = panel.rect.y - 30
+
+        # Create status description text
+        status_name = status_data["name"]
+        turns_left = pokemon.get("status_turns", 0)
+
+        # Build description based on status type
+        if turns_left > 0:
+            description = f"{status_name} ({turns_left} turns left)"
+        else:
+            description = f"{status_name}"
+
+        # Draw background for text
+        status_font = pg.font.Font('assets/fonts/Minecraft.ttf', 14)
+        text_surface = status_font.render(description, True, (255, 255, 255))
+        text_width = text_surface.get_width()
+        text_height = text_surface.get_height()
+
+        # Semi-transparent background
+        bg_padding = 8
+        bg_rect = pg.Rect(text_x - bg_padding, text_y - bg_padding,
+                         text_width + bg_padding * 2, text_height + bg_padding * 2)
+        bg_surface = pg.Surface((bg_rect.width, bg_rect.height), pg.SRCALPHA)
+
+        status_color = status_data["color"]
+        pg.draw.rect(bg_surface, (*status_color, 200), (0, 0, bg_rect.width, bg_rect.height), border_radius=8)
+        pg.draw.rect(bg_surface, (255, 255, 255), (0, 0, bg_rect.width, bg_rect.height), 2, border_radius=8)
+
+        screen.blit(bg_surface, (bg_rect.x, bg_rect.y))
+        screen.blit(text_surface, (text_x, text_y))
+
     @override
     def draw(self, screen: pg.Surface) -> None:
         self.background.draw(screen)
-        
+
+        # Draw type matchup display (only when both Pokemon are visible)
+        if self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_SWITCH):
+            self._draw_type_matchup_display(screen)
+
         # Draw panels in appropriate states
         if self.opponent_panel and self.state in (WildBattleState.SEND_OPPONENT, WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
             self.opponent_panel.draw(screen)
+            # Draw status effect description above opponent panel
+            self._draw_status_description(screen, self.opponent_pokemon, self.opponent_panel)
 
         if self.player_panel and self.state in (WildBattleState.SEND_PLAYER, WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.BATTLE_END, WildBattleState.CATCHING, WildBattleState.CATCH_ANIMATION, WildBattleState.CATCH_FLASHING, WildBattleState.CATCH_FALLING, WildBattleState.SHOW_DAMAGE, WildBattleState.CHOOSE_MOVE, WildBattleState.CHOOSE_ITEM):
+            # Update boost values before drawing
+            self.player_panel.attack_boost = self.attack_boost
+            self.player_panel.defense_boost = self.defense_boost
             self.player_panel.draw(screen)
+            # Draw status effect description above player panel
+            self._draw_status_description(screen, self.player_pokemon, self.player_panel)
 
         # Draw attack animation (before Pokemon so it appears behind them)
         if self.attack_animation:
@@ -1364,7 +1625,28 @@ class CatchPokemonScene(Scene):
             else:
                 msg_text = self._message_font.render(self.message, True, (255, 255, 255))
                 screen.blit(msg_text, (box_x + 10, box_y + 10))
-        
+
+        # Display damage calculation formula in top right corner
+        if self.show_damage_formula and self.damage_formula and self.state == WildBattleState.SHOW_DAMAGE:
+            # Create a semi-transparent background box for the formula
+            formula_box_width = 500
+            formula_box_height = 80
+            formula_box_x = GameSettings.SCREEN_WIDTH - formula_box_width - 20
+            formula_box_y = 500
+            # Draw background with border
+            pg.draw.rect(screen, (30, 30, 30), (formula_box_x, formula_box_y, formula_box_width, formula_box_height), border_radius=8)
+            pg.draw.rect(screen, (200, 150, 50), (formula_box_x, formula_box_y, formula_box_width, formula_box_height), 3, border_radius=8)
+
+            # Title
+            title_font = pg.font.Font('assets/fonts/Minecraft.ttf', 18)
+            title_text = title_font.render("Damage Calculation", True, (255, 200, 100))
+            screen.blit(title_text, (formula_box_x + 10, formula_box_y + 8))
+
+            # Formula
+            formula_font = pg.font.Font('assets/fonts/Minecraft.ttf', 15)
+            formula_text = formula_font.render(self.damage_formula, True, (220, 220, 220))
+            screen.blit(formula_text, (formula_box_x + 10, formula_box_y + 35))
+
         # Display turn message (damage dealt)
         if self.turn_message and self.state in (WildBattleState.PLAYER_TURN, WildBattleState.ENEMY_TURN, WildBattleState.PLAYER_TURN):
             turn_text = self._message_font.render(self.turn_message, True, (255, 200, 100))
@@ -1408,28 +1690,24 @@ class CatchPokemonScene(Scene):
             self.run_btn.draw(screen)
         
         if self.state == WildBattleState.CHOOSE_MOVE:
-            start_x = box_x + 180
-            start_y = box_y + 120
-            btn_w = 100  # 按鈕可能要窄一點才塞得下
-            gap = 30     # 間距
-
-            for i, btn in enumerate(self.move_buttons):
-                # 每個按鈕往右推移
-                current_x = start_x + i * (btn_w + gap)
-                current_y = start_y - 100
-                
-                # 更新按鈕位置
-                btn.rect.topleft = (current_x, current_y)
-                
+            # Draw move buttons (positions already set in _init_move_buttons)
+            for btn in self.move_buttons:
                 btn.draw(screen)
         
         if self.state == WildBattleState.CHOOSE_ITEM:
             if self.item_panel:
                 self.item_panel.draw(screen)
-            
+
             hint_text = self._message_font.render("Press ESC to cancel", True, (255, 255, 0))
             screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
-        
+
+        if self.state == WildBattleState.CHOOSE_SWITCH:
+            if self.switch_panel:
+                self.switch_panel.draw(screen)
+
+            hint_text = self._message_font.render("Press ESC to cancel", True, (255, 255, 0))
+            screen.blit(hint_text, (box_x + 10, box_y + box_h - 30))
+
         if self.state == WildBattleState.CATCHING:
             if self.catch_panel:
                 self.catch_panel.draw(screen)
