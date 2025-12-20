@@ -13,7 +13,7 @@ from src.interface.components import PokemonStatsPanel, BattleActionButton
 from src.interface.components.battle_item_panel import BattleItemPanel
 from src.interface.components.battle_switch_panel import BattleSwitchPanel
 from src.utils.definition import Monster
-from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE, STATUS_EFFECTS
+from src.utils.pokemon_data import POKEMON_SPECIES, calculate_damage, MOVES_DATABASE, STATUS_EFFECTS, calculate_type_effectiveness
 
 from typing import override
 
@@ -143,6 +143,10 @@ class BattleScene(Scene):
     attack_boost_used: bool  # Track if attack boost was used this turn
     defense_boost_used: bool  # Track if defense boost was used this turn
 
+    # Damage calculation display
+    damage_formula: str  # Formula string to display
+    show_damage_formula: bool  # Whether to show the formula
+
     # Switch panel
     switch_panel: BattleSwitchPanel | None
 
@@ -177,6 +181,10 @@ class BattleScene(Scene):
         self.defense_boost = 1.0  # Multiplier for defense (reduces incoming damage)
         self.attack_boost_used = False
         self.defense_boost_used = False
+
+        # Damage calculation display
+        self.damage_formula = ""
+        self.show_damage_formula = False
 
         # pokeball catching animation
         self.pokeball_sprite = Sprite("ingame_ui/ball.png", (40, 40))
@@ -549,6 +557,12 @@ class BattleScene(Scene):
 
         attack = attack * self.attack_boost
 
+        # Get move data for formula display
+        move_data = MOVES_DATABASE.get(self.player_selected_move)
+        move_power = move_data["power"] if move_data else 1.0
+        type_mult, _ = calculate_type_effectiveness(attacker_type, defender_type)
+
+        # Calculate damage and generate formula
         damage, effectiveness_msg = calculate_damage(
             self.player_selected_move,
             attacker_type,
@@ -557,6 +571,11 @@ class BattleScene(Scene):
             attack,
             defense
         )
+
+        # Generate damage formula display
+        total_attack = attack * move_power * type_mult
+        self.damage_formula = f"ATK:{int(attack)} x Skill:{move_power} x Type:{type_mult} - DEF:{defense} = {int(total_attack)} - {defense} = {damage}"
+        self.show_damage_formula = True
 
         self.opponent_pokemon['hp'] = max(0, self.opponent_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -660,6 +679,10 @@ class BattleScene(Scene):
  
         defense = int(defense * self.defense_boost)
 
+        # Get move data for formula display
+        move_power = move_data["power"] if move_data else 1.0
+        type_mult, _ = calculate_type_effectiveness(attacker_type, defender_type)
+
         damage, effectiveness_msg = calculate_damage(
             self.enemy_selected_move,
             attacker_type,
@@ -669,6 +692,10 @@ class BattleScene(Scene):
             defense
         )
 
+        # Generate damage formula display
+        total_attack = attack * move_power * type_mult
+        self.damage_formula = f"ATK:{int(attack)} x Skill:{move_power} x Type:{type_mult} - DEF:{defense} = {int(total_attack)} - {defense} = {damage}"
+        self.show_damage_formula = True
 
         self.player_pokemon['hp'] = max(0, self.player_pokemon['hp'] - damage)
         self.effectiveness_message = effectiveness_msg
@@ -1041,6 +1068,9 @@ class BattleScene(Scene):
                     self.message = self.message.replace(self.effectiveness_message, "").strip()
                 self.effectiveness_message = ""
 
+                # Clear damage formula display
+                self.show_damage_formula = False
+
                 # After showing damage, transition to next state
                 # Switch sprites back to idle animation
                 if self.opponent_sprite:
@@ -1331,6 +1361,9 @@ class BattleScene(Scene):
                 if self.effectiveness_message and self.effectiveness_message in self.message:
                     self.message = self.message.replace(self.effectiveness_message, "").strip()
                 self.effectiveness_message = ""
+
+                # Clear damage formula display
+                self.show_damage_formula = False
 
                 # After showing damage, transition to next state
                 # Switch sprites back to idle animation
@@ -1827,7 +1860,28 @@ class BattleScene(Scene):
             else:
                 msg_text = self._message_font.render(self.message, True, (255, 255, 255))
                 screen.blit(msg_text, (box_x + 10, box_y + 10))
-        
+
+        # Display damage calculation formula in top right corner
+        if self.show_damage_formula and self.damage_formula and self.state == BattleState.SHOW_DAMAGE:
+            # Create a semi-transparent background box for the formula
+            formula_box_width = 500
+            formula_box_height = 80
+            formula_box_x = GameSettings.SCREEN_WIDTH - formula_box_width - 20
+            formula_box_y = 500
+            # Draw background with border
+            pg.draw.rect(screen, (30, 30, 30), (formula_box_x, formula_box_y, formula_box_width, formula_box_height), border_radius=8)
+            pg.draw.rect(screen, (200, 150, 50), (formula_box_x, formula_box_y, formula_box_width, formula_box_height), 3, border_radius=8)
+
+            # Title
+            title_font = pg.font.Font('assets/fonts/Minecraft.ttf', 18)
+            title_text = title_font.render("Damage Calculation", True, (255, 200, 100))
+            screen.blit(title_text, (formula_box_x + 10, formula_box_y + 8))
+
+            # Formula
+            formula_font = pg.font.Font('assets/fonts/Minecraft.ttf', 15)
+            formula_text = formula_font.render(self.damage_formula, True, (220, 220, 220))
+            screen.blit(formula_text, (formula_box_x + 10, formula_box_y + 35))
+
         # Display turn message (damage dealt)
         if self.turn_message and self.state in (BattleState.PLAYER_TURN, BattleState.ENEMY_TURN, BattleState.PLAYER_TURN):
             turn_text = self._message_font.render(self.turn_message, True, (255, 200, 100))
